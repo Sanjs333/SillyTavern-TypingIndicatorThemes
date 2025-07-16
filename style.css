@@ -1,0 +1,40 @@
+.typing_indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    z-index: 100;
+    width: max-content;
+    margin: 0.5rem auto;
+}
+
+.typing_indicator:not(.typing_indicator_floating) {
+    order: 9999;
+}
+
+.typing_indicator .svg_dots {
+    display: inline-flex;
+    align-items: center;
+}
+
+.typing_indicator_floating {
+    position: absolute !important;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    z-index: 110;
+}
+
+.typing_indicator.typing_indicator_full_width {
+    width: auto;
+    max-width: none;
+    border-radius: 8px;
+    margin: 5px 0;
+}
+
+@media (max-width: 768px) {
+    .typing_indicator {
+        margin: 0.25rem auto;
+    }
+}

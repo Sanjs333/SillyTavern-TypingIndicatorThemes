@@ -1,0 +1,15 @@
+{
+    "display_name": "Typing Indicator Themes",
+    "loading_order": 777,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Sanjs333",
+    "version": "1.8.0",
+    "homePage": "https://github.com/Sanjs333/SillyTavern-TypingIndicatorThemes",
+    "auto_update": true,
+    "i18n": {
+        "zh-cn": "zh-cn.json"
+    }
+}
