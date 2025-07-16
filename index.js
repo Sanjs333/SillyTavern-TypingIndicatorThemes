@@ -1,9 +1,9 @@
 import {
-    name2,
-    eventSource,
-    event_types,
-    isStreamingEnabled,
-    saveSettingsDebounced,
+  name2,
+  eventSource,
+  event_types,
+  isStreamingEnabled,
+  saveSettingsDebounced,
 } from "../../../../script.js";
 import { extension_settings } from "../../../extensions.js";
 import { selected_group } from "../../../group-chats.js";
@@ -462,317 +462,303 @@ const DEFAULT_THEME_CSS = `
 }`;
 
 const defaultSettings = {
-    enabled: true,
-    streaming: false,
-    showAnimation: true,
-    position: "floating_bottom",
-    selectedTextPresetId: "cat_default",
-    textPresets: [
-        {
-            id: "cat_default",
-            name: t`Cat Theme`,
-            text: `...🐈‍⬛‧˚🐾✧{{char}}回复中`,
-        },
-        {
-            id: "original",
-            name: "SillyTavern Style",
-            text: `{{char}} is typing...`,
-        },
-        {
-            id: "player_love_you",
-            name: "《𝙇𝙤𝙫𝙚 𝙮𝙤𝙪》播放器",
-            text: `{{char}}'s Radio <br>正在播放《𝙇𝙤𝙫𝙚 𝙮𝙤𝙪》━●──5:20<br>⇆ㅤㅤ  ㅤ◁ㅤ  ㅤ❚❚ㅤ  ㅤ▷ㅤㅤㅤ↻`,
-        },
-        {
-            id: "pixel_blackboard",
-            name: "像素小黑板",
-            text: `<pre id="kaomoji-indicator">\n    ∧,,∧      <span class="heart-sparkle">♡</span>\n   ( •ω• ) <span class="heart-breath">♡</span>\n┏-∪-∪━━━━━━┓\n│ <span class="char-name">{{char}}</span>\n│ 在码字了<span class="typing-dots">...</span>      ｜\n┗━━━━━━━━━┛\n</pre>`,
-        },
-        {
-            id: "retro_pgear",
-            name: "复古P-GEAR",
-            text: `<div id="pixel-player">\n    <div class="player-header">\n        <span>{{char}}'s P-GEAR</span>\n        <div class="header-lights">\n            <i class="light-red"></i><i class="light-green"></i>\n        </div>\n    </div>\n    <div class="player-screen">\n        <div class="track-info">\n            <span class="track-title">>> ANALYZING INPUT...</span>\n        </div>\n        <div class="progress-bar">\n            <div class="progress-line"></div>\n            <div class="progress-dot"></div>\n            <span class="time">LOADING</span>\n        </div>\n    </div>\n    <div class="player-controls">\n        <div class="d-pad-container">\n            <div class="d-pad">\n                <div class="d-pad-center"></div>\n            </div>\n        </div>\n        <div class="ab-select-start-container">\n            <span class="btn-a">A</span>\n            <span class="btn-b">B</span>\n            <span class="btn-select">SELECT</span>\n            <span class="btn-start">START</span>\n        </div>\n    </div>\n</div>`,
-        },
-        {
-            id: "pixel_mint_green",
-            name: "像素薄荷绿",
-            text: `<div class="radio-theme-wrapper">\n  <div class="player-container">\n    <img class="background-pixel-art" src="https://i.imgur.com/WOlrha3.png" alt="Radio Background">\n    <div class="top-panel">\n      <div class="title">{{char}}'s Radio</div>\n    </div>\n    <div class="main-content">\n      <div class="now-playing-line">\n        <span class="music-note">♪</span> Now Playing <span class="music-note">♪</span>\n      </div>\n      <div class="song-title">《Love you》</div>\n      <div class="progress-bar-container">\n        <div class="progress-track">\n          <div class="progress-thumb">\n            <svg width="100%" height="100%" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated; shape-rendering: crispEdges;"><path d="M4 1C2.34315 1 1 2.34315 1 4C1 5.48422 1.83883 7.21854 3.23607 8.61577C4.6333 10.013 6.43585 11.2332 8 12.3588C9.56415 11.2332 11.3667 10.013 12.7639 8.61577C14.1612 7.21854 15 5.48422 15 4C15 2.34315 13.6569 1 12 1C10.3431 1 9 2.34315 9 4H7C7 2.34315 5.65685 1 4 1Z" fill="#FF7BAC" stroke="#FFFFFF" stroke-width="2"/></svg>\n          </div>\n        </div>\n        <div class="timestamp">5:20</div>\n      </div>\n    </div>\n    <div class="bottom-panel">\n      <div class="controls-container">\n        <div class="control-btn small-btn"><span>⇆</span></div>\n        <div class="control-btn"><span>ᐊ</span></div>\n        <div class="control-btn play-pause-btn"><span>❚❚</span></div>\n        <div class="control-btn"><span>ᐅ</span></div>\n        <div class="control-btn small-btn"><span>↻</span></div>\n      </div>\n    </div>\n  </div>\n</div>`,
-        },
-        {
-            id: "heartbeat_loading",
-            name: "心跳加载中",
-            text: `<div class="pixel-heart-indicator">\n    <img class="bg-image" src="https://i.imgur.com/VsLl9fw.png" alt="Typing Indicator Background">\n    <div class="content-wrapper">\n        <svg class="loading-heart-svg" viewBox="0 0 100 90">\n            <path class="heart-path-bg" d="M50 90 L0 50 L0 35 L30 15 L50 30 L70 15 L100 35 L100 50 Z"/>\n            <path class="heart-path-fg" d="M50 90 L0 50 L0 35 L30 15 L50 30 L70 15 L100 35 L100 50 Z"/>\n        </svg>\n        <div class="text-container">\n            <div class="line line1"><span class="typing-text char-name-line">{{char}}</span></div>\n            <div class="line line2"><span class="typing-text">的心跳</span></div>\n            <div class="line line3"><span class="typing-text">加载中</span></div>\n            <div class="line line4"></div>\n        </div>\n        <div class="floating-particles">\n            <span></span><span></span><span></span>\n        </div>\n    </div>\n</div>`,
-        },
-    ],
-    selectedThemeId: "default",
-    themes: [
-        {
-            id: "default",
-            name: t`Default`,
-            css: DEFAULT_THEME_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "transparent",
-            name: t`Transparent Theme`,
-            css: TRANSPARENT_THEME_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "soft_pink_cloud",
-            name: t`柔粉云朵`,
-            css: SOFT_PINK_CLOUD_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "pixel_blackboard_style",
-            name: "像素小黑板-美化",
-            css: PIXEL_BLACKBOARD_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "retro_pgear_style",
-            name: "复古P-GEAR-美化",
-            css: RETRO_PGEAR_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "pixel_mint_green_style",
-            name: "像素薄荷绿-美化",
-            css: PIXEL_MINT_GREEN_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "heartbeat_loading_style",
-            name: "心跳加载中-美化",
-            css: HEARTBEAT_LOADING_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "crystal",
-            name: t`Crystal Theme (by 长青青)`,
-            css: CRYSTAL_THEME_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "bubble",
-            name: t`Bubble Theme (by 长青青)`,
-            css: BUBBLE_THEME_CSS,
-            isBuiltIn: true,
-        },
-        {
-            id: "vine_green",
-            name: t`Vine Green (by 长青青)`,
-            css: VINE_GREEN_THEME_CSS,
-            isBuiltIn: true,
-        },
-    ],
+  enabled: true,
+  streaming: false,
+  showAnimation: true,
+  position: "floating_bottom",
+  selectedTextPresetId: "cat_default",
+  textPresets: [
+    {
+      id: "cat_default",
+      name: t`Cat Theme`,
+      text: `...🐈‍⬛‧˚🐾✧{{char}}回复中`,
+    },
+    {
+      id: "original",
+      name: "SillyTavern Style",
+      text: `{{char}} is typing...`,
+    },
+    {
+      id: "player_love_you",
+      name: "《𝙇𝙤𝙫𝙚 𝙮𝙤𝙪》播放器",
+      text: `{{char}}'s Radio <br>正在播放《𝙇𝙤𝙫𝙚 𝙮𝙤𝙪》━●──5:20<br>⇆ㅤㅤ  ㅤ◁ㅤ  ㅤ❚❚ㅤ  ㅤ▷ㅤㅤㅤ↻`,
+    },
+    {
+      id: "pixel_blackboard",
+      name: "像素小黑板",
+      text: `<pre id="kaomoji-indicator">\n    ∧,,∧      <span class="heart-sparkle">♡</span>\n   ( •ω• ) <span class="heart-breath">♡</span>\n┏-∪-∪━━━━━━┓\n│ <span class="char-name">{{char}}</span>\n│ 在码字了<span class="typing-dots">...</span>      ｜\n┗━━━━━━━━━┛\n</pre>`,
+    },
+    {
+      id: "retro_pgear",
+      name: "复古P-GEAR",
+      text: `<div id="pixel-player">\n    <div class="player-header">\n        <span>{{char}}'s P-GEAR</span>\n        <div class="header-lights">\n            <i class="light-red"></i><i class="light-green"></i>\n        </div>\n    </div>\n    <div class="player-screen">\n        <div class="track-info">\n            <span class="track-title">>> ANALYZING INPUT...</span>\n        </div>\n        <div class="progress-bar">\n            <div class="progress-line"></div>\n            <div class="progress-dot"></div>\n            <span class="time">LOADING</span>\n        </div>\n    </div>\n    <div class="player-controls">\n        <div class="d-pad-container">\n            <div class="d-pad">\n                <div class="d-pad-center"></div>\n            </div>\n        </div>\n        <div class="ab-select-start-container">\n            <span class="btn-a">A</span>\n            <span class="btn-b">B</span>\n            <span class="btn-select">SELECT</span>\n            <span class="btn-start">START</span>\n        </div>\n    </div>\n</div>`,
+    },
+    {
+      id: "pixel_mint_green",
+      name: "像素薄荷绿",
+      text: `<div class="radio-theme-wrapper">\n  <div class="player-container">\n    <img class="background-pixel-art" src="https://i.imgur.com/WOlrha3.png" alt="Radio Background">\n    <div class="top-panel">\n      <div class="title">{{char}}'s Radio</div>\n    </div>\n    <div class="main-content">\n      <div class="now-playing-line">\n        <span class="music-note">♪</span> Now Playing <span class="music-note">♪</span>\n      </div>\n      <div class="song-title">《Love you》</div>\n      <div class="progress-bar-container">\n        <div class="progress-track">\n          <div class="progress-thumb">\n            <svg width="100%" height="100%" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated; shape-rendering: crispEdges;"><path d="M4 1C2.34315 1 1 2.34315 1 4C1 5.48422 1.83883 7.21854 3.23607 8.61577C4.6333 10.013 6.43585 11.2332 8 12.3588C9.56415 11.2332 11.3667 10.013 12.7639 8.61577C14.1612 7.21854 15 5.48422 15 4C15 2.34315 13.6569 1 12 1C10.3431 1 9 2.34315 9 4H7C7 2.34315 5.65685 1 4 1Z" fill="#FF7BAC" stroke="#FFFFFF" stroke-width="2"/></svg>\n          </div>\n        </div>\n        <div class="timestamp">5:20</div>\n      </div>\n    </div>\n    <div class="bottom-panel">\n      <div class="controls-container">\n        <div class="control-btn small-btn"><span>⇆</span></div>\n        <div class="control-btn"><span>ᐊ</span></div>\n        <div class="control-btn play-pause-btn"><span>❚❚</span></div>\n        <div class="control-btn"><span>ᐅ</span></div>\n        <div class="control-btn small-btn"><span>↻</span></div>\n      </div>\n    </div>\n  </div>\n</div>`,
+    },
+    {
+      id: "heartbeat_loading",
+      name: "心跳加载中",
+      text: `<div class="pixel-heart-indicator">\n    <img class="bg-image" src="https://i.imgur.com/VsLl9fw.png" alt="Typing Indicator Background">\n    <div class="content-wrapper">\n        <svg class="loading-heart-svg" viewBox="0 0 100 90">\n            <path class="heart-path-bg" d="M50 90 L0 50 L0 35 L30 15 L50 30 L70 15 L100 35 L100 50 Z"/>\n            <path class="heart-path-fg" d="M50 90 L0 50 L0 35 L30 15 L50 30 L70 15 L100 35 L100 50 Z"/>\n        </svg>\n        <div class="text-container">\n            <div class="line line1"><span class="typing-text char-name-line">{{char}}</span></div>\n            <div class="line line2"><span class="typing-text">的心跳</span></div>\n            <div class="line line3"><span class="typing-text">加载中</span></div>\n            <div class="line line4"></div>\n        </div>\n        <div class="floating-particles">\n            <span></span><span></span><span></span>\n        </div>\n    </div>\n</div>`,
+    },
+  ],
+  selectedThemeId: "default",
+  themes: [
+    {
+      id: "default",
+      name: t`Default`,
+      css: DEFAULT_THEME_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "transparent",
+      name: t`Transparent Theme`,
+      css: TRANSPARENT_THEME_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "soft_pink_cloud",
+      name: t`柔粉云朵`,
+      css: SOFT_PINK_CLOUD_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "pixel_blackboard_style",
+      name: "像素小黑板-美化",
+      css: PIXEL_BLACKBOARD_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "retro_pgear_style",
+      name: "复古P-GEAR-美化",
+      css: RETRO_PGEAR_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "pixel_mint_green_style",
+      name: "像素薄荷绿-美化",
+      css: PIXEL_MINT_GREEN_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "heartbeat_loading_style",
+      name: "心跳加载中-美化",
+      css: HEARTBEAT_LOADING_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "crystal",
+      name: t`Crystal Theme (by 长青青)`,
+      css: CRYSTAL_THEME_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "bubble",
+      name: t`Bubble Theme (by 长青青)`,
+      css: BUBBLE_THEME_CSS,
+      isBuiltIn: true,
+    },
+    {
+      id: "vine_green",
+      name: t`Vine Green (by 长青青)`,
+      css: VINE_GREEN_THEME_CSS,
+      isBuiltIn: true,
+    },
+  ],
 };
 
 function getSettings() {
-    if (!extension_settings[MODULE]) {
-        extension_settings[MODULE] = {};
+  if (!extension_settings[MODULE]) {
+    extension_settings[MODULE] = {};
+  }
+  const settings = extension_settings[MODULE];
+
+  const syncList = (defaultList, userList) => {
+    if (!userList || !Array.isArray(userList)) {
+      return structuredClone(defaultList);
     }
-    const settings = extension_settings[MODULE];
 
-    const syncList = (defaultList, userList, keyToCompare = "css") => {
-        if (!userList || !Array.isArray(userList)) {
-            return structuredClone(defaultList);
-        }
+    const defaultMap = new Map(defaultList.map((item) => [item.id, item]));
 
-        const defaultMap = new Map(defaultList.map((item) => [item.id, item]));
-        const userMap = new Map(userList.map((item) => [item.id, item]));
-        const finalSyncedList = [];
+    const finalSyncedList = structuredClone(userList);
+    const finalMap = new Map(finalSyncedList.map((item) => [item.id, item]));
 
-        defaultList.forEach((defaultItem) => {
-            if (userMap.has(defaultItem.id)) {
-                const userItem = userMap.get(defaultItem.id);
-                // If default item has been updated, update it for the user
-                if (
-                    defaultItem.isBuiltIn &&
-                    defaultItem[keyToCompare] !== userItem[keyToCompare]
-                ) {
-                    finalSyncedList.push(structuredClone(defaultItem));
-                } else {
-                    finalSyncedList.push(userItem);
-                }
-            } else {
-                finalSyncedList.push(structuredClone(defaultItem));
-            }
-        });
-
-        userList.forEach((userItem) => {
-            if (!defaultMap.has(userItem.id)) {
-                finalSyncedList.push(userItem);
-            }
-        });
-
-        return finalSyncedList;
-    };
-
-    settings.themes = syncList(defaultSettings.themes, settings.themes, "css");
-    settings.textPresets = syncList(
-        defaultSettings.textPresets,
-        settings.textPresets,
-        "text"
-    );
-
-    Object.keys(defaultSettings).forEach((key) => {
-        if (
-            !["themes", "textPresets"].includes(key) &&
-            settings[key] === undefined
-        ) {
-            settings[key] = structuredClone(defaultSettings[key]);
-        }
+    defaultMap.forEach((defaultItem, id) => {
+      if (!finalMap.has(id)) {
+        finalSyncedList.push(structuredClone(defaultItem));
+      }
     });
 
-    return settings;
+    finalSyncedList.forEach((finalItem) => {
+      if (finalItem.isBuiltIn && defaultMap.has(finalItem.id)) {
+        const defaultItem = defaultMap.get(finalItem.id);
+        if (finalItem.name !== defaultItem.name) {
+          finalItem.name = defaultItem.name;
+        }
+      }
+    });
+
+    return finalSyncedList;
+  };
+
+  settings.themes = syncList(defaultSettings.themes, settings.themes, "css");
+  settings.textPresets = syncList(
+    defaultSettings.textPresets,
+    settings.textPresets,
+    "text"
+  );
+
+  Object.keys(defaultSettings).forEach((key) => {
+    if (
+      !["themes", "textPresets"].includes(key) &&
+      settings[key] === undefined
+    ) {
+      settings[key] = structuredClone(defaultSettings[key]);
+    }
+  });
+
+  return settings;
 }
 
 function applyTheme(themeId) {
-    const settings = getSettings();
-    const theme = settings.themes.find((t) => t.id === themeId);
-    let oldStyleTag = document.getElementById(THEME_STYLE_ID);
-    if (oldStyleTag) oldStyleTag.remove();
-    if (!theme || !theme.css) return;
+  const settings = getSettings();
+  const theme = settings.themes.find((t) => t.id === themeId);
+  let oldStyleTag = document.getElementById(THEME_STYLE_ID);
+  if (oldStyleTag) oldStyleTag.remove();
+  if (!theme || !theme.css) return;
 
-    const styleTag = document.createElement("style");
-    styleTag.id = THEME_STYLE_ID;
-    styleTag.innerHTML = theme.css;
-    document.head.appendChild(styleTag);
+  const styleTag = document.createElement("style");
+  styleTag.id = THEME_STYLE_ID;
+  styleTag.innerHTML = theme.css;
+  document.head.appendChild(styleTag);
 }
 
 function showTypingIndicator(type, _args, dryRun) {
-    const settings = getSettings();
-    if (!settings.enabled || dryRun || ["quiet", "impersonate"].includes(type))
-        return;
-    if (!name2 || (!settings.streaming && isStreamingEnabled())) return;
-    if (selected_group && !isStreamingEnabled()) return;
+  const settings = getSettings();
+  if (!settings.enabled || dryRun || ["quiet", "impersonate"].includes(type))
+    return;
+  if (!name2 || (!settings.streaming && isStreamingEnabled())) return;
+  if (selected_group && !isStreamingEnabled()) return;
 
-    hideTypingIndicator();
+  hideTypingIndicator();
 
-    let parentContainer;
-    const isAboveInput = ["above_input", "full_width_banner"].includes(
-        settings.position
-    );
-    if (settings.position === "floating_bottom") {
-        parentContainer = document.body;
-    } else {
-        parentContainer = isAboveInput
-            ? document.getElementById("send_form")
-            : document.getElementById("chat");
-    }
-    if (!parentContainer) return;
+  let parentContainer;
+  const isAboveInput = ["above_input", "full_width_banner"].includes(
+    settings.position
+  );
+  if (settings.position === "floating_bottom") {
+    parentContainer = document.body;
+  } else {
+    parentContainer = isAboveInput
+      ? document.getElementById("send_form")
+      : document.getElementById("chat");
+  }
+  if (!parentContainer) return;
 
-    const preset =
-        settings.textPresets.find(
-            (p) => p.id === settings.selectedTextPresetId
-        ) || settings.textPresets[0];
-    const baseText = preset.text.replace(/\{\{char\}\}/g, name2);
-    const svgAnimation = `
+  const preset =
+    settings.textPresets.find((p) => p.id === settings.selectedTextPresetId) ||
+    settings.textPresets[0];
+  const baseText = preset.text.replace(/\{\{char\}\}/g, name2);
+  const svgAnimation = `
         <span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor">
         <style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style>
         <circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
 
-    const htmlContent = `<span class="typing_indicator_text">${baseText}</span>${
-        settings.showAnimation ? svgAnimation : ""
-    }`;
+  const htmlContent = `<span class="typing_indicator_text">${baseText}</span>${
+    settings.showAnimation ? svgAnimation : ""
+  }`;
 
-    let typingIndicator = document.createElement("div");
-    typingIndicator.id = "typing_indicator";
-    typingIndicator.classList.add("typing_indicator");
-    if (isAboveInput)
-        typingIndicator.classList.add("typing_indicator_above_input");
-    if (settings.position === "full_width_banner")
-        typingIndicator.classList.add("typing_indicator_full_width");
-    if (settings.position === "floating_bottom") {
-        typingIndicator.classList.add("typing_indicator_floating");
-        const sendForm = document.getElementById("send_form");
-        const memoryTable = document.getElementById("tableStatusContainer");
-        let bottomOffset = 1;
-        if (sendForm) bottomOffset += sendForm.offsetHeight;
-        if (memoryTable && getComputedStyle(memoryTable).display !== "none")
-            bottomOffset += memoryTable.offsetHeight;
-        typingIndicator.style.bottom = `${bottomOffset}px`;
+  let typingIndicator = document.createElement("div");
+  typingIndicator.id = "typing_indicator";
+  typingIndicator.classList.add("typing_indicator");
+  if (isAboveInput)
+    typingIndicator.classList.add("typing_indicator_above_input");
+  if (settings.position === "full_width_banner")
+    typingIndicator.classList.add("typing_indicator_full_width");
+  if (settings.position === "floating_bottom") {
+    typingIndicator.classList.add("typing_indicator_floating");
+    const sendForm = document.getElementById("send_form");
+    const memoryTable = document.getElementById("tableStatusContainer");
+    let bottomOffset = 1;
+    if (sendForm) bottomOffset += sendForm.offsetHeight;
+    if (memoryTable && getComputedStyle(memoryTable).display !== "none")
+      bottomOffset += memoryTable.offsetHeight;
+    typingIndicator.style.bottom = `${bottomOffset}px`;
+  }
+  typingIndicator.innerHTML = htmlContent;
+  $(typingIndicator).hide();
+
+  if (isAboveInput)
+    parentContainer.parentNode.insertBefore(typingIndicator, parentContainer);
+  else parentContainer.appendChild(typingIndicator);
+
+  const chat = document.getElementById("chat");
+  const wasChatScrolledDown =
+    Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
+
+  $(typingIndicator).show(() => {
+    if (
+      !isAboveInput &&
+      settings.position !== "floating_bottom" &&
+      wasChatScrolledDown
+    ) {
+      chat.scrollTop = chat.scrollHeight;
     }
-    typingIndicator.innerHTML = htmlContent;
-    $(typingIndicator).hide();
-
-    if (isAboveInput)
-        parentContainer.parentNode.insertBefore(
-            typingIndicator,
-            parentContainer
-        );
-    else parentContainer.appendChild(typingIndicator);
-
-    const chat = document.getElementById("chat");
-    const wasChatScrolledDown =
-        Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
-
-    $(typingIndicator).show(() => {
-        if (
-            !isAboveInput &&
-            settings.position !== "floating_bottom" &&
-            wasChatScrolledDown
-        ) {
-            chat.scrollTop = chat.scrollHeight;
-        }
-    });
+  });
 }
 
 function hideTypingIndicator() {
-    const typingIndicator = document.getElementById("typing_indicator");
-    if (typingIndicator)
-        $(typingIndicator).hide(() => typingIndicator.remove());
+  const typingIndicator = document.getElementById("typing_indicator");
+  if (typingIndicator) $(typingIndicator).hide(() => typingIndicator.remove());
 }
 
 function addExtensionSettings() {
-    const settings = getSettings();
-    const container = document.getElementById("extensions_settings");
-    const section = document.createElement("div");
-    section.id = "typing_indicator_settings";
+  const settings = getSettings();
+  const container = document.getElementById("extensions_settings");
+  const section = document.createElement("div");
+  section.id = "typing_indicator_settings";
 
-    const render = (preserveDrawerState = false) => {
-        const drawerToggle = section.querySelector(".inline-drawer-toggle");
-        const isDrawerOpen =
-            preserveDrawerState &&
-            drawerToggle &&
-            drawerToggle.classList.contains("open");
+  const render = (preserveDrawerState = false) => {
+    const drawerToggle = section.querySelector(".inline-drawer-toggle");
+    const isDrawerOpen =
+      preserveDrawerState &&
+      drawerToggle &&
+      drawerToggle.classList.contains("open");
 
-        section.innerHTML = `
+    section.innerHTML = `
             <div class="inline-drawer"><div class="inline-drawer-toggle inline-drawer-header"><b>${t`Typing Indicator Themes`}</b><div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div></div>
             <div class="inline-drawer-content" style="display: none; flex-direction: column; gap: 15px;">
                 <div>
                     <label class="checkbox_label"><input type="checkbox" id="ti_enabled" ${
-                        settings.enabled ? "checked" : ""
+                      settings.enabled ? "checked" : ""
                     }>${t`Enabled`}</label>
                     <label class="checkbox_label"><input type="checkbox" id="ti_streaming" ${
-                        settings.streaming ? "checked" : ""
+                      settings.streaming ? "checked" : ""
                     }>${t`Show if streaming`}</label>
                     <label class="checkbox_label"><input type="checkbox" id="ti_show_animation" ${
-                        settings.showAnimation ? "checked" : ""
+                      settings.showAnimation ? "checked" : ""
                     }>${t`Show typing animation`}</label>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <label for="ti_position">${t`Indicator Position`}:</label>
                     <select id="ti_position" class="text_pole" style="flex-grow: 1;">
                         <option value="floating_bottom" ${
-                            settings.position === "floating_bottom"
-                                ? "selected"
-                                : ""
+                          settings.position === "floating_bottom"
+                            ? "selected"
+                            : ""
                         }>${t`Bottom of Chat (Floating)`}</option>
                         <option value="bottom" ${
-                            settings.position === "bottom" ? "selected" : ""
+                          settings.position === "bottom" ? "selected" : ""
                         }>${t`Bottom of Chat (Compact)`}</option>
                         <option value="above_input" ${
-                            settings.position === "above_input"
-                                ? "selected"
-                                : ""
+                          settings.position === "above_input" ? "selected" : ""
                         }>${t`Above Input Bar (Compact)`}</option>
                         <option value="full_width_banner" ${
-                            settings.position === "full_width_banner"
-                                ? "selected"
-                                : ""
+                          settings.position === "full_width_banner"
+                            ? "selected"
+                            : ""
                         }>${t`Above Input Bar (Full-Width Banner)`}</option>
                     </select>
                 </div><hr>
@@ -802,314 +788,280 @@ function addExtensionSettings() {
                 </div>
             </div></div>`;
 
-        container.appendChild(section);
+    container.appendChild(section);
 
-        const tiPresetSelect = section.querySelector("#ti_preset_select");
-        const tiThemeSelect = section.querySelector("#ti_theme_select");
-        const tiPresetText = section.querySelector("#ti_preset_text");
-        const tiThemeCss = section.querySelector("#ti_theme_css");
-        const newDrawerToggle = section.querySelector(".inline-drawer-toggle");
+    const tiPresetSelect = section.querySelector("#ti_preset_select");
+    const tiThemeSelect = section.querySelector("#ti_theme_select");
+    const tiPresetText = section.querySelector("#ti_preset_text");
+    const tiThemeCss = section.querySelector("#ti_theme_css");
+    const newDrawerToggle = section.querySelector(".inline-drawer-toggle");
 
-        const populatePresets = () => {
-            const currentId = settings.selectedTextPresetId;
-            tiPresetSelect.innerHTML = settings.textPresets
-                .map(
-                    (p) =>
-                        `<option value="${p.id}" ${
-                            p.id === currentId ? "selected" : ""
-                        }>${p.name}</option>`
-                )
-                .join("");
-            const selectedPreset =
-                settings.textPresets.find((p) => p.id === currentId) ||
-                settings.textPresets[0];
-            tiPresetText.value = selectedPreset.text;
-            if (settings.selectedTextPresetId !== selectedPreset.id)
-                settings.selectedTextPresetId = selectedPreset.id;
-        };
-        const populateThemes = () => {
-            const currentId = settings.selectedThemeId;
-            tiThemeSelect.innerHTML = settings.themes
-                .map(
-                    (theme) =>
-                        `<option value="${theme.id}" ${
-                            theme.id === currentId ? "selected" : ""
-                        }>${theme.name}</option>`
-                )
-                .join("");
-            const selectedTheme =
-                settings.themes.find((theme) => theme.id === currentId) ||
-                settings.themes[0];
-            tiThemeCss.value = selectedTheme.css;
-            if (settings.selectedThemeId !== selectedTheme.id)
-                settings.selectedThemeId = selectedTheme.id;
-        };
-
-        populatePresets();
-        populateThemes();
-
-        if (isDrawerOpen) {
-            newDrawerToggle.classList.add("open");
-            section.querySelector(".inline-drawer-content").style.display =
-                "flex";
-        }
-
-        section.querySelector("#ti_enabled").addEventListener("change", (e) => {
-            settings.enabled = e.target.checked;
-            saveSettingsDebounced();
-        });
-        section
-            .querySelector("#ti_streaming")
-            .addEventListener("change", (e) => {
-                settings.streaming = e.target.checked;
-                saveSettingsDebounced();
-            });
-        section
-            .querySelector("#ti_show_animation")
-            .addEventListener("change", (e) => {
-                settings.showAnimation = e.target.checked;
-                saveSettingsDebounced();
-            });
-        section
-            .querySelector("#ti_position")
-            .addEventListener("change", (e) => {
-                settings.position = e.target.value;
-                saveSettingsDebounced();
-            });
-
-        tiPresetSelect.addEventListener("change", () => {
-            settings.selectedTextPresetId = tiPresetSelect.value;
-            populatePresets();
-            saveSettingsDebounced();
-        });
-        section
-            .querySelector("#ti_preset_save")
-            .addEventListener("click", () => {
-                const p = settings.textPresets.find(
-                    (p) => p.id === tiPresetSelect.value
-                );
-                if (p) {
-                    p.text = tiPresetText.value;
-                    saveSettingsDebounced();
-                    toastr.success(`${t`Preset`} "${p.name}" ${t`saved`}.`);
-                }
-            });
-        section
-            .querySelector("#ti_preset_add")
-            .addEventListener("click", () => {
-                const n = prompt(t`Preset Name`);
-                if (n) {
-                    const p = {
-                        id: Date.now().toString(),
-                        name: n,
-                        text: `...✧{{char}}回复中...`,
-                    };
-                    settings.textPresets.push(p);
-                    settings.selectedTextPresetId = p.id;
-                    populatePresets();
-                    saveSettingsDebounced();
-                }
-            });
-        section
-            .querySelector("#ti_preset_del")
-            .addEventListener("click", () => {
-                if (settings.textPresets.length <= 1) {
-                    toastr.warning(t`Cannot delete the last preset.`);
-                    return;
-                }
-                const p = settings.textPresets.find(
-                    (p) => p.id === tiPresetSelect.value
-                );
-                const msg = `你确定要删除方案 "${p?.name}" 吗？`;
-                if (confirm(msg)) {
-                    settings.textPresets = settings.textPresets.filter(
-                        (pr) => pr.id !== p.id
-                    );
-                    settings.selectedTextPresetId = settings.textPresets[0].id;
-                    populatePresets();
-                    saveSettingsDebounced();
-                }
-            });
-
-        tiThemeSelect.addEventListener("change", () => {
-            settings.selectedThemeId = tiThemeSelect.value;
-            populateThemes();
-            applyTheme(settings.selectedThemeId);
-            saveSettingsDebounced();
-        });
-        section
-            .querySelector("#ti_theme_save")
-            .addEventListener("click", () => {
-                const themeToSave = settings.themes.find(
-                    (theme) => theme.id === tiThemeSelect.value
-                );
-                if (themeToSave) {
-                    themeToSave.css = tiThemeCss.value;
-                    applyTheme(themeToSave.id);
-                    saveSettingsDebounced();
-                    toastr.success(
-                        `${t`Theme`} "${themeToSave.name}" ${t`saved`}.`
-                    );
-                }
-            });
-        section.querySelector("#ti_theme_add").addEventListener("click", () => {
-            const n = prompt(t`Theme Name`);
-            if (n) {
-                const newTheme = {
-                    id: Date.now().toString(),
-                    name: n,
-                    css: `.typing_indicator {\n\n}`,
-                };
-                settings.themes.push(newTheme);
-                settings.selectedThemeId = newTheme.id;
-                populateThemes();
-                applyTheme(newTheme.id);
-                saveSettingsDebounced();
-            }
-        });
-        section.querySelector("#ti_theme_del").addEventListener("click", () => {
-            if (tiThemeSelect.value === "default") {
-                toastr.error(t`The default theme cannot be deleted.`);
-                return;
-            }
-            const themeToDelete = settings.themes.find(
-                (theme) => theme.id === tiThemeSelect.value
-            );
-            const msg = `你确定要删除主题 "${themeToDelete?.name}" 吗？`;
-            if (confirm(msg)) {
-                settings.themes = settings.themes.filter(
-                    (th) => th.id !== themeToDelete.id
-                );
-                settings.selectedThemeId = "default";
-                populateThemes();
-                applyTheme("default");
-                saveSettingsDebounced();
-            }
-        });
-
-        const createImportHandler = (type, list, populateFn, onImported) => {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = "application/json,.json";
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const imported = JSON.parse(event.target.result);
-                        const validation =
-                            type === "theme"
-                                ? imported.name && imported.css
-                                : imported.name && imported.text;
-                        if (!validation)
-                            throw new Error(`Invalid ${type} format.`);
-                        const newItem = {
-                            id: imported.id || Date.now().toString(),
-                            name: imported.name,
-                            ...(type === "theme"
-                                ? { css: imported.css }
-                                : { text: imported.text }),
-                        };
-                        const existingIndex = list.findIndex(
-                            (item) => item.id === newItem.id
-                        );
-                        if (existingIndex !== -1) {
-                            list[existingIndex] = newItem;
-                        } else {
-                            list.push(newItem);
-                        }
-                        onImported(newItem.id);
-                        populateFn();
-                        saveSettingsDebounced();
-
-                        const typeString =
-                            type === "theme" ? t`Theme` : t`Preset`;
-                        toastr.success(
-                            `${typeString} "${newItem.name}" ${t`imported`}.`
-                        );
-                    } catch (error) {
-                        const errorString =
-                            type === "theme"
-                                ? t`Failed to import theme`
-                                : t`Failed to import preset`;
-                        toastr.error(`${errorString}: ${error.message}`);
-                    }
-                };
-                reader.readAsText(file);
-            };
-            input.click();
-        };
-        section
-            .querySelector("#ti_preset_import")
-            .addEventListener("click", () =>
-                createImportHandler(
-                    "preset",
-                    settings.textPresets,
-                    populatePresets,
-                    (id) => (settings.selectedTextPresetId = id)
-                )
-            );
-        section
-            .querySelector("#ti_theme_import")
-            .addEventListener("click", () =>
-                createImportHandler(
-                    "theme",
-                    settings.themes,
-                    populateThemes,
-                    (id) => {
-                        settings.selectedThemeId = id;
-                        applyTheme(id);
-                    }
-                )
-            );
-
-        const createExportHandler = (type, list, selectedId) => {
-            const item = list.find((i) => i.id === selectedId);
-            if (!item) return;
-            const blob = new Blob([JSON.stringify(item, null, 2)], {
-                type: "application/json",
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${item.name.replace(/[\\/*?:"<>|]/g, "_")}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            a.remove();
-        };
-        section
-            .querySelector("#ti_preset_export")
-            .addEventListener("click", () =>
-                createExportHandler(
-                    "preset",
-                    settings.textPresets,
-                    settings.selectedTextPresetId
-                )
-            );
-        section
-            .querySelector("#ti_theme_export")
-            .addEventListener("click", () =>
-                createExportHandler(
-                    "theme",
-                    settings.themes,
-                    settings.selectedThemeId
-                )
-            );
+    const populatePresets = () => {
+      const currentId = settings.selectedTextPresetId;
+      tiPresetSelect.innerHTML = settings.textPresets
+        .map(
+          (p) =>
+            `<option value="${p.id}" ${p.id === currentId ? "selected" : ""}>${
+              p.name
+            }</option>`
+        )
+        .join("");
+      const selectedPreset =
+        settings.textPresets.find((p) => p.id === currentId) ||
+        settings.textPresets[0];
+      tiPresetText.value = selectedPreset.text;
+      if (settings.selectedTextPresetId !== selectedPreset.id)
+        settings.selectedTextPresetId = selectedPreset.id;
+    };
+    const populateThemes = () => {
+      const currentId = settings.selectedThemeId;
+      tiThemeSelect.innerHTML = settings.themes
+        .map(
+          (theme) =>
+            `<option value="${theme.id}" ${
+              theme.id === currentId ? "selected" : ""
+            }>${theme.name}</option>`
+        )
+        .join("");
+      const selectedTheme =
+        settings.themes.find((theme) => theme.id === currentId) ||
+        settings.themes[0];
+      tiThemeCss.value = selectedTheme.css;
+      if (settings.selectedThemeId !== selectedTheme.id)
+        settings.selectedThemeId = selectedTheme.id;
     };
 
-    render();
+    populatePresets();
+    populateThemes();
+
+    if (isDrawerOpen) {
+      newDrawerToggle.classList.add("open");
+      section.querySelector(".inline-drawer-content").style.display = "flex";
+    }
+
+    section.querySelector("#ti_enabled").addEventListener("change", (e) => {
+      settings.enabled = e.target.checked;
+      saveSettingsDebounced();
+    });
+    section.querySelector("#ti_streaming").addEventListener("change", (e) => {
+      settings.streaming = e.target.checked;
+      saveSettingsDebounced();
+    });
+    section
+      .querySelector("#ti_show_animation")
+      .addEventListener("change", (e) => {
+        settings.showAnimation = e.target.checked;
+        saveSettingsDebounced();
+      });
+    section.querySelector("#ti_position").addEventListener("change", (e) => {
+      settings.position = e.target.value;
+      saveSettingsDebounced();
+    });
+
+    tiPresetSelect.addEventListener("change", () => {
+      settings.selectedTextPresetId = tiPresetSelect.value;
+      populatePresets();
+      saveSettingsDebounced();
+    });
+    section.querySelector("#ti_preset_save").addEventListener("click", () => {
+      const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
+      if (p) {
+        p.text = tiPresetText.value;
+        saveSettingsDebounced();
+        toastr.success(`${t`Preset`} "${p.name}" ${t`saved`}.`);
+      }
+    });
+    section.querySelector("#ti_preset_add").addEventListener("click", () => {
+      const n = prompt(t`Preset Name`);
+      if (n) {
+        const p = {
+          id: Date.now().toString(),
+          name: n,
+          text: `...✧{{char}}回复中...`,
+        };
+        settings.textPresets.push(p);
+        settings.selectedTextPresetId = p.id;
+        populatePresets();
+        saveSettingsDebounced();
+      }
+    });
+    section.querySelector("#ti_preset_del").addEventListener("click", () => {
+      if (settings.textPresets.length <= 1) {
+        toastr.warning(t`Cannot delete the last preset.`);
+        return;
+      }
+      const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
+      const msg = `你确定要删除方案 "${p?.name}" 吗？`;
+      if (confirm(msg)) {
+        settings.textPresets = settings.textPresets.filter(
+          (pr) => pr.id !== p.id
+        );
+        settings.selectedTextPresetId = settings.textPresets[0].id;
+        populatePresets();
+        saveSettingsDebounced();
+      }
+    });
+
+    tiThemeSelect.addEventListener("change", () => {
+      settings.selectedThemeId = tiThemeSelect.value;
+      populateThemes();
+      applyTheme(settings.selectedThemeId);
+      saveSettingsDebounced();
+    });
+    section.querySelector("#ti_theme_save").addEventListener("click", () => {
+      const themeToSave = settings.themes.find(
+        (theme) => theme.id === tiThemeSelect.value
+      );
+      if (themeToSave) {
+        themeToSave.css = tiThemeCss.value;
+        applyTheme(themeToSave.id);
+        saveSettingsDebounced();
+        toastr.success(`${t`Theme`} "${themeToSave.name}" ${t`saved`}.`);
+      }
+    });
+    section.querySelector("#ti_theme_add").addEventListener("click", () => {
+      const n = prompt(t`Theme Name`);
+      if (n) {
+        const newTheme = {
+          id: Date.now().toString(),
+          name: n,
+          css: `.typing_indicator {\n\n}`,
+        };
+        settings.themes.push(newTheme);
+        settings.selectedThemeId = newTheme.id;
+        populateThemes();
+        applyTheme(newTheme.id);
+        saveSettingsDebounced();
+      }
+    });
+    section.querySelector("#ti_theme_del").addEventListener("click", () => {
+      if (tiThemeSelect.value === "default") {
+        toastr.error(t`The default theme cannot be deleted.`);
+        return;
+      }
+      const themeToDelete = settings.themes.find(
+        (theme) => theme.id === tiThemeSelect.value
+      );
+      const msg = `你确定要删除主题 "${themeToDelete?.name}" 吗？`;
+      if (confirm(msg)) {
+        settings.themes = settings.themes.filter(
+          (th) => th.id !== themeToDelete.id
+        );
+        settings.selectedThemeId = "default";
+        populateThemes();
+        applyTheme("default");
+        saveSettingsDebounced();
+      }
+    });
+
+    const createImportHandler = (type, list, populateFn, onImported) => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json,.json";
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            const validation =
+              type === "theme"
+                ? imported.name && imported.css
+                : imported.name && imported.text;
+            if (!validation) throw new Error(`Invalid ${type} format.`);
+            const newItem = {
+              id: imported.id || Date.now().toString(),
+              name: imported.name,
+              ...(type === "theme"
+                ? { css: imported.css }
+                : { text: imported.text }),
+            };
+            const existingIndex = list.findIndex(
+              (item) => item.id === newItem.id
+            );
+            if (existingIndex !== -1) {
+              list[existingIndex] = newItem;
+            } else {
+              list.push(newItem);
+            }
+            onImported(newItem.id);
+            populateFn();
+            saveSettingsDebounced();
+
+            const typeString = type === "theme" ? t`Theme` : t`Preset`;
+            toastr.success(`${typeString} "${newItem.name}" ${t`imported`}.`);
+          } catch (error) {
+            const errorString =
+              type === "theme"
+                ? t`Failed to import theme`
+                : t`Failed to import preset`;
+            toastr.error(`${errorString}: ${error.message}`);
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    };
+    section
+      .querySelector("#ti_preset_import")
+      .addEventListener("click", () =>
+        createImportHandler(
+          "preset",
+          settings.textPresets,
+          populatePresets,
+          (id) => (settings.selectedTextPresetId = id)
+        )
+      );
+    section.querySelector("#ti_theme_import").addEventListener("click", () =>
+      createImportHandler("theme", settings.themes, populateThemes, (id) => {
+        settings.selectedThemeId = id;
+        applyTheme(id);
+      })
+    );
+
+    const createExportHandler = (type, list, selectedId) => {
+      const item = list.find((i) => i.id === selectedId);
+      if (!item) return;
+      const blob = new Blob([JSON.stringify(item, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${item.name.replace(/[\\/*?:"<>|]/g, "_")}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      a.remove();
+    };
+    section
+      .querySelector("#ti_preset_export")
+      .addEventListener("click", () =>
+        createExportHandler(
+          "preset",
+          settings.textPresets,
+          settings.selectedTextPresetId
+        )
+      );
+    section
+      .querySelector("#ti_theme_export")
+      .addEventListener("click", () =>
+        createExportHandler("theme", settings.themes, settings.selectedThemeId)
+      );
+  };
+
+  render();
 }
 
 (function () {
-    applyTheme(getSettings().selectedThemeId);
-    const showIndicatorEvents = [event_types.GENERATION_AFTER_COMMANDS];
-    const hideIndicatorEvents = [
-        event_types.GENERATION_STOPPED,
-        event_types.GENERATION_ENDED,
-        event_types.CHAT_CHANGED,
-    ];
-    showIndicatorEvents.forEach((e) => eventSource.on(e, showTypingIndicator));
-    hideIndicatorEvents.forEach((e) => eventSource.on(e, hideTypingIndicator));
-    addExtensionSettings();
+  applyTheme(getSettings().selectedThemeId);
+  const showIndicatorEvents = [event_types.GENERATION_AFTER_COMMANDS];
+  const hideIndicatorEvents = [
+    event_types.GENERATION_STOPPED,
+    event_types.GENERATION_ENDED,
+    event_types.CHAT_CHANGED,
+  ];
+  showIndicatorEvents.forEach((e) => eventSource.on(e, showTypingIndicator));
+  hideIndicatorEvents.forEach((e) => eventSource.on(e, hideTypingIndicator));
+  addExtensionSettings();
 })();
