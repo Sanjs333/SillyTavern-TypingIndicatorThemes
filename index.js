@@ -640,7 +640,12 @@ function showTypingIndicator(type, _args, dryRun) {
   if (!settings.enabled || dryRun || ["quiet", "impersonate"].includes(type))
     return;
   if (!name2 || (!settings.streaming && isStreamingEnabled())) return;
-  if (selected_group && !isStreamingEnabled()) return;
+  if (
+    document.getElementById("typing_indicator_template") &&
+    selected_group &&
+    !isStreamingEnabled()
+  )
+    return;
 
   hideTypingIndicator();
 
@@ -648,13 +653,11 @@ function showTypingIndicator(type, _args, dryRun) {
   const isAboveInput = ["above_input", "full_width_banner"].includes(
     settings.position
   );
-  if (settings.position === "floating_bottom") {
-    parentContainer = document.body;
-  } else {
+  if (settings.position === "floating_bottom") parentContainer = document.body;
+  else
     parentContainer = isAboveInput
       ? document.getElementById("send_form")
       : document.getElementById("chat");
-  }
   if (!parentContainer) return;
 
   const preset =
@@ -697,14 +700,16 @@ function showTypingIndicator(type, _args, dryRun) {
   const chat = document.getElementById("chat");
   const wasChatScrolledDown =
     Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
-
   $(typingIndicator).show(() => {
     if (
       !isAboveInput &&
-      settings.position !== "floating_bottom" &&
+      !settings.position === "floating_bottom" &&
       wasChatScrolledDown
     ) {
-      chat.scrollTop = chat.scrollHeight;
+      const computedStyle = getComputedStyle(typingIndicator);
+      const bottomOffset =
+        parseInt(computedStyle.bottom) + parseInt(computedStyle.marginBottom);
+      chat.scrollTop += typingIndicator.clientHeight + bottomOffset;
     }
   });
 }
