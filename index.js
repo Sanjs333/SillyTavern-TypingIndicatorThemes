@@ -642,60 +642,46 @@ function showTypingIndicator(type, _args, dryRun) {
   if (!name2 || (!settings.streaming && isStreamingEnabled())) return;
   if (selected_group && !isStreamingEnabled()) return;
 
-  hideTypingIndicator();
+  setTimeout(() => {
+    hideTypingIndicator();
 
-  let parentContainer;
-  const isAboveInput = ["above_input", "full_width_banner"].includes(
-    settings.position
-  );
-  if (settings.position === "floating_bottom") {
-    parentContainer = document.body;
-  } else {
-    parentContainer = isAboveInput
-      ? document.getElementById("send_form")
-      : document.getElementById("chat");
-  }
-  if (!parentContainer) return;
+    let parentContainer;
+    const isAboveInput = ["above_input", "full_width_banner"].includes(
+      settings.position
+    );
+    if (settings.position === "floating_bottom") {
+      parentContainer = document.body;
+    } else {
+      parentContainer = isAboveInput
+        ? document.getElementById("send_form")
+        : document.getElementById("chat");
+    }
+    if (!parentContainer) return;
 
-  const preset =
-    settings.textPresets.find((p) => p.id === settings.selectedTextPresetId) ||
-    settings.textPresets[0];
-  const baseText = preset.text.replace(/\{\{char\}\}/g, name2);
-  const svgAnimation = `
-        <span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor">
-        <style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style>
-        <circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
+    const preset =
+      settings.textPresets.find(
+        (p) => p.id === settings.selectedTextPresetId
+      ) || settings.textPresets[0];
+    const baseText = preset.text.replace(/\{\{char\}\}/g, name2);
+    const svgAnimation = `
+            <span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor">
+            <style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style>
+            <circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
 
-  const htmlContent = `<span class="typing_indicator_text">${baseText}</span>${
-    settings.showAnimation ? svgAnimation : ""
-  }`;
+    const htmlContent = `<span class="typing_indicator_text">${baseText}</span>${
+      settings.showAnimation ? svgAnimation : ""
+    }`;
 
-  let typingIndicator = document.createElement("div");
-  typingIndicator.id = "typing_indicator";
-  typingIndicator.classList.add("typing_indicator");
-  if (isAboveInput)
-    typingIndicator.classList.add("typing_indicator_above_input");
-  if (settings.position === "full_width_banner")
-    typingIndicator.classList.add("typing_indicator_full_width");
+    let typingIndicator = document.createElement("div");
+    typingIndicator.id = "typing_indicator";
+    typingIndicator.classList.add("typing_indicator");
+    if (isAboveInput)
+      typingIndicator.classList.add("typing_indicator_above_input");
+    if (settings.position === "full_width_banner")
+      typingIndicator.classList.add("typing_indicator_full_width");
 
-  typingIndicator.innerHTML = htmlContent;
-  $(typingIndicator).hide();
-
-  if (isAboveInput)
-    parentContainer.parentNode.insertBefore(typingIndicator, parentContainer);
-  else parentContainer.appendChild(typingIndicator);
-
-  const chat = document.getElementById("chat");
-  const wasChatScrolledDown =
-    Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
-
-  if (settings.position === "floating_bottom") {
-    typingIndicator.classList.add("typing_indicator_floating");
-
-    setTimeout(() => {
-      const currentIndicator = document.getElementById("typing_indicator");
-      if (!currentIndicator) return;
-
+    if (settings.position === "floating_bottom") {
+      typingIndicator.classList.add("typing_indicator_floating");
       const sendForm = document.getElementById("send_form");
       const memoryTable = document.getElementById("tableStatusContainer");
       let bottomOffset = 1;
@@ -703,19 +689,30 @@ function showTypingIndicator(type, _args, dryRun) {
       if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
         bottomOffset += memoryTable.offsetHeight;
       }
-      currentIndicator.style.bottom = `${bottomOffset}px`;
-    }, 100);
-  }
-
-  $(typingIndicator).show(() => {
-    if (
-      !isAboveInput &&
-      settings.position !== "floating_bottom" &&
-      wasChatScrolledDown
-    ) {
-      chat.scrollTop = chat.scrollHeight;
+      typingIndicator.style.bottom = `${bottomOffset}px`;
     }
-  });
+
+    typingIndicator.innerHTML = htmlContent;
+    $(typingIndicator).hide();
+
+    if (isAboveInput)
+      parentContainer.parentNode.insertBefore(typingIndicator, parentContainer);
+    else parentContainer.appendChild(typingIndicator);
+
+    const chat = document.getElementById("chat");
+    const wasChatScrolledDown =
+      Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
+
+    $(typingIndicator).show(() => {
+      if (
+        !isAboveInput &&
+        settings.position !== "floating_bottom" &&
+        wasChatScrolledDown
+      ) {
+        chat.scrollTop = chat.scrollHeight;
+      }
+    });
+  }, 0);
 }
 
 function hideTypingIndicator() {
