@@ -71,5 +71,8 @@
   "Format JSON": "格式化JSON",
   "Persistent Mode": "固定模式",
   "Unavailable in Persistent Mode": "固定模式下不可用",
-  "Theme Creation Guide": "主题创作指南"
+  "Theme Creation Guide": "主题创作指南",
+  "Restore Built-in Items": "恢复内置项",
+  "Are you sure you want to restore all built-in presets and themes? This will overwrite any changes you've made to them, but your custom-created items will not be deleted.": "你确定要恢复所有内置的文字方案和美化主题吗？这会覆盖你对内置项目的任何修改，但不会删除你自建的项目。",
+  "Built-in items have been restored to their default settings.": "内置方案和主题已恢复至默认设置。"
 }
