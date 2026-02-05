@@ -1,16 +1,16 @@
 import { default as libs } from "../../../../lib.js";
 import {
-    characters,
-    chat,
-    eventSource,
-    event_types,
-    getRequestHeaders,
-    getThumbnailUrl,
-    isStreamingEnabled,
-    name1,
-    name2,
-    saveSettingsDebounced,
-    this_chid,
+  characters,
+  chat,
+  eventSource,
+  event_types,
+  getRequestHeaders,
+  getThumbnailUrl,
+  isStreamingEnabled,
+  name1,
+  name2,
+  saveSettingsDebounced,
+  this_chid,
 } from "../../../../script.js";
 import { extension_settings } from "../../../extensions.js";
 import { selected_group } from "../../../group-chats.js";
@@ -19,38 +19,38 @@ import { user_avatar } from "../../../personas.js";
 import { power_user } from "../../../power-user.js";
 import { updateWorldInfoList } from "../../../world-info.js";
 import {
-    bubbleStyles as defaultBubbleStyles,
-    presets as defaultPresets,
-    themes as defaultThemes,
+  bubbleStyles as defaultBubbleStyles,
+  presets as defaultPresets,
+  themes as defaultThemes,
 } from "./definitions.js";
 const FPSMonitor = {
-    enabled: false,
-    frames: 0,
-    lastTime: performance.now(),
-    fps: 0,
-    element: null,
+  enabled: false,
+  frames: 0,
+  lastTime: performance.now(),
+  fps: 0,
+  element: null,
 
-    start() {
-        if (this.enabled) return;
-        this.enabled = true;
-        this.createDisplay();
-        this.loop();
-        console.log("[FPS Monitor] Started");
-    },
+  start() {
+    if (this.enabled) return;
+    this.enabled = true;
+    this.createDisplay();
+    this.loop();
+    console.log("[FPS Monitor] Started");
+  },
 
-    stop() {
-        this.enabled = false;
-        if (this.element) {
-            this.element.remove();
-            this.element = null;
-        }
-        console.log("[FPS Monitor] Stopped");
-    },
+  stop() {
+    this.enabled = false;
+    if (this.element) {
+      this.element.remove();
+      this.element = null;
+    }
+    console.log("[FPS Monitor] Stopped");
+  },
 
-    createDisplay() {
-        this.element = document.createElement("div");
-        this.element.id = "ti-fps-monitor";
-        this.element.style.cssText = `
+  createDisplay() {
+    this.element = document.createElement("div");
+    this.element.id = "ti-fps-monitor";
+    this.element.style.cssText = `
             position: fixed;
             top: 10px;
             right: 10px;
@@ -63,31 +63,31 @@ const FPSMonitor = {
             border-radius: 4px;
             pointer-events: none;
         `;
-        document.body.appendChild(this.element);
-    },
+    document.body.appendChild(this.element);
+  },
 
-    loop() {
-        if (!this.enabled) return;
+  loop() {
+    if (!this.enabled) return;
 
-        this.frames++;
-        const now = performance.now();
-        const delta = now - this.lastTime;
+    this.frames++;
+    const now = performance.now();
+    const delta = now - this.lastTime;
 
-        if (delta >= 1000) {
-            this.fps = Math.round((this.frames * 1000) / delta);
-            this.frames = 0;
-            this.lastTime = now;
+    if (delta >= 1000) {
+      this.fps = Math.round((this.frames * 1000) / delta);
+      this.frames = 0;
+      this.lastTime = now;
 
-            if (this.element) {
-                const color =
-                    this.fps >= 50 ? "#0f0" : this.fps >= 30 ? "#ff0" : "#f00";
-                this.element.style.color = color;
-                this.element.textContent = `FPS: ${this.fps}`;
-            }
-        }
+      if (this.element) {
+        const color =
+          this.fps >= 50 ? "#0f0" : this.fps >= 30 ? "#ff0" : "#f00";
+        this.element.style.color = color;
+        this.element.textContent = `FPS: ${this.fps}`;
+      }
+    }
 
-        requestAnimationFrame(() => this.loop());
-    },
+    requestAnimationFrame(() => this.loop());
+  },
 };
 
 window.TI_FPS = FPSMonitor;
@@ -97,152 +97,159 @@ let esprimaPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.0.0";
+const PLUGIN_VERSION = "3.1.0";
 const pendingMessages = new Map();
+const pendingSearches = new Map();
+const failedSearches = new Map();
+const FAILED_SEARCH_COOLDOWN = 5 * 60 * 1000;
 const BGM_REGEX = /\[bgm\](.+?)-(.+?)\[\/bgm\]/g;
 const domCache = {
-    _cache: new Map(),
-    _maxAge: 5000,
+  _cache: new Map(),
+  _maxAge: 5000,
 
-    get(selector) {
-        const cached = this._cache.get(selector);
-        if (cached && Date.now() - cached.time < this._maxAge) {
-            return cached.element;
-        }
-        const element = document.querySelector(selector);
-        if (element) {
-            this._cache.set(selector, { element, time: Date.now() });
-        }
-        return element;
-    },
+  get(selector) {
+    const cached = this._cache.get(selector);
+    if (cached && Date.now() - cached.time < this._maxAge) {
+      return cached.element;
+    }
+    const element = document.querySelector(selector);
+    if (element) {
+      this._cache.set(selector, { element, time: Date.now() });
+    }
+    return element;
+  },
 
-    invalidate(selector) {
-        if (selector) {
-            this._cache.delete(selector);
-        } else {
-            this._cache.clear();
-        }
-    },
+  invalidate(selector) {
+    if (selector) {
+      this._cache.delete(selector);
+    } else {
+      this._cache.clear();
+    }
+  },
 };
 
 function playlistsAreDifferent(oldList, newList) {
-    if (oldList === newList) return false;
-    if (!oldList || !newList) return true;
-    if (oldList.length !== newList.length) return true;
-    if (oldList.length === 0) return false;
+  if (oldList === newList) return false;
+  if (!oldList || !newList) return true;
+  if (oldList.length !== newList.length) return true;
+  if (oldList.length === 0) return false;
 
-    const firstOld = oldList[0];
-    const firstNew = newList[0];
-    const lastOld = oldList[oldList.length - 1];
-    const lastNew = newList[newList.length - 1];
+  const firstOld = oldList[0];
+  const firstNew = newList[0];
+  const lastOld = oldList[oldList.length - 1];
+  const lastNew = newList[newList.length - 1];
 
-    return (
-        firstOld?.id !== firstNew?.id ||
-        firstOld?.title !== firstNew?.title ||
-        lastOld?.id !== lastNew?.id ||
-        lastOld?.title !== lastNew?.title
-    );
+  return (
+    firstOld?.id !== firstNew?.id ||
+    firstOld?.title !== firstNew?.title ||
+    lastOld?.id !== lastNew?.id ||
+    lastOld?.title !== lastNew?.title
+  );
 }
 
 function queuePostMessage(targetWindow, message, origin = "*") {
-    if (!targetWindow) return;
-    const immediateTypes = [
-        "graceful-shutdown-request",
-        "graceful-shutdown-response",
-        "play-now",
-        "toggle-playback",
-        "context-update",
-    ];
+  if (!targetWindow) return;
+  const immediateTypes = [
+    "graceful-shutdown-request",
+    "graceful-shutdown-response",
+    "play-now",
+    "toggle-playback",
+    "context-update",
+  ];
 
-    if (immediateTypes.includes(message.type)) {
-        targetWindow.postMessage(message, origin);
-        return;
-    }
-    const key = `${message.type}`;
-    pendingMessages.set(key, { targetWindow, message, origin });
+  if (immediateTypes.includes(message.type)) {
+    targetWindow.postMessage(message, origin);
+    return;
+  }
+  const key = `${message.type}`;
+  pendingMessages.set(key, { targetWindow, message, origin });
 
-    if (!messageFlushScheduled) {
-        messageFlushScheduled = true;
-        requestAnimationFrame(() => {
-            pendingMessages.forEach(({ targetWindow, message, origin }) => {
-                try {
-                    targetWindow.postMessage(message, origin);
-                } catch (e) {}
-            });
-            pendingMessages.clear();
-            messageFlushScheduled = false;
-        });
-    }
+  if (!messageFlushScheduled) {
+    messageFlushScheduled = true;
+    requestAnimationFrame(() => {
+      pendingMessages.forEach(({ targetWindow, message, origin }) => {
+        try {
+          targetWindow.postMessage(message, origin);
+        } catch (e) {}
+      });
+      pendingMessages.clear();
+      messageFlushScheduled = false;
+    });
+  }
 }
 
 const CHANGELOG = {
-    "3.0.0": {
-        date: "2025-2-4",
-        title: {
-            zh: "指示器更新",
-            en: "Indicator Update",
-        },
-        content: {
-            zh: `
+  "3.1.0": {
+    date: "2025-2-6",
+    title: {
+      zh: "指示器更新",
+      en: "Indicator Update",
+    },
+    content: {
+      zh: `
 ### 更新内容
-- 重构了插件界面
-- 新增角色绑定专属指示器功能
-- 新增动态主题功能
-- 更新了所有内置播放器主题，新增在线搜索、听歌功能
+- 修复了歌词解析错乱的问题
+- 修复搜索结果匹配不精确问题
+- 修复编辑消息时的阻塞问题
+- 更新了创作指南
 
 ### ⚠️ 重要提示
-**内置主题已更新！** 如需使用新功能，请前往：
+1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
+
+2. **内置主题已更新！** 请前往：
 > 设置 → 工具 → **恢复内置项**
 
 - 您自己创建的主题 **不受影响**
 - ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
 - **请提问前务必确认已仔细查看过使用指南**
             `,
-            en: `
+      en: `
 ### What's New
-- Refactored the extension UI
-- Added character-specific indicator binding
-- Added dynamic themes feature
-- Player now supports **online search** and **streaming**
+- Fixed lyrics parsing display issues
+- Fixed inaccurate search result matching
+- Fixed blocking issue when editing messages
+- Updated the theme creation guide
 
 ### ⚠️ Important Notice
-**Built-in themes have been updated!** To use the new features, go to:
+1. **Backend plugin has been updated!** Please restart SillyTavern, the backend plugin will update automatically
+
+2. **Built-in themes have been updated!** Please go to:
 > Settings → Tools → **Restore Built-in Items**
 
 - Your custom-created themes are **not affected**
 - ⚠️ If you modified any built-in themes, please **export a backup** before restoring
 - **Please read the Usage Guide carefully before asking questions**
             `,
-        },
     },
+  },
 };
 
 function checkAndShowChangelog() {
-    const settings = getSettings();
-    const lastSeenVersion = settings.lastSeenVersion || "0.0.0";
+  const settings = getSettings();
+  const lastSeenVersion = settings.lastSeenVersion || "0.0.0";
 
-    if (lastSeenVersion === PLUGIN_VERSION) {
-        return;
-    }
+  if (lastSeenVersion === PLUGIN_VERSION) {
+    return;
+  }
 
-    const isZh = (power_user?.language || navigator.language || "en")
-        .toLowerCase()
-        .startsWith("zh");
+  const isZh = (power_user?.language || navigator.language || "en")
+    .toLowerCase()
+    .startsWith("zh");
 
-    const changelog = CHANGELOG[PLUGIN_VERSION];
-    if (!changelog) return;
+  const changelog = CHANGELOG[PLUGIN_VERSION];
+  if (!changelog) return;
 
-    const title = isZh ? changelog.title.zh : changelog.title.en;
-    const content = isZh ? changelog.content.zh : changelog.content.en;
+  const title = isZh ? changelog.title.zh : changelog.title.en;
+  const content = isZh ? changelog.content.zh : changelog.content.en;
 
-    const converter = new showdown.Converter({
-        tables: true,
-        strikethrough: true,
-        ghCodeBlocks: true,
-    });
-    const htmlContent = converter.makeHtml(content);
+  const converter = new showdown.Converter({
+    tables: true,
+    strikethrough: true,
+    ghCodeBlocks: true,
+  });
+  const htmlContent = converter.makeHtml(content);
 
-    const dialogHtml = `
+  const dialogHtml = `
         <dialog id="ti_changelog_dialog" style="
             max-width: 500px;
             max-height: 80vh;
@@ -284,13 +291,13 @@ function checkAndShowChangelog() {
         </dialog>
     `;
 
-    document.body.insertAdjacentHTML("beforeend", dialogHtml);
+  document.body.insertAdjacentHTML("beforeend", dialogHtml);
 
-    const dialog = document.getElementById("ti_changelog_dialog");
+  const dialog = document.getElementById("ti_changelog_dialog");
 
-    const style = document.createElement("style");
-    style.id = "ti-changelog-style";
-    style.textContent = `
+  const style = document.createElement("style");
+  style.id = "ti-changelog-style";
+  style.textContent = `
         #ti_changelog_dialog::backdrop {
             background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(4px);
@@ -326,239 +333,234 @@ function checkAndShowChangelog() {
             border-radius: 4px;
         }
     `;
-    document.head.appendChild(style);
+  document.head.appendChild(style);
 
-    dialog.showModal();
+  dialog.showModal();
 
-    const closeDialog = () => {
-        settings.lastSeenVersion = PLUGIN_VERSION;
-        saveSettingsDebounced();
-        dialog.close();
-        dialog.remove();
-        document.getElementById("ti-changelog-style")?.remove();
-    };
+  const closeDialog = () => {
+    settings.lastSeenVersion = PLUGIN_VERSION;
+    saveSettingsDebounced();
+    dialog.close();
+    dialog.remove();
+    document.getElementById("ti-changelog-style")?.remove();
+  };
 
-    const closeBtn = document.getElementById("ti_changelog_close");
-    closeBtn.addEventListener("click", closeDialog);
+  const closeBtn = document.getElementById("ti_changelog_close");
+  closeBtn.addEventListener("click", closeDialog);
 
-    dialog.addEventListener("click", (e) => {
-        if (e.target === dialog) {
-            closeDialog();
-        }
-    });
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) {
+      closeDialog();
+    }
+  });
 
-    dialog.addEventListener("close", () => {
-        settings.lastSeenVersion = PLUGIN_VERSION;
-        saveSettingsDebounced();
-        dialog.remove();
-        document.getElementById("ti-changelog-style")?.remove();
-    });
+  dialog.addEventListener("close", () => {
+    settings.lastSeenVersion = PLUGIN_VERSION;
+    saveSettingsDebounced();
+    dialog.remove();
+    document.getElementById("ti-changelog-style")?.remove();
+  });
 }
 
 function loadScript(src) {
-    if (esprimaPromise) {
-        return esprimaPromise;
+  if (esprimaPromise) {
+    return esprimaPromise;
+  }
+
+  esprimaPromise = new Promise((resolve, reject) => {
+    if (typeof window.acorn !== "undefined") {
+      debugLog("[Typing Indicator] Esprima library is already available.");
+      return resolve();
     }
 
-    esprimaPromise = new Promise((resolve, reject) => {
-        if (typeof window.acorn !== "undefined") {
-            debugLog(
-                "[Typing Indicator] Esprima library is already available.",
-            );
-            return resolve();
-        }
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => {
+      debugLog("[Typing Indicator] Esprima library loaded successfully.");
+      resolve();
+    };
+    script.onerror = (err) => {
+      console.error("[Typing Indicator] Failed to load Esprima script.", err);
+      reject(new Error(`Failed to load script: ${src}`));
+    };
+    document.head.appendChild(script);
+  });
 
-        const script = document.createElement("script");
-        script.src = src;
-        script.onload = () => {
-            debugLog("[Typing Indicator] Esprima library loaded successfully.");
-            resolve();
-        };
-        script.onerror = (err) => {
-            console.error(
-                "[Typing Indicator] Failed to load Esprima script.",
-                err,
-            );
-            reject(new Error(`Failed to load script: ${src}`));
-        };
-        document.head.appendChild(script);
-    });
-
-    return esprimaPromise;
+  return esprimaPromise;
 }
 
 async function validateJavaScriptSyntax(jsCode) {
-    if (!jsCode || jsCode.trim() === "") {
-        return { isValid: true, error: null };
-    }
+  if (!jsCode || jsCode.trim() === "") {
+    return { isValid: true, error: null };
+  }
 
-    try {
-        await esprimaPromise;
-        window.acorn.parse(jsCode, { ecmaVersion: "latest", silent: true });
+  try {
+    await esprimaPromise;
+    window.acorn.parse(jsCode, { ecmaVersion: "latest", silent: true });
 
-        return { isValid: true, error: null };
-    } catch (e) {
-        if (typeof window.acorn === "undefined") {
-            console.warn(
-                "[Typing Indicator] Acorn validation skipped because the library failed to load.",
-            );
-            return { isValid: true, error: null };
-        } else {
-            return {
-                isValid: false,
-                error: {
-                    message: e.message.split(" (")[0],
-                    line: e.loc.line,
-                    column: e.loc.column,
-                },
-            };
-        }
+    return { isValid: true, error: null };
+  } catch (e) {
+    if (typeof window.acorn === "undefined") {
+      console.warn(
+        "[Typing Indicator] Acorn validation skipped because the library failed to load.",
+      );
+      return { isValid: true, error: null };
+    } else {
+      return {
+        isValid: false,
+        error: {
+          message: e.message.split(" (")[0],
+          line: e.loc.line,
+          column: e.loc.column,
+        },
+      };
     }
+  }
 }
 
 function ensurePoolContainer() {
-    if (!iframePoolContainer) {
-        iframePoolContainer = document.createElement("div");
-        iframePoolContainer.id = "ti-iframe-pool";
-        iframePoolContainer.style.cssText =
-            "position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; z-index: -1;";
-        document.body.appendChild(iframePoolContainer);
-    }
-    return iframePoolContainer;
+  if (!iframePoolContainer) {
+    iframePoolContainer = document.createElement("div");
+    iframePoolContainer.id = "ti-iframe-pool";
+    iframePoolContainer.style.cssText =
+      "position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; z-index: -1;";
+    document.body.appendChild(iframePoolContainer);
+  }
+  return iframePoolContainer;
 }
 
 async function getOrCreateIframe(theme, indicatorElement, characterName) {
-    const cacheKey = theme.id;
+  const cacheKey = theme.id;
 
-    if (iframeCache.has(cacheKey)) {
-        const cachedItem = iframeCache.get(cacheKey);
-        iframeCache.delete(cacheKey);
-        iframeCache.set(cacheKey, cachedItem);
+  if (iframeCache.has(cacheKey)) {
+    const cachedItem = iframeCache.get(cacheKey);
+    iframeCache.delete(cacheKey);
+    iframeCache.set(cacheKey, cachedItem);
 
-        verboseLog(`[IndicatorPool] 命中缓存: ${theme.name}`);
+    verboseLog(`[IndicatorPool] 命中缓存: ${theme.name}`);
 
-        indicatorElement.appendChild(cachedItem.element);
-        cachedItem.element.style.display = "block";
-        await updateIframeContext(cachedItem.element, theme, characterName);
+    indicatorElement.appendChild(cachedItem.element);
+    cachedItem.element.style.display = "block";
+    await updateIframeContext(cachedItem.element, theme, characterName);
 
-        return cachedItem.element;
-    }
+    return cachedItem.element;
+  }
 
-    if (iframeCache.size >= MAX_CACHE_SIZE) {
-        const oldestKey = iframeCache.keys().next().value;
-        const oldestItem = iframeCache.get(oldestKey);
+  if (iframeCache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = iframeCache.keys().next().value;
+    const oldestItem = iframeCache.get(oldestKey);
 
-        verboseLog(`[IndicatorPool] 缓存已满，淘汰最久未用项: ${oldestKey}`);
-        oldestItem.element.remove();
-        iframeCache.delete(oldestKey);
-    }
+    verboseLog(`[IndicatorPool] 缓存已满，淘汰最久未用项: ${oldestKey}`);
+    oldestItem.element.remove();
+    iframeCache.delete(oldestKey);
+  }
 
-    debugLog(`[IndicatorPool] 创建新实例: ${theme.name}`);
-    const newIframe = await createUnifiedIframeOriginal(
-        theme,
-        indicatorElement,
-        characterName,
-    );
-
-    if (newIframe) {
-        newIframe.style.display = "block";
-        iframeCache.set(cacheKey, {
-            element: newIframe,
-            themeId: theme.id,
-        });
-    }
-
-    return newIframe;
-}
-
-function releaseIframeToPool(indicatorElement) {
-    const iframe = indicatorElement.querySelector(".theme-iframe");
-    if (!iframe) return;
-
-    const pool = ensurePoolContainer();
-    pool.appendChild(iframe);
-    iframe.style.display = "none";
-
-    if (iframe.contentWindow) {
-        queuePostMessage(
-            iframe.contentWindow,
-            {
-                source: "typing-indicator-host",
-                type: "pause-theme",
-            },
-            "*",
-        );
-    }
-}
-
-async function updateIframeContext(iframe, theme, characterName) {
-    if (!iframe.contentWindow) return;
-
-    const context = getCurrentCharContext();
-    queuePostMessage(
-        iframe.contentWindow,
-        {
-            source: "typing-indicator-host",
-            type: "context-update",
-            data: context,
-        },
-        "*",
-    );
-}
-
-async function createUnifiedIframeOriginal(
+  debugLog(`[IndicatorPool] 创建新实例: ${theme.name}`);
+  const newIframe = await createUnifiedIframeOriginal(
     theme,
     indicatorElement,
     characterName,
+  );
+
+  if (newIframe) {
+    newIframe.style.display = "block";
+    iframeCache.set(cacheKey, {
+      element: newIframe,
+      themeId: theme.id,
+    });
+  }
+
+  return newIframe;
+}
+
+function releaseIframeToPool(indicatorElement) {
+  const iframe = indicatorElement.querySelector(".theme-iframe");
+  if (!iframe) return;
+
+  const pool = ensurePoolContainer();
+  pool.appendChild(iframe);
+  iframe.style.display = "none";
+
+  if (iframe.contentWindow) {
+    queuePostMessage(
+      iframe.contentWindow,
+      {
+        source: "typing-indicator-host",
+        type: "pause-theme",
+      },
+      "*",
+    );
+  }
+}
+
+async function updateIframeContext(iframe, theme, characterName) {
+  if (!iframe.contentWindow) return;
+
+  const context = getCurrentCharContext();
+  queuePostMessage(
+    iframe.contentWindow,
+    {
+      source: "typing-indicator-host",
+      type: "context-update",
+      data: context,
+    },
+    "*",
+  );
+}
+
+async function createUnifiedIframeOriginal(
+  theme,
+  indicatorElement,
+  characterName,
 ) {
-    if (!theme.useIframe) {
-        return null;
+  if (!theme.useIframe) {
+    return null;
+  }
+
+  return new Promise(async (resolve) => {
+    const iframe = document.createElement("iframe");
+    iframe.className = "theme-iframe";
+    iframe.style.cssText = `border: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: transparent; pointer-events: auto; z-index: 1;`;
+    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+    indicatorElement.appendChild(iframe);
+
+    let playlist = null;
+    if (
+      theme.name.startsWith("播放器-") ||
+      theme.name.startsWith("Player - ")
+    ) {
+      playlist = await getBgmPlaylistAsync();
     }
 
-    return new Promise(async (resolve) => {
-        const iframe = document.createElement("iframe");
-        iframe.className = "theme-iframe";
-        iframe.style.cssText = `border: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: transparent; pointer-events: auto; z-index: 1;`;
-        iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
-        indicatorElement.appendChild(iframe);
+    iframe.onload = () => {
+      const iframeDoc = iframe.contentDocument;
+      if (!iframeDoc) {
+        resolve(null);
+        return;
+      }
 
-        let playlist = null;
-        if (
-            theme.name.startsWith("播放器-") ||
-            theme.name.startsWith("Player - ")
-        ) {
-            playlist = await getBgmPlaylistAsync();
-        }
+      const userName = getCurrentUserName();
+      const avatarUrls = getAvatarUrls();
+      const charName = characterName || getCurrentCharName();
 
-        iframe.onload = () => {
-            const iframeDoc = iframe.contentDocument;
-            if (!iframeDoc) {
-                resolve(null);
-                return;
-            }
+      let processedHTML =
+        theme.html || `<div>${t`No HTML content provided.`}</div>`;
+      processedHTML = processedHTML
+        .replace(/\$\{name2\}/g, charName)
+        .replace(/\{\{char\}\}/g, charName)
+        .replace(/\{\{user\}\}/g, userName)
+        .replace(/\{\{char_avatar_url\}\}/g, avatarUrls.char)
+        .replace(/\{\{user_avatar_url\}\}/g, avatarUrls.user)
+        .replace(
+          /\{\{char_avatar\}\}/g,
+          `<img class="typing-indicator-avatar" src="${avatarUrls.char}">`,
+        )
+        .replace(
+          /\{\{user_avatar\}\}/g,
+          `<img class="typing-indicator-avatar" src="${avatarUrls.user}">`,
+        );
 
-            const userName = getCurrentUserName();
-            const avatarUrls = getAvatarUrls();
-            const charName = characterName || getCurrentCharName();
-
-            let processedHTML =
-                theme.html || `<div>${t`No HTML content provided.`}</div>`;
-            processedHTML = processedHTML
-                .replace(/\$\{name2\}/g, charName)
-                .replace(/\{\{char\}\}/g, charName)
-                .replace(/\{\{user\}\}/g, userName)
-                .replace(/\{\{char_avatar_url\}\}/g, avatarUrls.char)
-                .replace(/\{\{user_avatar_url\}\}/g, avatarUrls.user)
-                .replace(
-                    /\{\{char_avatar\}\}/g,
-                    `<img class="typing-indicator-avatar" src="${avatarUrls.char}">`,
-                )
-                .replace(
-                    /\{\{user_avatar\}\}/g,
-                    `<img class="typing-indicator-avatar" src="${avatarUrls.user}">`,
-                );
-
-            const finalJS = `
+      const finalJS = `
                 (function() {
                     window.addEventListener('error', function(e) { console.error('[Theme Error]:', e.error ? e.error.stack : e.message); });
                     window.themeData = {
@@ -574,91 +576,87 @@ async function createUnifiedIframeOriginal(
                     window.ThemeUtils = ThemeUtils;
                     window.MusicCache = window.parent.MusicCache;
                     try { ${
-                        theme.iframeJS || "// No JavaScript code"
+                      theme.iframeJS || "// No JavaScript code"
                     } } catch(e) { console.error('[Theme User JS Error]:', e.stack); }
                     try { ThemeUtils.sendMessage('theme-loaded', { themeId: '${jsEscape(
-                        theme.id || "preview",
+                      theme.id || "preview",
                     )}', themeName: '${jsEscape(
-                        theme.name || "Preview",
+                      theme.name || "Preview",
                     )}' }); } catch (error) { console.error('[Theme Framework Error]:', error.stack); }
                 })();
             `;
 
-            const fullHTML = `
+      const fullHTML = `
 <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="light only"><title>Typing Indicator Theme</title><style>${
-                theme.iframeCSS || ""
-            } :root, html, body { color-scheme: light only !important; forced-color-adjust: none !important; -webkit-forced-color-adjust: none !important; } * { margin: 0; padding: 0; box-sizing: border-box; } html, body { width: 100%; height: 100%; background: transparent; overflow: hidden; }</style></head><body>${processedHTML}<script>${finalJS.replace(
-                /<\/script>/g,
-                "<\\/script>",
-            )}<\/script></body></html>`;
+        theme.iframeCSS || ""
+      } :root, html, body { color-scheme: light only !important; forced-color-adjust: none !important; -webkit-forced-color-adjust: none !important; } * { margin: 0; padding: 0; box-sizing: border-box; } html, body { width: 100%; height: 100%; background: transparent; overflow: hidden; }</style></head><body>${processedHTML}<script>${finalJS.replace(
+        /<\/script>/g,
+        "<\\/script>",
+      )}<\/script></body></html>`;
 
-            iframeDoc.open();
-            iframeDoc.write(fullHTML);
-            iframeDoc.close();
-            resolve(iframe);
-        };
+      iframeDoc.open();
+      iframeDoc.write(fullHTML);
+      iframeDoc.close();
+      resolve(iframe);
+    };
 
-        iframe.onerror = () => {
-            console.error(
-                `[IndicatorPool] iframe for theme ${theme.id} failed to load.`,
-            );
-            resolve(null);
-        };
+    iframe.onerror = () => {
+      console.error(
+        `[IndicatorPool] iframe for theme ${theme.id} failed to load.`,
+      );
+      resolve(null);
+    };
 
-        iframe.src = "about:blank";
+    iframe.src = "about:blank";
 
-        function jsEscape(str) {
-            if (str === null || str === undefined) return "null";
-            return String(str)
-                .replace(/[\\'"]/g, "\\$&")
-                .replace(/\u0000/g, "\\0")
-                .replace(/\n/g, "\\n")
-                .replace(/\r/g, "\\r")
-                .replace(/\u2028/g, "\\u2028")
-                .replace(/\u2029/g, "\\u2029");
-        }
-    });
+    function jsEscape(str) {
+      if (str === null || str === undefined) return "null";
+      return String(str)
+        .replace(/[\\'"]/g, "\\$&")
+        .replace(/\u0000/g, "\\0")
+        .replace(/\n/g, "\\n")
+        .replace(/\r/g, "\\r")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029");
+    }
+  });
 }
 
 // ==================== 全局变量和常量 ====================
 
 const { yaml } = libs;
 function validateAndFixIconFonts() {
-    const testIcon = document.querySelector(
-        "#ti_theme_add.menu_button.fa-solid",
-    );
-    if (!testIcon) {
-        debugLog("[Icon Fixer] Test icon not found, skipping check for now.");
-        return;
-    }
-    const computedStyles = window.getComputedStyle(testIcon);
-    const currentFont = computedStyles.fontFamily.toLowerCase();
-    const isIconFontCorrect = currentFont.includes("font awesome");
+  const testIcon = document.querySelector("#ti_theme_add.menu_button.fa-solid");
+  if (!testIcon) {
+    debugLog("[Icon Fixer] Test icon not found, skipping check for now.");
+    return;
+  }
+  const computedStyles = window.getComputedStyle(testIcon);
+  const currentFont = computedStyles.fontFamily.toLowerCase();
+  const isIconFontCorrect = currentFont.includes("font awesome");
 
-    if (!isIconFontCorrect) {
-        console.warn(
-            `[Icon Fixer] Detected incorrect font "${currentFont}". Injecting a fix.`,
-        );
-        toastr.info(
-            "检测到主题字体冲突，正在自动修复图标...",
-            "Typing Indicator",
-            { timeOut: 2000 },
-        );
-        if (document.getElementById("extension-icon-font-fixer")) {
-            return;
-        }
-        const cssFix = `
+  if (!isIconFontCorrect) {
+    console.warn(
+      `[Icon Fixer] Detected incorrect font "${currentFont}". Injecting a fix.`,
+    );
+    toastr.info("检测到主题字体冲突，正在自动修复图标...", "Typing Indicator", {
+      timeOut: 2000,
+    });
+    if (document.getElementById("extension-icon-font-fixer")) {
+      return;
+    }
+    const cssFix = `
           .menu_button, .api_button, .mes_button, .fa, .fas, .far, .fal, .fab, .fa-solid, .fa-regular {
             font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "Font Awesome 5 Free", sans-serif !important;
           }
         `;
-        const styleElement = document.createElement("style");
-        styleElement.id = "extension-icon-font-fixer";
-        styleElement.textContent = cssFix;
-        document.head.appendChild(styleElement);
-    } else {
-        debugLog("[Icon Fixer] Icon font is correct. No action needed.");
-    }
+    const styleElement = document.createElement("style");
+    styleElement.id = "extension-icon-font-fixer";
+    styleElement.textContent = cssFix;
+    document.head.appendChild(styleElement);
+  } else {
+    debugLog("[Icon Fixer] Icon font is correct. No action needed.");
+  }
 }
 const MODULE = "typing_indicator_themes";
 
@@ -670,470 +668,469 @@ let verboseLog = NOOP;
 // ==================== 角色信息获取工具 ====================
 
 function getCurrentCharName() {
-    try {
-        if (
-            this_chid !== undefined &&
-            characters &&
-            characters.length > 0 &&
-            characters[this_chid]
-        ) {
-            return characters[this_chid].name || name2 || "Assistant";
-        }
-    } catch (e) {
-        debugWarn("[TypingIndicator] 获取角色名失败:", e);
+  try {
+    if (
+      this_chid !== undefined &&
+      characters &&
+      characters.length > 0 &&
+      characters[this_chid]
+    ) {
+      return characters[this_chid].name || name2 || "Assistant";
     }
-    return name2 || "Assistant";
+  } catch (e) {
+    debugWarn("[TypingIndicator] 获取角色名失败:", e);
+  }
+  return name2 || "Assistant";
 }
 
 function getCurrentUserName() {
-    try {
-        if (typeof power_user !== "undefined" && power_user.name) {
-            return power_user.name;
-        }
-    } catch (e) {
-        debugWarn("[TypingIndicator] 获取用户名失败:", e);
+  try {
+    if (typeof power_user !== "undefined" && power_user.name) {
+      return power_user.name;
     }
-    return name1 || "User";
+  } catch (e) {
+    debugWarn("[TypingIndicator] 获取用户名失败:", e);
+  }
+  return name1 || "User";
 }
 
 function getCurrentCharContext() {
-    const avatarUrls = getAvatarUrls();
-    return {
-        charName: getCurrentCharName(),
-        userName: getCurrentUserName(),
-        charAvatarUrl: avatarUrls.char,
-        userAvatarUrl: avatarUrls.user,
-    };
+  const avatarUrls = getAvatarUrls();
+  return {
+    charName: getCurrentCharName(),
+    userName: getCurrentUserName(),
+    charAvatarUrl: avatarUrls.char,
+    userAvatarUrl: avatarUrls.user,
+  };
 }
 
 function updateLogFunctions() {
-    const settings = extension_settings[MODULE];
+  const settings = extension_settings[MODULE];
 
-    if (settings?.debugLogs) {
-        debugLog = (message, ...args) => console.log(`[TI]`, message, ...args);
-        debugWarn = (message, ...args) =>
-            console.warn(`[TI]`, message, ...args);
+  if (settings?.debugLogs) {
+    debugLog = (message, ...args) => console.log(`[TI]`, message, ...args);
+    debugWarn = (message, ...args) => console.warn(`[TI]`, message, ...args);
 
-        if (settings?.verboseLogs) {
-            verboseLog = (message, ...args) =>
-                console.log(`[TI][VERBOSE]`, message, ...args);
-        } else {
-            verboseLog = NOOP;
-        }
+    if (settings?.verboseLogs) {
+      verboseLog = (message, ...args) =>
+        console.log(`[TI][VERBOSE]`, message, ...args);
     } else {
-        debugLog = NOOP;
-        debugWarn = NOOP;
-        verboseLog = NOOP;
+      verboseLog = NOOP;
     }
+  } else {
+    debugLog = NOOP;
+    debugWarn = NOOP;
+    verboseLog = NOOP;
+  }
 }
 
 const MusicCache = {
-    STORAGE_KEY: "gplayer_music_cache",
-    VERSION: 1,
+  STORAGE_KEY: "gplayer_music_cache",
+  VERSION: 1,
 
-    DEFAULT_EXPIRY: {
-        search: 30 * 24 * 60 * 60 * 1000, // 30天
-        audio: 6 * 60 * 60 * 1000, // 6小时
-        lyrics: 30 * 24 * 60 * 60 * 1000, // 30天
-        cover: 7 * 24 * 60 * 60 * 1000, // 7天
-    },
+  DEFAULT_EXPIRY: {
+    search: 30 * 24 * 60 * 60 * 1000, // 30天
+    audio: 6 * 60 * 60 * 1000, // 6小时
+    lyrics: 30 * 24 * 60 * 60 * 1000, // 30天
+    cover: 7 * 24 * 60 * 60 * 1000, // 7天
+  },
 
-    MAX_ENTRIES: {
-        search: 200,
-        audio: 100,
-        lyrics: 100,
-        cover: 100,
-    },
+  MAX_ENTRIES: {
+    search: 200,
+    audio: 100,
+    lyrics: 100,
+    cover: 100,
+  },
 
-    _memoryCache: null,
-    _saveTimeout: null,
-    _isDirty: false,
+  _memoryCache: null,
+  _saveTimeout: null,
+  _isDirty: false,
 
-    init() {
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (parsed.version === this.VERSION && parsed.data) {
-                    this._memoryCache = {
-                        search: parsed.data.search || {},
-                        audio: parsed.data.audio || {},
-                        lyrics: parsed.data.lyrics || {},
-                        cover: parsed.data.cover || {},
-                    };
-                    this.cleanup();
-                    debugLog(`[MusicCache] 缓存已加载`);
-                    return this;
-                }
-                debugLog(`[MusicCache] 数据格式不匹配，重置缓存`);
-                localStorage.removeItem(this.STORAGE_KEY);
-            }
-        } catch (e) {
-            console.warn("[MusicCache] 加载失败:", e);
-            localStorage.removeItem(this.STORAGE_KEY);
+  init() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.version === this.VERSION && parsed.data) {
+          this._memoryCache = {
+            search: parsed.data.search || {},
+            audio: parsed.data.audio || {},
+            lyrics: parsed.data.lyrics || {},
+            cover: parsed.data.cover || {},
+          };
+          this.cleanup();
+          debugLog(`[MusicCache] 缓存已加载`);
+          return this;
         }
-
-        this._memoryCache = { search: {}, audio: {}, lyrics: {}, cover: {} };
-        return this;
-    },
-
-    save() {
-        this._isDirty = true;
-
-        if (this._saveTimeout) {
-            clearTimeout(this._saveTimeout);
-        }
-        this._saveTimeout = setTimeout(() => {
-            this._saveTimeout = null;
-            if (this._isDirty) {
-                this._doSave();
-                this._isDirty = false;
-            }
-        }, 5000);
-    },
-
-    saveImmediately() {
-        if (this._saveTimeout) {
-            clearTimeout(this._saveTimeout);
-            this._saveTimeout = null;
-        }
-        this._doSave();
-    },
-
-    _doSave() {
-        try {
-            localStorage.setItem(
-                this.STORAGE_KEY,
-                JSON.stringify({
-                    version: this.VERSION,
-                    data: this._memoryCache,
-                }),
-            );
-        } catch (e) {
-            if (e.name === "QuotaExceededError") {
-                console.warn("[MusicCache] 存储空间不足，尝试清理...");
-                this.cleanup(true);
-                try {
-                    localStorage.setItem(
-                        this.STORAGE_KEY,
-                        JSON.stringify({
-                            version: this.VERSION,
-                            data: this._memoryCache,
-                        }),
-                    );
-                } catch (e2) {
-                    console.error("[MusicCache] 清理后仍无法保存");
-                }
-            }
-        }
-    },
-
-    _normalizeArtist(artist) {
-        if (!artist) return "";
-        if (Array.isArray(artist)) {
-            return artist.join(" / ");
-        }
-        return String(artist);
-    },
-
-    _searchKey(t, a) {
-        const title = (t || "").toLowerCase().trim();
-        const artist = this._normalizeArtist(a).toLowerCase().trim();
-        return `${title}|||${artist}`;
-    },
-
-    _detailKey(id, src) {
-        return `${id}|||${(src || "").toLowerCase()}`;
-    },
-
-    _enforceLimit(type) {
-        const cache = this._memoryCache[type];
-        if (!cache) return;
-
-        const keys = Object.keys(cache);
-        const limit = this.MAX_ENTRIES[type];
-
-        if (keys.length > limit) {
-            const toDelete = Math.max(1, Math.floor(limit * 0.2));
-            const sorted = keys.sort((a, b) => cache[a].ts - cache[b].ts);
-            for (let i = 0; i < toDelete; i++) {
-                delete cache[sorted[i]];
-            }
-            debugLog(`[MusicCache] ${type} 清理了 ${toDelete} 条数据`);
-        }
-    },
-    getSearch(title, artist) {
-        const key = this._searchKey(title, artist);
-        const item = this._memoryCache.search[key];
-        if (!item) return null;
-        if (Date.now() - item.ts > this.DEFAULT_EXPIRY.search) {
-            delete this._memoryCache.search[key];
-            this.save();
-            return null;
-        }
-        return item.data;
-    },
-
-    setSearch(title, artist, data) {
-        if (!data || !data.id || !data.source) {
-            verboseLog("[MusicCache] setSearch: 数据不完整，跳过缓存");
-            return;
-        }
-
-        this._enforceLimit("search");
-        const key = this._searchKey(title, artist);
-
-        this._memoryCache.search[key] = {
-            data: {
-                id: data.id,
-                source: data.source,
-                title: data.title || data.name || title,
-                artist: this._normalizeArtist(data.artist || artist),
-                coverUrl: data.coverUrl || data.cover || data.pic || "",
-            },
-            ts: Date.now(),
-        };
-        this.save();
-    },
-
-    invalidateSearch(title, artist) {
-        const key = this._searchKey(title, artist);
-        if (this._memoryCache.search[key]) {
-            delete this._memoryCache.search[key];
-            this.save();
-            verboseLog(`[MusicCache] 已清除搜索缓存: ${title} - ${artist}`);
-        }
-    },
-
-    getAudio(id, source) {
-        const key = this._detailKey(id, source);
-        const item = this._memoryCache.audio[key];
-        if (!item) return null;
-        if (Date.now() - item.ts > this.DEFAULT_EXPIRY.audio) {
-            delete this._memoryCache.audio[key];
-            this.save();
-            return null;
-        }
-        return item.url;
-    },
-
-    setAudio(id, source, url) {
-        if (!url || !id || !source) return;
-        const key = this._detailKey(id, source);
-        this._memoryCache.audio[key] = { url, ts: Date.now() };
-        this._enforceLimit("audio");
-        this.save();
-    },
-
-    invalidateAudio(id, source) {
-        const key = this._detailKey(id, source);
-        if (this._memoryCache.audio[key]) {
-            delete this._memoryCache.audio[key];
-            this.save();
-            verboseLog(`[MusicCache] 已清除音频缓存: ${key}`);
-        }
-    },
-
-    getCover(id, source) {
-        const key = this._detailKey(id, source);
-        const item = this._memoryCache.cover[key];
-        if (!item) return null;
-        if (Date.now() - item.ts > this.DEFAULT_EXPIRY.cover) {
-            delete this._memoryCache.cover[key];
-            this.save();
-            return null;
-        }
-        return item.url;
-    },
-
-    setCover(id, source, url) {
-        if (!url || !id || !source) return;
-        this._enforceLimit("cover");
-        const key = this._detailKey(id, source);
-        this._memoryCache.cover[key] = { url, ts: Date.now() };
-        this.save();
-    },
-
-    invalidateCover(id, source) {
-        const key = this._detailKey(id, source);
-        if (this._memoryCache.cover[key]) {
-            delete this._memoryCache.cover[key];
-            this.save();
-            verboseLog(`[MusicCache] 已清除封面缓存: ${key}`);
-        }
-    },
-
-    getLyrics(id, source) {
-        const key = this._detailKey(id, source);
-        const item = this._memoryCache.lyrics[key];
-        if (!item) return null;
-        if (Date.now() - item.ts > this.DEFAULT_EXPIRY.lyrics) {
-            delete this._memoryCache.lyrics[key];
-            this.save();
-            return null;
-        }
-        return item.data;
-    },
-
-    setLyrics(id, source, content, tlyric = "") {
-        if (!content || !id || !source) return;
-        this._enforceLimit("lyrics");
-        const key = this._detailKey(id, source);
-        this._memoryCache.lyrics[key] = {
-            data: { content, tlyric },
-            ts: Date.now(),
-        };
-        this.save();
-    },
-
-    invalidateLyrics(id, source) {
-        const key = this._detailKey(id, source);
-        if (this._memoryCache.lyrics[key]) {
-            delete this._memoryCache.lyrics[key];
-            this.save();
-            verboseLog(`[MusicCache] 已清除歌词缓存: ${key}`);
-        }
-    },
-    invalidateTrack(id, source) {
-        this.invalidateAudio(id, source);
-        this.invalidateLyrics(id, source);
-        this.invalidateCover(id, source);
-        verboseLog(`[MusicCache] 已清除歌曲所有缓存: ${id}-${source}`);
-    },
-    invalidateByInfo(title, artist) {
-        const cached = this.getSearch(title, artist);
-        if (cached && cached.id && cached.source) {
-            this.invalidateTrack(cached.id, cached.source);
-        }
-        this.invalidateSearch(title, artist);
-    },
-
-    cleanup(aggressive = false) {
-        const now = Date.now();
-        let count = 0;
-
-        ["search", "audio", "lyrics", "cover"].forEach((type) => {
-            const expiry = aggressive
-                ? this.DEFAULT_EXPIRY[type] / 2
-                : this.DEFAULT_EXPIRY[type];
-
-            Object.keys(this._memoryCache[type] || {}).forEach((key) => {
-                if (now - this._memoryCache[type][key].ts > expiry) {
-                    delete this._memoryCache[type][key];
-                    count++;
-                }
-            });
-        });
-
-        if (count > 0) {
-            debugLog(`[MusicCache] 清理了 ${count} 条过期缓存`);
-            this.save();
-        }
-
-        return count;
-    },
-
-    clear() {
-        this._memoryCache = { search: {}, audio: {}, lyrics: {}, cover: {} };
+        debugLog(`[MusicCache] 数据格式不匹配，重置缓存`);
         localStorage.removeItem(this.STORAGE_KEY);
-        debugLog(`[MusicCache] 已清空所有缓存`);
-    },
+      }
+    } catch (e) {
+      console.warn("[MusicCache] 加载失败:", e);
+      localStorage.removeItem(this.STORAGE_KEY);
+    }
 
-    getStats() {
-        const now = Date.now();
+    this._memoryCache = { search: {}, audio: {}, lyrics: {}, cover: {} };
+    return this;
+  },
 
-        const countItems = (type) =>
-            Object.keys(this._memoryCache[type] || {}).length;
+  save() {
+    this._isDirty = true;
 
-        const countExpired = (type) => {
-            const expiry = this.DEFAULT_EXPIRY[type];
-            return Object.values(this._memoryCache[type] || {}).filter(
-                (item) => now - item.ts > expiry,
-            ).length;
-        };
+    if (this._saveTimeout) {
+      clearTimeout(this._saveTimeout);
+    }
+    this._saveTimeout = setTimeout(() => {
+      this._saveTimeout = null;
+      if (this._isDirty) {
+        this._doSave();
+        this._isDirty = false;
+      }
+    }, 5000);
+  },
 
-        return {
-            search: countItems("search"),
-            audio: countItems("audio"),
-            lyrics: countItems("lyrics"),
-            cover: countItems("cover"),
-            expired: {
-                search: countExpired("search"),
-                audio: countExpired("audio"),
-                lyrics: countExpired("lyrics"),
-                cover: countExpired("cover"),
-            },
-            total:
-                countItems("search") +
-                countItems("audio") +
-                countItems("lyrics") +
-                countItems("cover"),
-        };
-    },
+  saveImmediately() {
+    if (this._saveTimeout) {
+      clearTimeout(this._saveTimeout);
+      this._saveTimeout = null;
+    }
+    this._doSave();
+  },
 
-    getSize() {
+  _doSave() {
+    try {
+      localStorage.setItem(
+        this.STORAGE_KEY,
+        JSON.stringify({
+          version: this.VERSION,
+          data: this._memoryCache,
+        }),
+      );
+    } catch (e) {
+      if (e.name === "QuotaExceededError") {
+        console.warn("[MusicCache] 存储空间不足，尝试清理...");
+        this.cleanup(true);
         try {
-            const data = localStorage.getItem(this.STORAGE_KEY);
-            if (!data) return { bytes: 0, formatted: "0 B" };
-            const bytes = data.length * 2; // UTF-16
-
-            let formatted;
-            if (bytes < 1024) {
-                formatted = bytes + " B";
-            } else if (bytes < 1024 * 1024) {
-                formatted = (bytes / 1024).toFixed(1) + " KB";
-            } else {
-                formatted = (bytes / (1024 * 1024)).toFixed(2) + " MB";
-            }
-
-            return { bytes, formatted };
-        } catch (e) {
-            return { bytes: 0, formatted: "未知" };
+          localStorage.setItem(
+            this.STORAGE_KEY,
+            JSON.stringify({
+              version: this.VERSION,
+              data: this._memoryCache,
+            }),
+          );
+        } catch (e2) {
+          console.error("[MusicCache] 清理后仍无法保存");
         }
-    },
-    debug() {
-        if (!extension_settings[MODULE]?.debugLogs) return;
+      }
+    }
+  },
 
-        debugLog("[MusicCache] 当前缓存状态:");
-        debugLog("  Stats:", this.getStats());
-        debugLog("  Size:", this.getSize());
-        verboseLog("  Search keys:", Object.keys(this._memoryCache.search));
-        verboseLog("  Audio keys:", Object.keys(this._memoryCache.audio));
-        verboseLog("  Lyrics keys:", Object.keys(this._memoryCache.lyrics));
-        verboseLog("  Cover keys:", Object.keys(this._memoryCache.cover));
-    },
+  _normalizeArtist(artist) {
+    if (!artist) return "";
+    if (Array.isArray(artist)) {
+      return artist.join(" / ");
+    }
+    return String(artist);
+  },
+
+  _searchKey(t, a) {
+    const title = (t || "").toLowerCase().trim();
+    const artist = this._normalizeArtist(a).toLowerCase().trim();
+    return `${title}|||${artist}`;
+  },
+
+  _detailKey(id, src) {
+    return `${id}|||${(src || "").toLowerCase()}`;
+  },
+
+  _enforceLimit(type) {
+    const cache = this._memoryCache[type];
+    if (!cache) return;
+
+    const keys = Object.keys(cache);
+    const limit = this.MAX_ENTRIES[type];
+
+    if (keys.length > limit) {
+      const toDelete = Math.max(1, Math.floor(limit * 0.2));
+      const sorted = keys.sort((a, b) => cache[a].ts - cache[b].ts);
+      for (let i = 0; i < toDelete; i++) {
+        delete cache[sorted[i]];
+      }
+      debugLog(`[MusicCache] ${type} 清理了 ${toDelete} 条数据`);
+    }
+  },
+  getSearch(title, artist) {
+    const key = this._searchKey(title, artist);
+    const item = this._memoryCache.search[key];
+    if (!item) return null;
+    if (Date.now() - item.ts > this.DEFAULT_EXPIRY.search) {
+      delete this._memoryCache.search[key];
+      this.save();
+      return null;
+    }
+    return item.data;
+  },
+
+  setSearch(title, artist, data) {
+    if (!data || !data.id || !data.source) {
+      verboseLog("[MusicCache] setSearch: 数据不完整，跳过缓存");
+      return;
+    }
+
+    this._enforceLimit("search");
+    const key = this._searchKey(title, artist);
+
+    this._memoryCache.search[key] = {
+      data: {
+        id: data.id,
+        source: data.source,
+        title: data.title || data.name || title,
+        artist: this._normalizeArtist(data.artist || artist),
+        coverUrl: data.coverUrl || data.cover || data.pic || "",
+      },
+      ts: Date.now(),
+    };
+    this.save();
+  },
+
+  invalidateSearch(title, artist) {
+    const key = this._searchKey(title, artist);
+    if (this._memoryCache.search[key]) {
+      delete this._memoryCache.search[key];
+      this.save();
+      verboseLog(`[MusicCache] 已清除搜索缓存: ${title} - ${artist}`);
+    }
+  },
+
+  getAudio(id, source) {
+    const key = this._detailKey(id, source);
+    const item = this._memoryCache.audio[key];
+    if (!item) return null;
+    if (Date.now() - item.ts > this.DEFAULT_EXPIRY.audio) {
+      delete this._memoryCache.audio[key];
+      this.save();
+      return null;
+    }
+    return item.url;
+  },
+
+  setAudio(id, source, url) {
+    if (!url || !id || !source) return;
+    const key = this._detailKey(id, source);
+    this._memoryCache.audio[key] = { url, ts: Date.now() };
+    this._enforceLimit("audio");
+    this.save();
+  },
+
+  invalidateAudio(id, source) {
+    const key = this._detailKey(id, source);
+    if (this._memoryCache.audio[key]) {
+      delete this._memoryCache.audio[key];
+      this.save();
+      verboseLog(`[MusicCache] 已清除音频缓存: ${key}`);
+    }
+  },
+
+  getCover(id, source) {
+    const key = this._detailKey(id, source);
+    const item = this._memoryCache.cover[key];
+    if (!item) return null;
+    if (Date.now() - item.ts > this.DEFAULT_EXPIRY.cover) {
+      delete this._memoryCache.cover[key];
+      this.save();
+      return null;
+    }
+    return item.url;
+  },
+
+  setCover(id, source, url) {
+    if (!url || !id || !source) return;
+    this._enforceLimit("cover");
+    const key = this._detailKey(id, source);
+    this._memoryCache.cover[key] = { url, ts: Date.now() };
+    this.save();
+  },
+
+  invalidateCover(id, source) {
+    const key = this._detailKey(id, source);
+    if (this._memoryCache.cover[key]) {
+      delete this._memoryCache.cover[key];
+      this.save();
+      verboseLog(`[MusicCache] 已清除封面缓存: ${key}`);
+    }
+  },
+
+  getLyrics(id, source) {
+    const key = this._detailKey(id, source);
+    const item = this._memoryCache.lyrics[key];
+    if (!item) return null;
+    if (Date.now() - item.ts > this.DEFAULT_EXPIRY.lyrics) {
+      delete this._memoryCache.lyrics[key];
+      this.save();
+      return null;
+    }
+    return item.data;
+  },
+
+  setLyrics(id, source, content, tlyric = "") {
+    if (!content || !id || !source) return;
+    this._enforceLimit("lyrics");
+    const key = this._detailKey(id, source);
+    this._memoryCache.lyrics[key] = {
+      data: { content, tlyric },
+      ts: Date.now(),
+    };
+    this.save();
+  },
+
+  invalidateLyrics(id, source) {
+    const key = this._detailKey(id, source);
+    if (this._memoryCache.lyrics[key]) {
+      delete this._memoryCache.lyrics[key];
+      this.save();
+      verboseLog(`[MusicCache] 已清除歌词缓存: ${key}`);
+    }
+  },
+  invalidateTrack(id, source) {
+    this.invalidateAudio(id, source);
+    this.invalidateLyrics(id, source);
+    this.invalidateCover(id, source);
+    verboseLog(`[MusicCache] 已清除歌曲所有缓存: ${id}-${source}`);
+  },
+  invalidateByInfo(title, artist) {
+    const cached = this.getSearch(title, artist);
+    if (cached && cached.id && cached.source) {
+      this.invalidateTrack(cached.id, cached.source);
+    }
+    this.invalidateSearch(title, artist);
+  },
+
+  cleanup(aggressive = false) {
+    const now = Date.now();
+    let count = 0;
+
+    ["search", "audio", "lyrics", "cover"].forEach((type) => {
+      const expiry = aggressive
+        ? this.DEFAULT_EXPIRY[type] / 2
+        : this.DEFAULT_EXPIRY[type];
+
+      Object.keys(this._memoryCache[type] || {}).forEach((key) => {
+        if (now - this._memoryCache[type][key].ts > expiry) {
+          delete this._memoryCache[type][key];
+          count++;
+        }
+      });
+    });
+
+    if (count > 0) {
+      debugLog(`[MusicCache] 清理了 ${count} 条过期缓存`);
+      this.save();
+    }
+
+    return count;
+  },
+
+  clear() {
+    this._memoryCache = { search: {}, audio: {}, lyrics: {}, cover: {} };
+    localStorage.removeItem(this.STORAGE_KEY);
+    debugLog(`[MusicCache] 已清空所有缓存`);
+  },
+
+  getStats() {
+    const now = Date.now();
+
+    const countItems = (type) =>
+      Object.keys(this._memoryCache[type] || {}).length;
+
+    const countExpired = (type) => {
+      const expiry = this.DEFAULT_EXPIRY[type];
+      return Object.values(this._memoryCache[type] || {}).filter(
+        (item) => now - item.ts > expiry,
+      ).length;
+    };
+
+    return {
+      search: countItems("search"),
+      audio: countItems("audio"),
+      lyrics: countItems("lyrics"),
+      cover: countItems("cover"),
+      expired: {
+        search: countExpired("search"),
+        audio: countExpired("audio"),
+        lyrics: countExpired("lyrics"),
+        cover: countExpired("cover"),
+      },
+      total:
+        countItems("search") +
+        countItems("audio") +
+        countItems("lyrics") +
+        countItems("cover"),
+    };
+  },
+
+  getSize() {
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY);
+      if (!data) return { bytes: 0, formatted: "0 B" };
+      const bytes = data.length * 2; // UTF-16
+
+      let formatted;
+      if (bytes < 1024) {
+        formatted = bytes + " B";
+      } else if (bytes < 1024 * 1024) {
+        formatted = (bytes / 1024).toFixed(1) + " KB";
+      } else {
+        formatted = (bytes / (1024 * 1024)).toFixed(2) + " MB";
+      }
+
+      return { bytes, formatted };
+    } catch (e) {
+      return { bytes: 0, formatted: "未知" };
+    }
+  },
+  debug() {
+    if (!extension_settings[MODULE]?.debugLogs) return;
+
+    debugLog("[MusicCache] 当前缓存状态:");
+    debugLog("  Stats:", this.getStats());
+    debugLog("  Size:", this.getSize());
+    verboseLog("  Search keys:", Object.keys(this._memoryCache.search));
+    verboseLog("  Audio keys:", Object.keys(this._memoryCache.audio));
+    verboseLog("  Lyrics keys:", Object.keys(this._memoryCache.lyrics));
+    verboseLog("  Cover keys:", Object.keys(this._memoryCache.cover));
+  },
 };
 
 MusicCache.init();
 window.addEventListener("beforeunload", () => {
-    settleListeningTime("page_unload");
-    MusicCache.saveImmediately();
+  settleListeningTime("page_unload");
+  MusicCache.saveImmediately();
 });
 
 const SCAN_CONFIG = {
-    MAX_MESSAGES_TO_SCAN: 30,
-    CONCURRENT_LIMIT: 2,
-    SKIP_HIDDEN: true,
+  MAX_MESSAGES_TO_SCAN: 30,
+  CONCURRENT_LIMIT: 2,
+  SKIP_HIDDEN: true,
 };
 
 async function asyncPool(limit, items, iteratorFn) {
-    const results = [];
-    const executing = new Set();
+  const results = [];
+  const executing = new Set();
 
-    for (const [index, item] of items.entries()) {
-        const promise = Promise.resolve().then(() => iteratorFn(item, index));
-        results.push(promise);
-        executing.add(promise);
+  for (const [index, item] of items.entries()) {
+    const promise = Promise.resolve().then(() => iteratorFn(item, index));
+    results.push(promise);
+    executing.add(promise);
 
-        const clean = () => executing.delete(promise);
-        promise.then(clean, clean);
+    const clean = () => executing.delete(promise);
+    promise.then(clean, clean);
 
-        if (executing.size >= limit) {
-            await Promise.race(executing);
-        }
+    if (executing.size >= limit) {
+      await Promise.race(executing);
     }
+  }
 
-    return Promise.all(results);
+  return Promise.all(results);
 }
 
 const THEME_STYLE_ID = "typing-indicator-theme-style";
@@ -1165,58 +1162,53 @@ let savedTestLyrics = null;
 let savedTestLyricIndex = -1;
 let wasLyricsPlaying = false;
 let listeningSession = {
-    charAvatar: null,
-    startTime: null,
-    isPlaying: false,
+  charAvatar: null,
+  startTime: null,
+  isPlaying: false,
 };
 let listeningStatsUpdateCallback = null;
 let lyricsOverlayElement = null;
 let listeningStatsUpdateTimer = null;
 
 function fuzzyMatchTrack(bubbleTitle, bubbleArtist, track) {
-    if (!track || !bubbleTitle || !bubbleArtist) return false;
-    const normalize = (str) => {
-        if (!str) return "";
-        return str
-            .toLowerCase()
-            .replace(/\s*[\(\（].*?[\)\）]\s*/g, "")
-            .replace(/\s*\[.*?\]\s*/g, "")
-            .replace(/[-_]/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-    };
+  if (!track || !bubbleTitle || !bubbleArtist) return false;
+  const normalize = (str) => {
+    if (!str) return "";
+    return str
+      .toLowerCase()
+      .replace(/\s*[\(\（].*?[\)\）]\s*/g, "")
+      .replace(/\s*\[.*?\]\s*/g, "")
+      .replace(/[-_]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
 
-    const normalizedBubbleTitle = normalize(bubbleTitle);
-    const normalizedBubbleArtist = normalize(bubbleArtist);
-    const trackTitles = [
-        track.title,
-        track.name,
-        track.originalTitle,
-        track.song,
-    ]
-        .filter(Boolean)
-        .map(normalize);
-    let artistSources = [track.artist, track.originalArtist, track.singer];
-    if (Array.isArray(track.artist)) {
-        artistSources = [...artistSources, ...track.artist];
-    }
-    const trackArtists = artistSources
-        .filter(Boolean)
-        .map((a) => normalize(String(a)));
-    const titleMatch = trackTitles.some(
-        (t) =>
-            t === normalizedBubbleTitle ||
-            t.includes(normalizedBubbleTitle) ||
-            normalizedBubbleTitle.includes(t),
-    );
-    const artistMatch = trackArtists.some(
-        (a) =>
-            a === normalizedBubbleArtist ||
-            a.includes(normalizedBubbleArtist) ||
-            normalizedBubbleArtist.includes(a),
-    );
+  const normalizedBubbleTitle = normalize(bubbleTitle);
+  const normalizedBubbleArtist = normalize(bubbleArtist);
+  const trackTitles = [track.title, track.name, track.originalTitle, track.song]
+    .filter(Boolean)
+    .map(normalize);
+  let artistSources = [track.artist, track.originalArtist, track.singer];
+  if (Array.isArray(track.artist)) {
+    artistSources = [...artistSources, ...track.artist];
+  }
+  const trackArtists = artistSources
+    .filter(Boolean)
+    .map((a) => normalize(String(a)));
+  const titleMatch = trackTitles.some(
+    (t) =>
+      t === normalizedBubbleTitle ||
+      t.includes(normalizedBubbleTitle) ||
+      normalizedBubbleTitle.includes(t),
+  );
+  const artistMatch = trackArtists.some(
+    (a) =>
+      a === normalizedBubbleArtist ||
+      a.includes(normalizedBubbleArtist) ||
+      normalizedBubbleArtist.includes(a),
+  );
 
-    return titleMatch && artistMatch;
+  return titleMatch && artistMatch;
 }
 
 // CSS 默认样式
@@ -1241,428 +1233,413 @@ const DEFAULT_THEME_CSS = `
 // ==================== 核心设置管理 ====================
 
 function getSettings() {
-    const defaultSettings = {
-        enabled: true,
-        persistentMode: false,
-        streaming: false,
-        showAnimation: true,
-        autoFollowTheme: false,
-        devMode: false,
-        debugLogs: false,
-        verboseLogs: false,
-        position: "floating_bottom",
-        customPosition: { x: 50, y: 50, locked: false },
-        selectedTextPresetId: "cat_default",
-        textPresets: defaultPresets,
-        selectedThemeId: "default",
-        themes: defaultThemes,
-        characterThemes: {},
-        enableDynamicThemes: false,
-        dynamicThemeDuration: 10,
-        dynamicThemesInPersistent: false,
+  const defaultSettings = {
+    enabled: true,
+    persistentMode: false,
+    streaming: false,
+    showAnimation: true,
+    autoFollowTheme: false,
+    devMode: false,
+    debugLogs: false,
+    verboseLogs: false,
+    position: "floating_bottom",
+    customPosition: { x: 50, y: 50, locked: false },
+    selectedTextPresetId: "cat_default",
+    textPresets: defaultPresets,
+    selectedThemeId: "default",
+    themes: defaultThemes,
+    characterThemes: {},
+    enableDynamicThemes: false,
+    dynamicThemeDuration: 10,
+    dynamicThemesInPersistent: false,
 
-        // 播放器相关设置
-        playerEnabled: false,
-        playerPosition: { x: 50, y: 50, locked: false },
-        selectedPlayerThemeId: null,
-        playerHidden: false,
-        // BGM气泡样式设置
-        bubbleStyles: [],
-        selectedBubbleStyleId: "bubble_default",
-        enableBubbleReplacement: true,
-        lyricsEnabled: false,
-        lyricsPosition: { x: 50, y: 10, locked: false },
-        lyricsSungColor: "#90cdee",
-        lyricsUnsungColor: "#ffffff",
-        lyricsBackground: "rgba(0, 0, 0, 0.6)",
-        lyricsFontSize: 18,
-        lyricsShowNextLine: true,
-        listeningStats: {},
+    // 播放器相关设置
+    playerEnabled: false,
+    playerPosition: { x: 50, y: 50, locked: false },
+    selectedPlayerThemeId: null,
+    playerHidden: false,
+    // BGM气泡样式设置
+    bubbleStyles: [],
+    selectedBubbleStyleId: "bubble_default",
+    enableBubbleReplacement: true,
+    lyricsEnabled: false,
+    lyricsPosition: { x: 50, y: 10, locked: false },
+    lyricsSungColor: "#90cdee",
+    lyricsUnsungColor: "#ffffff",
+    lyricsBackground: "rgba(0, 0, 0, 0.6)",
+    lyricsFontSize: 18,
+    lyricsShowNextLine: true,
+    listeningStats: {},
 
-        showFpsMonitor: false,
-    };
+    showFpsMonitor: false,
+  };
 
-    if (!extension_settings[MODULE]) {
-        extension_settings[MODULE] = {};
+  if (!extension_settings[MODULE]) {
+    extension_settings[MODULE] = {};
+  }
+  const settings = extension_settings[MODULE];
+
+  const syncList = (defaultList, userList) => {
+    if (!userList || !Array.isArray(userList)) {
+      return structuredClone(defaultList);
     }
-    const settings = extension_settings[MODULE];
 
-    const syncList = (defaultList, userList) => {
-        if (!userList || !Array.isArray(userList)) {
-            return structuredClone(defaultList);
-        }
+    const defaultMap = new Map(defaultList.map((item) => [item.id, item]));
+    const userMap = new Map(userList.map((item) => [item.id, item]));
+    const finalSyncedList = [];
 
-        const defaultMap = new Map(defaultList.map((item) => [item.id, item]));
-        const userMap = new Map(userList.map((item) => [item.id, item]));
-        const finalSyncedList = [];
-
-        userList.forEach((userItem) => {
-            if (defaultMap.has(userItem.id)) {
-                const defaultItem = defaultMap.get(userItem.id);
-                const mergedItem = { ...defaultItem, ...userItem };
-                mergedItem.isBuiltIn = true;
-                finalSyncedList.push(mergedItem);
-            } else if (!userItem.isBuiltIn) {
-                finalSyncedList.push(structuredClone(userItem));
-            }
-        });
-
-        defaultList.forEach((defaultItem) => {
-            if (defaultItem.isBuiltIn && !userMap.has(defaultItem.id)) {
-                finalSyncedList.push(structuredClone(defaultItem));
-            }
-        });
-
-        return finalSyncedList;
-    };
-
-    settings.themes = syncList(defaultSettings.themes, settings.themes);
-    settings.textPresets = syncList(
-        defaultSettings.textPresets,
-        settings.textPresets,
-    );
-
-    settings.bubbleStyles = syncList(
-        defaultBubbleStyles,
-        settings.bubbleStyles,
-    );
-
-    Object.keys(defaultSettings).forEach((key) => {
-        if (
-            !["themes", "textPresets", "bubbleStyles"].includes(key) &&
-            settings[key] === undefined
-        ) {
-            settings[key] = structuredClone(defaultSettings[key]);
-        }
+    userList.forEach((userItem) => {
+      if (defaultMap.has(userItem.id)) {
+        const defaultItem = defaultMap.get(userItem.id);
+        const mergedItem = { ...defaultItem, ...userItem };
+        mergedItem.isBuiltIn = true;
+        finalSyncedList.push(mergedItem);
+      } else if (!userItem.isBuiltIn) {
+        finalSyncedList.push(structuredClone(userItem));
+      }
     });
 
-    if (
-        !settings.selectedBubbleStyleId ||
-        !settings.bubbleStyles.find(
-            (s) => s.id === settings.selectedBubbleStyleId,
-        )
-    ) {
-        settings.selectedBubbleStyleId = "bubble_default";
-    }
-    if (settings.enableBubbleReplacement === undefined) {
-        settings.enableBubbleReplacement = true;
-    }
+    defaultList.forEach((defaultItem) => {
+      if (defaultItem.isBuiltIn && !userMap.has(defaultItem.id)) {
+        finalSyncedList.push(structuredClone(defaultItem));
+      }
+    });
 
-    updateLogFunctions();
-    return settings;
+    return finalSyncedList;
+  };
+
+  settings.themes = syncList(defaultSettings.themes, settings.themes);
+  settings.textPresets = syncList(
+    defaultSettings.textPresets,
+    settings.textPresets,
+  );
+
+  settings.bubbleStyles = syncList(defaultBubbleStyles, settings.bubbleStyles);
+
+  Object.keys(defaultSettings).forEach((key) => {
+    if (
+      !["themes", "textPresets", "bubbleStyles"].includes(key) &&
+      settings[key] === undefined
+    ) {
+      settings[key] = structuredClone(defaultSettings[key]);
+    }
+  });
+
+  if (
+    !settings.selectedBubbleStyleId ||
+    !settings.bubbleStyles.find((s) => s.id === settings.selectedBubbleStyleId)
+  ) {
+    settings.selectedBubbleStyleId = "bubble_default";
+  }
+  if (settings.enableBubbleReplacement === undefined) {
+    settings.enableBubbleReplacement = true;
+  }
+
+  updateLogFunctions();
+  return settings;
 }
 
 // ==================== 主题解析和配置 ====================
 
 function parseThemeFromText(text) {
-    if (!text) return null;
-    const regex = /\[Theme:\s*([^\]]+)\]/g;
-    let matches;
-    let lastMatch = null;
-    while ((matches = regex.exec(text)) !== null) {
-        lastMatch = matches[1].trim();
-    }
-    return lastMatch;
+  if (!text) return null;
+  const regex = /\[Theme:\s*([^\]]+)\]/g;
+  let matches;
+  let lastMatch = null;
+  while ((matches = regex.exec(text)) !== null) {
+    lastMatch = matches[1].trim();
+  }
+  return lastMatch;
 }
 
 function getActiveThemeConfig() {
-    const settings = getSettings();
-    const indicator = domCache.get("#typing_indicator");
-    const globalThemeId = settings.selectedThemeId;
-    const globalPresetId = settings.selectedTextPresetId;
+  const settings = getSettings();
+  const indicator = domCache.get("#typing_indicator");
+  const globalThemeId = settings.selectedThemeId;
+  const globalPresetId = settings.selectedTextPresetId;
 
-    if (settings.persistentMode && indicator) {
-        const runningThemeId = indicator.dataset.themeId;
-        if (runningThemeId) {
-            const runningTheme = settings.themes.find(
-                (t) => t.id === runningThemeId,
-            );
-            const isStateful =
-                runningTheme &&
-                (statefulThemes.has(runningThemeId) ||
-                    runningTheme.name.startsWith("播放器"));
+  if (settings.persistentMode && indicator) {
+    const runningThemeId = indicator.dataset.themeId;
+    if (runningThemeId) {
+      const runningTheme = settings.themes.find((t) => t.id === runningThemeId);
+      const isStateful =
+        runningTheme &&
+        (statefulThemes.has(runningThemeId) ||
+          runningTheme.name.startsWith("播放器"));
 
-            if (isStateful) {
-                debugLog(
-                    `[TypingIndicator] 有状态主题运行中: "${runningTheme.name}"`,
-                );
-                isStatefulThemeLocked = true;
-                return {
-                    themeId: runningThemeId,
-                    presetId: currentlyAppliedConfig.presetId || globalPresetId,
-                };
-            }
-        }
-    }
-
-    isStatefulThemeLocked = false;
-    verboseLog(`[TypingIndicator] 全局锁已解除`);
-
-    const useDynamic =
-        settings.enableDynamicThemes &&
-        currentDynamicThemeId &&
-        (!settings.persistentMode || settings.dynamicThemesInPersistent);
-
-    if (useDynamic) {
-        verboseLog(`[TypingIndicator] 应用动态主题`);
+      if (isStateful) {
+        debugLog(`[TypingIndicator] 有状态主题运行中: "${runningTheme.name}"`);
+        isStatefulThemeLocked = true;
         return {
-            themeId: currentDynamicThemeId,
-            presetId: currentDynamicPresetId || globalPresetId,
+          themeId: runningThemeId,
+          presetId: currentlyAppliedConfig.presetId || globalPresetId,
         };
+      }
     }
+  }
 
-    if (manualOverrideActive) {
-        verboseLog(`[TypingIndicator] 应用手动覆盖`);
-        return { themeId: globalThemeId, presetId: globalPresetId };
-    }
+  isStatefulThemeLocked = false;
+  verboseLog(`[TypingIndicator] 全局锁已解除`);
 
-    if (this_chid !== undefined && characters[this_chid]) {
-        const charAvatar = characters[this_chid].avatar;
-        const charConfig = settings.characterThemes?.[charAvatar];
+  const useDynamic =
+    settings.enableDynamicThemes &&
+    currentDynamicThemeId &&
+    (!settings.persistentMode || settings.dynamicThemesInPersistent);
 
-        if (charConfig && (charConfig.themeId || charConfig.presetId)) {
-            verboseLog(`[TypingIndicator] 应用角色专属主题`);
-            return {
-                themeId: charConfig.themeId || globalThemeId,
-                presetId: charConfig.presetId || globalPresetId,
-            };
-        }
-    }
+  if (useDynamic) {
+    verboseLog(`[TypingIndicator] 应用动态主题`);
+    return {
+      themeId: currentDynamicThemeId,
+      presetId: currentDynamicPresetId || globalPresetId,
+    };
+  }
 
-    if (settings.autoFollowTheme && power_user.theme) {
-        const themeBaseName = power_user.theme;
-        const matchedTheme = settings.themes.find((t) =>
-            t.name.startsWith(themeBaseName),
-        );
-
-        if (matchedTheme) {
-            verboseLog(`[TypingIndicator] 应用UI跟随主题`);
-            const matchedPreset = settings.textPresets.find((p) =>
-                p.name.startsWith(themeBaseName),
-            );
-            return {
-                themeId: matchedTheme.id,
-                presetId: matchedPreset ? matchedPreset.id : globalPresetId,
-            };
-        }
-    }
-
-    verboseLog(`[TypingIndicator] 应用全局主题`);
+  if (manualOverrideActive) {
+    verboseLog(`[TypingIndicator] 应用手动覆盖`);
     return { themeId: globalThemeId, presetId: globalPresetId };
+  }
+
+  if (this_chid !== undefined && characters[this_chid]) {
+    const charAvatar = characters[this_chid].avatar;
+    const charConfig = settings.characterThemes?.[charAvatar];
+
+    if (charConfig && (charConfig.themeId || charConfig.presetId)) {
+      verboseLog(`[TypingIndicator] 应用角色专属主题`);
+      return {
+        themeId: charConfig.themeId || globalThemeId,
+        presetId: charConfig.presetId || globalPresetId,
+      };
+    }
+  }
+
+  if (settings.autoFollowTheme && power_user.theme) {
+    const themeBaseName = power_user.theme;
+    const matchedTheme = settings.themes.find((t) =>
+      t.name.startsWith(themeBaseName),
+    );
+
+    if (matchedTheme) {
+      verboseLog(`[TypingIndicator] 应用UI跟随主题`);
+      const matchedPreset = settings.textPresets.find((p) =>
+        p.name.startsWith(themeBaseName),
+      );
+      return {
+        themeId: matchedTheme.id,
+        presetId: matchedPreset ? matchedPreset.id : globalPresetId,
+      };
+    }
+  }
+
+  verboseLog(`[TypingIndicator] 应用全局主题`);
+  return { themeId: globalThemeId, presetId: globalPresetId };
 }
 
 // ==================== 头像和BGM获取 ====================
 
 function getAvatarUrls() {
-    const DEFAULT_CHAR_AVATAR = "/img/ai4.png";
-    const DEFAULT_USER_AVATAR = "/img/user-default.png";
+  const DEFAULT_CHAR_AVATAR = "/img/ai4.png";
+  const DEFAULT_USER_AVATAR = "/img/user-default.png";
 
-    let charAvatarUrl = DEFAULT_CHAR_AVATAR;
-    let userAvatarUrl = DEFAULT_USER_AVATAR;
-    let charAvatarFound = false;
+  let charAvatarUrl = DEFAULT_CHAR_AVATAR;
+  let userAvatarUrl = DEFAULT_USER_AVATAR;
+  let charAvatarFound = false;
 
-    try {
-        if (
-            this_chid !== undefined &&
-            characters &&
-            characters.length > 0 &&
-            characters[this_chid]
-        ) {
-            const avatarFileName = characters[this_chid].avatar;
-            if (avatarFileName && avatarFileName !== "none") {
-                charAvatarUrl = `/characters/${encodeURIComponent(avatarFileName)}`;
-                charAvatarFound = true;
-            }
-        }
-    } catch (error) {
-        console.warn("[TypingIndicator] 从核心变量获取角色头像失败:", error);
-    }
-
+  try {
     if (
-        !charAvatarFound &&
-        window.TavernHelper &&
-        typeof window.TavernHelper.getCharAvatarPath === "function"
+      this_chid !== undefined &&
+      characters &&
+      characters.length > 0 &&
+      characters[this_chid]
     ) {
-        try {
-            debugLog(
-                "[TypingIndicator] 核心变量方案失败，尝试使用 TavernHelper 作为备用...",
-            );
-            const pathFromHelper =
-                window.TavernHelper.getCharAvatarPath("current");
-            if (pathFromHelper) {
-                charAvatarUrl = pathFromHelper.startsWith("/")
-                    ? pathFromHelper
-                    : `/${pathFromHelper}`;
-                charAvatarFound = true;
-            }
-        } catch (error) {
-            console.warn(
-                "[TypingIndicator] 调用 TavernHelper 备用方案失败:",
-                error,
-            );
-        }
+      const avatarFileName = characters[this_chid].avatar;
+      if (avatarFileName && avatarFileName !== "none") {
+        charAvatarUrl = `/characters/${encodeURIComponent(avatarFileName)}`;
+        charAvatarFound = true;
+      }
     }
+  } catch (error) {
+    console.warn("[TypingIndicator] 从核心变量获取角色头像失败:", error);
+  }
 
+  if (
+    !charAvatarFound &&
+    window.TavernHelper &&
+    typeof window.TavernHelper.getCharAvatarPath === "function"
+  ) {
     try {
-        if (user_avatar && user_avatar !== "none") {
-            userAvatarUrl = `/User Avatars/${encodeURIComponent(user_avatar)}`;
-        }
+      debugLog(
+        "[TypingIndicator] 核心变量方案失败，尝试使用 TavernHelper 作为备用...",
+      );
+      const pathFromHelper = window.TavernHelper.getCharAvatarPath("current");
+      if (pathFromHelper) {
+        charAvatarUrl = pathFromHelper.startsWith("/")
+          ? pathFromHelper
+          : `/${pathFromHelper}`;
+        charAvatarFound = true;
+      }
     } catch (error) {
-        console.error("[TypingIndicator] 获取用户头像时出错:", error);
+      console.warn("[TypingIndicator] 调用 TavernHelper 备用方案失败:", error);
     }
+  }
 
-    return { char: charAvatarUrl, user: userAvatarUrl };
+  try {
+    if (user_avatar && user_avatar !== "none") {
+      userAvatarUrl = `/User Avatars/${encodeURIComponent(user_avatar)}`;
+    }
+  } catch (error) {
+    console.error("[TypingIndicator] 获取用户头像时出错:", error);
+  }
+
+  return { char: charAvatarUrl, user: userAvatarUrl };
 }
 
 async function getBgmPlaylistAsync() {
-    debugLog("[TypingIndicator] 开始获取BGM播放列表...");
+  debugLog("[TypingIndicator] 开始获取BGM播放列表...");
 
-    const BGM_KEY = "@BGM@";
+  const BGM_KEY = "@BGM@";
 
-    if (this_chid === undefined || !characters[this_chid]) {
-        return null;
+  if (this_chid === undefined || !characters[this_chid]) {
+    return null;
+  }
+  const character = characters[this_chid];
+
+  const findEntryInBook = (bookContent, entryKey) => {
+    if (!bookContent || !bookContent.entries) return null;
+    const entries = Object.values(bookContent.entries);
+
+    return entries.find((entry) => {
+      if (!entry) return false;
+      const keysRaw = entry.keys || entry.key;
+      if (!keysRaw) return false;
+
+      const keysArray = Array.isArray(keysRaw)
+        ? keysRaw
+        : String(keysRaw)
+            .split(",")
+            .map((k) => k.trim());
+      return keysArray.includes(entryKey);
+    });
+  };
+
+  try {
+    let entry = findEntryInBook(character.data?.character_book, BGM_KEY);
+    if (entry) {
+      debugLog(
+        `[TypingIndicator] 优先级1: 在内嵌世界书中找到 "${BGM_KEY}" 条目。`,
+      );
+      return parseBgmData(entry.content);
     }
-    const character = characters[this_chid];
 
-    const findEntryInBook = (bookContent, entryKey) => {
-        if (!bookContent || !bookContent.entries) return null;
-        const entries = Object.values(bookContent.entries);
-
-        return entries.find((entry) => {
-            if (!entry) return false;
-            const keysRaw = entry.keys || entry.key;
-            if (!keysRaw) return false;
-
-            const keysArray = Array.isArray(keysRaw)
-                ? keysRaw
-                : String(keysRaw)
-                      .split(",")
-                      .map((k) => k.trim());
-            return keysArray.includes(entryKey);
-        });
-    };
-
-    try {
-        let entry = findEntryInBook(character.data?.character_book, BGM_KEY);
-        if (entry) {
-            debugLog(
-                `[TypingIndicator] 优先级1: 在内嵌世界书中找到 "${BGM_KEY}" 条目。`,
-            );
-            return parseBgmData(entry.content);
-        }
-
-        const worldName = character.data?.extensions?.world;
-        if (!worldName) {
-            return null;
-        }
-
-        const response = await fetch("/api/worldinfo/get", {
-            method: "POST",
-            headers: getRequestHeaders(),
-            body: JSON.stringify({ name: worldName }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`获取世界书失败，状态码: ${response.status}`);
-        }
-
-        const worldBookContent = await response.json();
-
-        entry = findEntryInBook(worldBookContent, BGM_KEY);
-        if (entry) {
-            debugLog(
-                `[TypingIndicator] 优先级2: 在外部世界书 "${worldName}" 中找到 "${BGM_KEY}" 条目。`,
-            );
-            return parseBgmData(entry.content);
-        }
-
-        debugLog(
-            `[TypingIndicator] 在所有关联的世界书中都未找到 "${BGM_KEY}" 条目。`,
-        );
-        return null;
-    } catch (error) {
-        console.error(`[TypingIndicator] 获取或解析BGM播放列表时出错:`, error);
-        return null;
+    const worldName = character.data?.extensions?.world;
+    if (!worldName) {
+      return null;
     }
+
+    const response = await fetch("/api/worldinfo/get", {
+      method: "POST",
+      headers: getRequestHeaders(),
+      body: JSON.stringify({ name: worldName }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`获取世界书失败，状态码: ${response.status}`);
+    }
+
+    const worldBookContent = await response.json();
+
+    entry = findEntryInBook(worldBookContent, BGM_KEY);
+    if (entry) {
+      debugLog(
+        `[TypingIndicator] 优先级2: 在外部世界书 "${worldName}" 中找到 "${BGM_KEY}" 条目。`,
+      );
+      return parseBgmData(entry.content);
+    }
+
+    debugLog(
+      `[TypingIndicator] 在所有关联的世界书中都未找到 "${BGM_KEY}" 条目。`,
+    );
+    return null;
+  } catch (error) {
+    console.error(`[TypingIndicator] 获取或解析BGM播放列表时出错:`, error);
+    return null;
+  }
 }
 
 function parseBgmData(rawText) {
-    if (!rawText || typeof rawText !== "string") {
-        return null;
+  if (!rawText || typeof rawText !== "string") {
+    return null;
+  }
+
+  const keyMap = {
+    歌曲名: "title",
+    title: "title",
+    歌手: "artist",
+    artist: "artist",
+    音频链接: "audioUrl",
+    audioUrl: "audioUrl",
+    封面链接: "coverUrl",
+    coverUrl: "coverUrl",
+    歌词链接: "lyricsUrl",
+    lyricsUrl: "lyricsUrl",
+  };
+
+  try {
+    const playlist = [];
+    const songBlocks = rawText.split(/\n\s*={3,}\s*\n/);
+
+    for (const block of songBlocks) {
+      if (block.trim() === "") continue;
+
+      const song = {};
+      const lines = block.split("\n");
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine === "") continue;
+
+        const separatorIndex = trimmedLine.indexOf(":");
+        if (separatorIndex === -1) continue;
+
+        const key = trimmedLine.substring(0, separatorIndex).trim();
+        const value = trimmedLine.substring(separatorIndex + 1).trim();
+
+        const standardKey = keyMap[key];
+
+        if (standardKey && value) {
+          song[standardKey] = value;
+        }
+      }
+
+      if (song.title && song.audioUrl) {
+        playlist.push(song);
+      }
     }
 
-    const keyMap = {
-        歌曲名: "title",
-        title: "title",
-        歌手: "artist",
-        artist: "artist",
-        音频链接: "audioUrl",
-        audioUrl: "audioUrl",
-        封面链接: "coverUrl",
-        coverUrl: "coverUrl",
-        歌词链接: "lyricsUrl",
-        lyricsUrl: "lyricsUrl",
-    };
-
-    try {
-        const playlist = [];
-        const songBlocks = rawText.split(/\n\s*={3,}\s*\n/);
-
-        for (const block of songBlocks) {
-            if (block.trim() === "") continue;
-
-            const song = {};
-            const lines = block.split("\n");
-
-            for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (trimmedLine === "") continue;
-
-                const separatorIndex = trimmedLine.indexOf(":");
-                if (separatorIndex === -1) continue;
-
-                const key = trimmedLine.substring(0, separatorIndex).trim();
-                const value = trimmedLine.substring(separatorIndex + 1).trim();
-
-                const standardKey = keyMap[key];
-
-                if (standardKey && value) {
-                    song[standardKey] = value;
-                }
-            }
-
-            if (song.title && song.audioUrl) {
-                playlist.push(song);
-            }
-        }
-
-        if (playlist.length > 0) {
-            console.log("[TypingIndicator] BGM数据解析成功，歌单:", playlist);
-            return playlist;
-        } else {
-            console.warn(
-                "[TypingIndicator] BGM数据解析后为空，请检查格式或内容。",
-            );
-            return null;
-        }
-    } catch (error) {
-        console.error("[TypingIndicator] 解析BGM数据时出错:", error);
-        toastr.error(
-            t`The character's BGM world book entry is incorrectly formatted. Please check it.`,
-            t`BGM Parsing Failed`,
-        );
-        return null;
+    if (playlist.length > 0) {
+      console.log("[TypingIndicator] BGM数据解析成功，歌单:", playlist);
+      return playlist;
+    } else {
+      console.warn("[TypingIndicator] BGM数据解析后为空，请检查格式或内容。");
+      return null;
     }
+  } catch (error) {
+    console.error("[TypingIndicator] 解析BGM数据时出错:", error);
+    toastr.error(
+      t`The character's BGM world book entry is incorrectly formatted. Please check it.`,
+      t`BGM Parsing Failed`,
+    );
+    return null;
+  }
 }
 
 // ==================== BGM气泡渲染 ====================
 
 function getBubbleStyleCSS() {
-    const settings = getSettings();
-    const style = settings.bubbleStyles.find(
-        (s) => s.id === settings.selectedBubbleStyleId,
-    );
-    return style ? style.css : "";
+  const settings = getSettings();
+  const style = settings.bubbleStyles.find(
+    (s) => s.id === settings.selectedBubbleStyleId,
+  );
+  return style ? style.css : "";
 }
 
 const bubbleRenderCache = new Map();
@@ -1672,974 +1649,1034 @@ let bubbleRenderQueue = new Set();
 let bubbleRenderScheduled = false;
 
 function renderBgmBubblesDebounced(messageElement) {
-    if (!messageElement) return;
+  if (!messageElement) return;
 
-    const mesId = messageElement.getAttribute("mesid");
-    if (!mesId) return;
-    const lastRender = bubbleRenderCache.get(mesId);
-    const now = Date.now();
-    if (lastRender && now - lastRender < RENDER_DEBOUNCE_MS) {
-        return;
-    }
+  const mesId = messageElement.getAttribute("mesid");
+  if (!mesId) return;
+  const lastRender = bubbleRenderCache.get(mesId);
+  const now = Date.now();
+  if (lastRender && now - lastRender < RENDER_DEBOUNCE_MS) {
+    return;
+  }
 
-    bubbleRenderQueue.add(messageElement);
-    bubbleRenderCache.set(mesId, now);
-    if (!bubbleRenderScheduled) {
-        bubbleRenderScheduled = true;
+  bubbleRenderQueue.add(messageElement);
+  bubbleRenderCache.set(mesId, now);
+  if (!bubbleRenderScheduled) {
+    bubbleRenderScheduled = true;
 
-        const processQueue = () => {
-            const elementsToProcess = [...bubbleRenderQueue];
-            bubbleRenderQueue.clear();
-            bubbleRenderScheduled = false;
+    const processQueue = () => {
+      const elementsToProcess = [...bubbleRenderQueue];
+      bubbleRenderQueue.clear();
+      bubbleRenderScheduled = false;
 
-            elementsToProcess.forEach((el) => {
-                if (el && el.isConnected) {
-                    renderBgmBubbles(el);
-                }
-            });
-
-            if (bubbleRenderCache.size > MAX_BUBBLE_CACHE_SIZE) {
-                const keysToDelete = [];
-                const expireTime = Date.now() - 60000;
-                for (const [key, time] of bubbleRenderCache) {
-                    if (time < expireTime) {
-                        keysToDelete.push(key);
-                    }
-                    if (keysToDelete.length >= 10) break;
-                }
-                keysToDelete.forEach((key) => bubbleRenderCache.delete(key));
-            }
-        };
-        if ("requestIdleCallback" in window) {
-            requestIdleCallback(processQueue, { timeout: 300 });
-        } else {
-            setTimeout(processQueue, 50);
+      elementsToProcess.forEach((el) => {
+        if (el && el.isConnected) {
+          renderBgmBubbles(el);
         }
+      });
+
+      if (bubbleRenderCache.size > MAX_BUBBLE_CACHE_SIZE) {
+        const keysToDelete = [];
+        const expireTime = Date.now() - 60000;
+        for (const [key, time] of bubbleRenderCache) {
+          if (time < expireTime) {
+            keysToDelete.push(key);
+          }
+          if (keysToDelete.length >= 10) break;
+        }
+        keysToDelete.forEach((key) => bubbleRenderCache.delete(key));
+      }
+    };
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(processQueue, { timeout: 300 });
+    } else {
+      setTimeout(processQueue, 50);
     }
+  }
 }
 
 function renderBgmBubbles(messageElement) {
-    const settings = getSettings();
-    if (!settings.enableBubbleReplacement) return;
+  const settings = getSettings();
+  if (!settings.enableBubbleReplacement) return;
 
-    const style = settings.bubbleStyles.find(
-        (s) => s.id === settings.selectedBubbleStyleId,
-    );
-    if (!style) return;
+  const style = settings.bubbleStyles.find(
+    (s) => s.id === settings.selectedBubbleStyleId,
+  );
+  if (!style) return;
 
-    const mesText = messageElement.querySelector(".mes_text");
-    if (!mesText) return;
+  const mesText = messageElement.querySelector(".mes_text");
+  if (!mesText) return;
 
-    BGM_REGEX.lastIndex = 0;
+  BGM_REGEX.lastIndex = 0;
 
-    const getNonCodeText = (element) => {
-        let text = "";
-        const walk = (node) => {
-            if (node.nodeType === Node.TEXT_NODE) {
-                text += node.textContent;
-            } else if (node.nodeType === Node.ELEMENT_NODE) {
-                const tag = node.tagName.toUpperCase();
-                if (tag !== "CODE" && tag !== "PRE") {
-                    for (const child of node.childNodes) {
-                        walk(child);
-                    }
-                }
-            }
-        };
-        walk(element);
-        return text;
+  const getNonCodeText = (element) => {
+    let text = "";
+    const walk = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        text += node.textContent;
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName.toUpperCase();
+        if (tag !== "CODE" && tag !== "PRE") {
+          for (const child of node.childNodes) {
+            walk(child);
+          }
+        }
+      }
     };
+    walk(element);
+    return text;
+  };
 
-    const nonCodeText = getNonCodeText(mesText);
-    if (!nonCodeText.includes("[bgm]")) return;
+  const nonCodeText = getNonCodeText(mesText);
+  if (!nonCodeText.includes("[bgm]")) return;
 
+  BGM_REGEX.lastIndex = 0;
+  const allMatches = [...nonCodeText.matchAll(BGM_REGEX)];
+  if (allMatches.length === 0) return;
+
+  let processedCount = 0;
+
+  const walker = document.createTreeWalker(mesText, NodeFilter.SHOW_TEXT, {
+    acceptNode: function (node) {
+      let parent = node.parentElement;
+      while (parent && parent !== mesText) {
+        const tagName = parent.tagName.toUpperCase();
+        if (tagName === "PRE" || tagName === "CODE") {
+          return NodeFilter.FILTER_REJECT;
+        }
+        parent = parent.parentElement;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const textNodesToProcess = [];
+  let currentNode;
+  while ((currentNode = walker.nextNode())) {
     BGM_REGEX.lastIndex = 0;
-    const allMatches = [...nonCodeText.matchAll(BGM_REGEX)];
-    if (allMatches.length === 0) return;
-
-    let processedCount = 0;
-
-    const walker = document.createTreeWalker(mesText, NodeFilter.SHOW_TEXT, {
-        acceptNode: function (node) {
-            let parent = node.parentElement;
-            while (parent && parent !== mesText) {
-                const tagName = parent.tagName.toUpperCase();
-                if (tagName === "PRE" || tagName === "CODE") {
-                    return NodeFilter.FILTER_REJECT;
-                }
-                parent = parent.parentElement;
-            }
-            return NodeFilter.FILTER_ACCEPT;
-        },
-    });
-
-    const textNodesToProcess = [];
-    let currentNode;
-    while ((currentNode = walker.nextNode())) {
-        BGM_REGEX.lastIndex = 0;
-        if (BGM_REGEX.test(currentNode.textContent)) {
-            textNodesToProcess.push(currentNode);
-        }
+    if (BGM_REGEX.test(currentNode.textContent)) {
+      textNodesToProcess.push(currentNode);
     }
+  }
 
-    textNodesToProcess.forEach((textNode) => {
-        const text = textNode.textContent;
-        BGM_REGEX.lastIndex = 0;
-        const nodeMatches = [...text.matchAll(BGM_REGEX)];
-        if (nodeMatches.length === 0) return;
+  textNodesToProcess.forEach((textNode) => {
+    const text = textNode.textContent;
+    BGM_REGEX.lastIndex = 0;
+    const nodeMatches = [...text.matchAll(BGM_REGEX)];
+    if (nodeMatches.length === 0) return;
 
-        const fragment = document.createDocumentFragment();
-        let lastIndex = 0;
+    const fragment = document.createDocumentFragment();
+    let lastIndex = 0;
 
-        nodeMatches.forEach((match) => {
-            const [fullMatch, title, artist] = match;
-            const matchStart = match.index;
+    nodeMatches.forEach((match) => {
+      const [fullMatch, title, artist] = match;
+      const matchStart = match.index;
 
-            if (matchStart > lastIndex) {
-                fragment.appendChild(
-                    document.createTextNode(text.slice(lastIndex, matchStart)),
-                );
-            }
-
-            const bubbleHtml = style.html
-                .replace(/\{\{title\}\}/g, title.trim())
-                .replace(/\{\{artist\}\}/g, artist.trim());
-
-            const temp = document.createElement("div");
-            temp.innerHTML = bubbleHtml;
-            const bubble = temp.querySelector(".music-bubble-from-regex");
-            if (bubble) {
-                bubble.dataset.title = title.trim();
-                bubble.dataset.artist = artist.trim();
-            }
-            while (temp.firstChild) {
-                fragment.appendChild(temp.firstChild);
-            }
-
-            lastIndex = matchStart + fullMatch.length;
-            processedCount++;
-        });
-
-        if (lastIndex < text.length) {
-            fragment.appendChild(
-                document.createTextNode(text.slice(lastIndex)),
-            );
-        }
-        textNode.parentNode.replaceChild(fragment, textNode);
-    });
-
-    if (processedCount >= allMatches.length) {
-        console.log(
-            `[Typing Indicator Music] 已渲染 ${processedCount} 个 BGM 气泡`,
+      if (matchStart > lastIndex) {
+        fragment.appendChild(
+          document.createTextNode(text.slice(lastIndex, matchStart)),
         );
-        return;
-    }
+      }
 
-    console.warn(
-        `[Typing Indicator Music] 检测到 ${allMatches.length - processedCount} 个跨节点 BGM 标签，启用修复模式`,
+      const bubbleHtml = style.html
+        .replace(/\{\{title\}\}/g, title.trim())
+        .replace(/\{\{artist\}\}/g, artist.trim());
+
+      const temp = document.createElement("div");
+      temp.innerHTML = bubbleHtml;
+      const bubble = temp.querySelector(".music-bubble-from-regex");
+      if (bubble) {
+        bubble.dataset.title = title.trim();
+        bubble.dataset.artist = artist.trim();
+      }
+      while (temp.firstChild) {
+        fragment.appendChild(temp.firstChild);
+      }
+
+      lastIndex = matchStart + fullMatch.length;
+      processedCount++;
+    });
+
+    if (lastIndex < text.length) {
+      fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+    }
+    textNode.parentNode.replaceChild(fragment, textNode);
+  });
+
+  if (processedCount >= allMatches.length) {
+    console.log(
+      `[Typing Indicator Music] 已渲染 ${processedCount} 个 BGM 气泡`,
+    );
+    return;
+  }
+
+  console.warn(
+    `[Typing Indicator Music] 检测到 ${allMatches.length - processedCount} 个跨节点 BGM 标签，启用修复模式`,
+  );
+
+  const currentNonCodeText = getNonCodeText(mesText);
+  BGM_REGEX.lastIndex = 0;
+  const remainingMatches = [...currentNonCodeText.matchAll(BGM_REGEX)];
+
+  if (remainingMatches.length === 0) {
+    console.log(`[Typing Indicator Music] 所有标签已处理完成`);
+    return;
+  }
+
+  let html = mesText.innerHTML;
+  const protectedBlocks = [];
+
+  html = html.replace(/<(pre|code)[^>]*>[\s\S]*?<\/\1>/gi, (match) => {
+    const placeholder = `__PROTECTED_BLOCK_${protectedBlocks.length}__`;
+    protectedBlocks.push(match);
+    return placeholder;
+  });
+
+  let hasChanges = false;
+
+  for (const match of remainingMatches) {
+    const [, title, artist] = match;
+
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const flexPattern = (str) =>
+      escapeRegex(str).split("").join("(?:<[^>]*>)*");
+
+    const searchRegex = new RegExp(
+      `\\[bgm\\](?:<[^>]*>)*${flexPattern(title)}(?:<[^>]*>)*-(?:<[^>]*>)*${flexPattern(artist)}(?:<[^>]*>)*\\[/bgm\\]`,
+      "gi",
     );
 
-    const currentNonCodeText = getNonCodeText(mesText);
-    BGM_REGEX.lastIndex = 0;
-    const remainingMatches = [...currentNonCodeText.matchAll(BGM_REGEX)];
+    const bubbleHtml = style.html
+      .replace(/\{\{title\}\}/g, title.trim())
+      .replace(/\{\{artist\}\}/g, artist.trim());
 
-    if (remainingMatches.length === 0) {
-        console.log(`[Typing Indicator Music] 所有标签已处理完成`);
-        return;
+    const temp = document.createElement("div");
+    temp.innerHTML = bubbleHtml;
+    const bubble = temp.querySelector(".music-bubble-from-regex");
+    if (bubble) {
+      bubble.dataset.title = title.trim();
+      bubble.dataset.artist = artist.trim();
     }
 
-    let html = mesText.innerHTML;
-    const protectedBlocks = [];
-
-    html = html.replace(/<(pre|code)[^>]*>[\s\S]*?<\/\1>/gi, (match) => {
-        const placeholder = `__PROTECTED_BLOCK_${protectedBlocks.length}__`;
-        protectedBlocks.push(match);
-        return placeholder;
-    });
-
-    let hasChanges = false;
-
-    for (const match of remainingMatches) {
-        const [, title, artist] = match;
-
-        const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const flexPattern = (str) =>
-            escapeRegex(str).split("").join("(?:<[^>]*>)*");
-
-        const searchRegex = new RegExp(
-            `\\[bgm\\](?:<[^>]*>)*${flexPattern(title)}(?:<[^>]*>)*-(?:<[^>]*>)*${flexPattern(artist)}(?:<[^>]*>)*\\[/bgm\\]`,
-            "gi",
-        );
-
-        const bubbleHtml = style.html
-            .replace(/\{\{title\}\}/g, title.trim())
-            .replace(/\{\{artist\}\}/g, artist.trim());
-
-        const temp = document.createElement("div");
-        temp.innerHTML = bubbleHtml;
-        const bubble = temp.querySelector(".music-bubble-from-regex");
-        if (bubble) {
-            bubble.dataset.title = title.trim();
-            bubble.dataset.artist = artist.trim();
-        }
-
-        const newHtml = html.replace(searchRegex, temp.innerHTML);
-        if (newHtml !== html) {
-            html = newHtml;
-            hasChanges = true;
-        }
+    const newHtml = html.replace(searchRegex, temp.innerHTML);
+    if (newHtml !== html) {
+      html = newHtml;
+      hasChanges = true;
     }
+  }
 
-    protectedBlocks.forEach((block, index) => {
-        html = html.replace(`__PROTECTED_BLOCK_${index}__`, block);
-    });
+  protectedBlocks.forEach((block, index) => {
+    html = html.replace(`__PROTECTED_BLOCK_${index}__`, block);
+  });
 
-    if (hasChanges) {
-        mesText.innerHTML = html;
-        console.log(
-            `[Typing Indicator Music] 已修复 ${remainingMatches.length} 个跨节点 BGM 气泡`,
-        );
-    }
+  if (hasChanges) {
+    mesText.innerHTML = html;
+    console.log(
+      `[Typing Indicator Music] 已修复 ${remainingMatches.length} 个跨节点 BGM 气泡`,
+    );
+  }
 }
 
 function applyBubbleStyles() {
-    const styleId = "ti-bubble-style";
-    let styleEl = document.getElementById(styleId);
+  const styleId = "ti-bubble-style";
+  let styleEl = document.getElementById(styleId);
 
-    if (!styleEl) {
-        styleEl = document.createElement("style");
-        styleEl.id = styleId;
-        document.head.appendChild(styleEl);
-    }
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
 
-    styleEl.textContent = getBubbleStyleCSS();
+  styleEl.textContent = getBubbleStyleCSS();
 }
 
 function refreshAllBubbles() {
-    applyBubbleStyles();
+  applyBubbleStyles();
 
-    const settings = getSettings();
-    if (!settings.enableBubbleReplacement) return;
+  const settings = getSettings();
+  if (!settings.enableBubbleReplacement) return;
 
-    const style = settings.bubbleStyles.find(
-        (s) => s.id === settings.selectedBubbleStyleId,
+  const style = settings.bubbleStyles.find(
+    (s) => s.id === settings.selectedBubbleStyleId,
+  );
+  if (!style) return;
+
+  document.querySelectorAll("#chat .mes").forEach((mes) => {
+    const mesId = mes.getAttribute("mesid");
+    if (mesId === null) return;
+
+    const mesText = mes.querySelector(".mes_text");
+    if (!mesText) return;
+
+    const existingBubbles = mesText.querySelectorAll(
+      ".music-bubble-from-regex",
     );
-    if (!style) return;
 
-    document.querySelectorAll("#chat .mes").forEach((mes) => {
-        const mesId = mes.getAttribute("mesid");
-        if (mesId === null) return;
+    if (existingBubbles.length > 0) {
+      existingBubbles.forEach((bubble) => {
+        const title = bubble.dataset.title;
+        const artist = bubble.dataset.artist;
+        if (!title || !artist) return;
 
-        const mesText = mes.querySelector(".mes_text");
-        if (!mesText) return;
+        const newHtml = style.html
+          .replace(/\{\{title\}\}/g, title)
+          .replace(/\{\{artist\}\}/g, artist);
 
-        const existingBubbles = mesText.querySelectorAll(
-            ".music-bubble-from-regex",
-        );
+        const container = bubble.closest(".music-bubble-container") || bubble;
+        const temp = document.createElement("div");
+        temp.innerHTML = newHtml;
+        container.replaceWith(temp.firstElementChild || temp.firstChild);
+      });
+    } else {
+      renderBgmBubbles(mes);
+    }
+  });
 
-        if (existingBubbles.length > 0) {
-            existingBubbles.forEach((bubble) => {
-                const title = bubble.dataset.title;
-                const artist = bubble.dataset.artist;
-                if (!title || !artist) return;
-
-                const newHtml = style.html
-                    .replace(/\{\{title\}\}/g, title)
-                    .replace(/\{\{artist\}\}/g, artist);
-
-                const container =
-                    bubble.closest(".music-bubble-container") || bubble;
-                const temp = document.createElement("div");
-                temp.innerHTML = newHtml;
-                container.replaceWith(
-                    temp.firstElementChild || temp.firstChild,
-                );
-            });
-        } else {
-            renderBgmBubbles(mes);
-        }
-    });
-
-    console.log("[Typing Indicator Music] 已刷新所有BGM气泡样式");
+  console.log("[Typing Indicator Music] 已刷新所有BGM气泡样式");
 }
 
-async function searchSong(query) {
-    const sources = ["tencent", "netease", "kuwo"];
-    console.log(`[搜索] 开始搜索: "${query}"`);
-
-    for (const source of sources) {
-        try {
-            console.log(`[搜索] 尝试 ${source}...`);
-
-            const searchResponse = await fetch(
-                `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(
-                    query,
-                )}&source=${source}`,
-            );
-
-            if (!searchResponse.ok) {
-                console.log(
-                    `[搜索] ✗ ${source} 搜索请求失败: HTTP ${searchResponse.status}`,
-                );
-                continue;
-            }
-
-            const searchResult = await searchResponse.json();
-
-            if (!searchResult.data || searchResult.data.length === 0) {
-                console.log(`[搜索] ✗ ${source} 无搜索结果`);
-                continue;
-            }
-            const parts = query.split("-");
-            let queryTitle = "";
-            let queryArtist = "";
-
-            if (parts.length >= 2) {
-                queryTitle = parts[0].trim();
-                queryArtist = parts[1].trim();
-            }
-
-            debugLog("[搜索] 拆分结果:", { queryTitle, queryArtist });
-            let track = null;
-
-            if (queryArtist) {
-                track = searchResult.data.find((item) => {
-                    const itemArtist = (
-                        item.singer ||
-                        item.artist ||
-                        ""
-                    ).toLowerCase();
-                    const searchArtist = queryArtist.toLowerCase();
-
-                    return (
-                        itemArtist.includes(searchArtist) ||
-                        searchArtist.includes(itemArtist)
-                    );
-                });
-            }
-            if (!track) {
-                track = searchResult.data[0];
-            }
-
-            const trackId = track.id || track.rid;
-            const sourceLabel =
-                {
-                    netease: "Netease",
-                    tencent: "Tencent",
-                    kuwo: "Kuwo",
-                }[source] || source;
-            const coverUrl = track.cover || track.pic || "";
-
-            console.log(
-                `[搜索] ${source} 选中: id=${trackId}, 歌名=${
-                    track.song || track.name
-                }, 歌手=${track.singer || track.artist}`,
-            );
-            let audioUrl = MusicCache.getAudio(trackId, sourceLabel);
-            let lyricsData = MusicCache.getLyrics(trackId, sourceLabel);
-            let cachedCover = MusicCache.getCover(trackId, sourceLabel);
-
-            console.log(
-                `[搜索] 缓存检查: audioUrl=${audioUrl ? "有" : "无"}, lyrics=${
-                    lyricsData ? "有" : "无"
-                }, cover=${cachedCover ? "有" : "无"}`,
-            );
-            if (audioUrl && lyricsData) {
-                console.log(`[搜索] ✓ ${source} 缓存完全命中，直接返回`);
-                return {
-                    id: trackId,
-                    name: track.song || track.name,
-                    title: track.song || track.name,
-                    artist: track.singer || track.artist,
-                    coverUrl: cachedCover || coverUrl,
-                    source: sourceLabel,
-                    audioUrl: audioUrl,
-                    lyricsContent: lyricsData.content || "",
-                    tlyricContent: lyricsData.tlyric || "",
-                };
-            }
-            debugLog(`[搜索] ${source} 获取音频URL...`);
-            const songData = await fetchAndValidateSong(trackId, source);
-
-            if (songData && songData.audioUrl) {
-                MusicCache.setAudio(trackId, sourceLabel, songData.audioUrl);
-                if (songData.lyricsContent) {
-                    MusicCache.setLyrics(
-                        trackId,
-                        sourceLabel,
-                        songData.lyricsContent,
-                        songData.tlyricContent || "",
-                    );
-                }
-                if (coverUrl) {
-                    MusicCache.setCover(trackId, sourceLabel, coverUrl);
-                }
-
-                console.log(`[搜索] ✓ ${source} 成功，已缓存所有数据`);
-
-                return {
-                    id: trackId,
-                    name: track.song || track.name,
-                    title: track.song || track.name,
-                    artist: track.singer || track.artist,
-                    coverUrl: coverUrl,
-                    source: sourceLabel,
-                    audioUrl: songData.audioUrl,
-                    lyricsContent: songData.lyricsContent || "",
-                    tlyricContent: songData.tlyricContent || "",
-                };
-            } else {
-                console.log(`[搜索] ✗ ${source} 无效音频，尝试下一个音源...`);
-            }
-        } catch (error) {
-            debugWarn(`[搜索] ✗ ${source} 异常:`, error.message);
-        }
-    }
-
-    console.error("[搜索] ✗ 所有音源都失败了");
+async function searchSongWithDedup(title, artist) {
+  const key = `${(title || "").toLowerCase().trim()}|||${(artist || "").toLowerCase().trim()}`;
+  const failedAt = failedSearches.get(key);
+  if (failedAt && Date.now() - failedAt < FAILED_SEARCH_COOLDOWN) {
+    console.log(`[搜索] ⏭️ 跳过最近失败的搜索: ${title} - ${artist}`);
     return null;
+  }
+  const cached = MusicCache.getSearch(title, artist);
+  if (cached) {
+    const cachedArtist = MusicCache._normalizeArtist(
+      cached.artist || "",
+    ).toLowerCase();
+    const requestedArtist = (artist || "").toLowerCase().trim();
+
+    const isMatch =
+      !requestedArtist ||
+      !cachedArtist ||
+      cachedArtist.includes(requestedArtist) ||
+      requestedArtist.includes(cachedArtist);
+
+    if (isMatch) {
+      console.log(`[搜索] ✓ 缓存命中: ${title} - ${artist}`);
+      return cached;
+    } else {
+      console.log(`[搜索] ⚠️ 缓存歌手不匹配，重新搜索: ${title} - ${artist}`);
+    }
+  }
+
+  if (pendingSearches.has(key)) {
+    console.log(`[搜索] ⏳ 等待进行中的搜索: ${title} - ${artist}`);
+    return pendingSearches.get(key);
+  }
+
+  const promise = (async () => {
+    const result = await searchSong(title, artist);
+
+    if (result) {
+      const resultArtist = MusicCache._normalizeArtist(
+        result.artist || "",
+      ).toLowerCase();
+      const requestedArtist = (artist || "").toLowerCase().trim();
+
+      const isMatch =
+        !requestedArtist ||
+        !resultArtist ||
+        resultArtist.includes(requestedArtist) ||
+        requestedArtist.includes(resultArtist);
+
+      if (!isMatch) {
+        console.warn(
+          `[搜索] ⚠️ 歌手不匹配，丢弃结果\n  期望: ${artist}\n  实际: ${result.artist}`,
+        );
+        failedSearches.set(key, Date.now());
+        return null;
+      }
+      MusicCache.setSearch(title, artist, result);
+      return result;
+    }
+    failedSearches.set(key, Date.now());
+    return null;
+  })();
+
+  pendingSearches.set(key, promise);
+
+  try {
+    return await promise;
+  } finally {
+    pendingSearches.delete(key);
+  }
+}
+
+async function searchSong(title, artist = "") {
+  const query = artist ? `${title} ${artist}` : title;
+  const sources = ["tencent", "netease", "kuwo"];
+  console.log(
+    `[搜索] 开始搜索: "${query}" (歌曲: ${title}, 歌手: ${artist || "未指定"})`,
+  );
+
+  const normalizedArtist = (artist || "").toLowerCase().trim();
+  const normalizedTitle = (title || "").toLowerCase().trim();
+
+  for (const source of sources) {
+    try {
+      console.log(`[搜索] 尝试 ${source}...`);
+
+      const searchResponse = await fetch(
+        `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(query)}&source=${source}`,
+      );
+
+      if (!searchResponse.ok) {
+        console.log(
+          `[搜索] ✗ ${source} 搜索请求失败: HTTP ${searchResponse.status}`,
+        );
+        continue;
+      }
+
+      const searchResult = await searchResponse.json();
+
+      if (!searchResult.data || searchResult.data.length === 0) {
+        console.log(`[搜索] ✗ ${source} 无搜索结果`);
+        continue;
+      }
+
+      let track = null;
+
+      if (normalizedTitle) {
+        track = searchResult.data.find((item) => {
+          const itemTitle = (item.song || item.name || "").toLowerCase();
+          const itemArtist = (item.singer || item.artist || "").toLowerCase();
+          const titleMatch =
+            itemTitle.includes(normalizedTitle) ||
+            normalizedTitle.includes(itemTitle);
+          if (normalizedArtist) {
+            const artistMatch =
+              itemArtist.includes(normalizedArtist) ||
+              normalizedArtist.includes(itemArtist);
+            return titleMatch && artistMatch;
+          }
+
+          return titleMatch;
+        });
+
+        if (!track) {
+          console.log(
+            `[搜索] ✗ ${source} 无匹配 "${title} - ${artist}"，跳过...`,
+          );
+          continue;
+        }
+      } else {
+        track = searchResult.data[0];
+      }
+
+      const trackId = track.id || track.rid;
+      const sourceLabel =
+        {
+          netease: "Netease",
+          tencent: "Tencent",
+          kuwo: "Kuwo",
+        }[source] || source;
+      const coverUrl = track.cover || track.pic || "";
+
+      console.log(
+        `[搜索] ${source} 选中: id=${trackId}, 歌名=${track.song || track.name}, 歌手=${track.singer || track.artist}`,
+      );
+
+      let audioUrl = MusicCache.getAudio(trackId, sourceLabel);
+      let lyricsData = MusicCache.getLyrics(trackId, sourceLabel);
+      let cachedCover = MusicCache.getCover(trackId, sourceLabel);
+
+      console.log(
+        `[搜索] 缓存检查: audioUrl=${audioUrl ? "有" : "无"}, lyrics=${lyricsData ? "有" : "无"}, cover=${cachedCover ? "有" : "无"}`,
+      );
+
+      if (audioUrl && lyricsData) {
+        console.log(`[搜索] ✓ ${source} 缓存完全命中，直接返回`);
+        return {
+          id: trackId,
+          name: track.song || track.name,
+          title: track.song || track.name,
+          artist: track.singer || track.artist,
+          coverUrl: cachedCover || coverUrl,
+          source: sourceLabel,
+          audioUrl: audioUrl,
+          lyricsContent: lyricsData.content || "",
+          tlyricContent: lyricsData.tlyric || "",
+        };
+      }
+
+      debugLog(`[搜索] ${source} 获取音频URL...`);
+      const songData = await fetchAndValidateSong(trackId, source);
+
+      if (songData && songData.audioUrl) {
+        MusicCache.setAudio(trackId, sourceLabel, songData.audioUrl);
+        if (songData.lyricsContent) {
+          MusicCache.setLyrics(
+            trackId,
+            sourceLabel,
+            songData.lyricsContent,
+            songData.tlyricContent || "",
+          );
+        }
+        if (coverUrl) {
+          MusicCache.setCover(trackId, sourceLabel, coverUrl);
+        }
+
+        console.log(`[搜索] ✓ ${source} 成功，已缓存所有数据`);
+
+        return {
+          id: trackId,
+          name: track.song || track.name,
+          title: track.song || track.name,
+          artist: track.singer || track.artist,
+          coverUrl: coverUrl,
+          source: sourceLabel,
+          audioUrl: songData.audioUrl,
+          lyricsContent: songData.lyricsContent || "",
+          tlyricContent: songData.tlyricContent || "",
+        };
+      } else {
+        console.log(`[搜索] ✗ ${source} 无效音频，尝试下一个音源...`);
+      }
+    } catch (error) {
+      debugWarn(`[搜索] ✗ ${source} 异常:`, error.message);
+    }
+  }
+
+  console.error("[搜索] ✗ 所有音源搜索失败");
+  return null;
 }
 
 async function fetchAndValidateSong(id, source) {
-    try {
-        const [songResponse, lyricResponse] = await Promise.all([
-            fetch(`/api/plugins/g-player-proxy/song?id=${id}&source=${source}`),
-            fetch(
-                `/api/plugins/g-player-proxy/lyric?id=${id}&source=${source}`,
-            ),
-        ]);
+  try {
+    const [songResponse, lyricResponse] = await Promise.all([
+      fetch(`/api/plugins/g-player-proxy/song?id=${id}&source=${source}`),
+      fetch(`/api/plugins/g-player-proxy/lyric?id=${id}&source=${source}`),
+    ]);
 
-        if (!songResponse.ok) return null;
+    if (!songResponse.ok) return null;
 
-        const songData = await songResponse.json();
+    const songData = await songResponse.json();
 
-        if (songData._needFallback) {
-            return null;
-        }
-
-        let audioUrl = "";
-        let lyricsContent = "";
-        let tlyricContent = "";
-
-        if (songData.data) {
-            if (Array.isArray(songData.data)) {
-                audioUrl = songData.data[0]?.url || "";
-                lyricsContent =
-                    songData.data[0]?.lyric || songData.data[0]?.lrc || "";
-                tlyricContent =
-                    songData.data[0]?.tlyric || songData.data[0]?.trans || "";
-            } else {
-                audioUrl = songData.data.url || "";
-                lyricsContent = songData.data.lrc || songData.data.lyric || "";
-                tlyricContent =
-                    songData.data.tlyric || songData.data.trans || "";
-            }
-        }
-
-        if (!lyricsContent && lyricResponse.ok) {
-            try {
-                const lyricData = await lyricResponse.json();
-                if (lyricData?.data) {
-                    lyricsContent =
-                        lyricData.data.lrc || lyricData.data.lyric || "";
-                    tlyricContent =
-                        lyricData.data.tlyric || lyricData.data.trans || "";
-                }
-            } catch (e) {}
-        }
-
-        if (!audioUrl) return null;
-
-        const duration = await getAudioDuration(audioUrl);
-        if (duration !== null && duration < 35) return null;
-
-        return { audioUrl, lyricsContent, tlyricContent };
-    } catch (error) {
-        debugWarn(`[搜索调试] fetchAndValidateSong 失败:`, error);
-        return null;
+    if (songData._needFallback) {
+      return null;
     }
+
+    let audioUrl = "";
+    let lyricsContent = "";
+    let tlyricContent = "";
+
+    if (songData.data) {
+      if (Array.isArray(songData.data)) {
+        audioUrl = songData.data[0]?.url || "";
+        lyricsContent = songData.data[0]?.lyric || songData.data[0]?.lrc || "";
+        tlyricContent =
+          songData.data[0]?.tlyric || songData.data[0]?.trans || "";
+      } else {
+        audioUrl = songData.data.url || "";
+        lyricsContent = songData.data.lrc || songData.data.lyric || "";
+        tlyricContent = songData.data.tlyric || songData.data.trans || "";
+        if (!lyricsContent && songData.data.lrcId) {
+          try {
+            const lrcIdResponse = await fetch(
+              `/api/plugins/g-player-proxy/lyric?id=${songData.data.lrcId}&source=${source}`,
+            );
+            if (lrcIdResponse.ok) {
+              const lrcIdData = await lrcIdResponse.json();
+              if (lrcIdData?.data?.lrc) {
+                lyricsContent = lrcIdData.data.lrc;
+              }
+            }
+          } catch (e) {
+            console.warn(`[搜索] 使用 lrcId 获取歌词失败`);
+          }
+        }
+      }
+    }
+
+    if (!lyricsContent && lyricResponse.ok) {
+      try {
+        const lyricData = await lyricResponse.json();
+        if (lyricData?.data) {
+          lyricsContent = lyricData.data.lrc || lyricData.data.lyric || "";
+          tlyricContent = lyricData.data.tlyric || lyricData.data.trans || "";
+        }
+      } catch (e) {}
+    }
+
+    if (!audioUrl) return null;
+
+    const duration = await getAudioDuration(audioUrl);
+    if (duration !== null && duration < 35) return null;
+
+    return { audioUrl, lyricsContent, tlyricContent };
+  } catch (error) {
+    debugWarn(`[搜索调试] fetchAndValidateSong 失败:`, error);
+    return null;
+  }
 }
 
 function getAudioDuration(audioUrl) {
-    return new Promise((resolve) => {
-        const needProxyDomains = [
-            "music.126.net",
-            "126.net",
-            "netease.com",
-            "qq.com",
-            "qqmusic.qq.com",
-            "y.qq.com",
-            "kuwo.cn",
-            "kuwo.com",
-            "kugou.com",
-            "migu.cn",
-        ];
-        const needProxy = needProxyDomains.some((domain) =>
-            audioUrl.includes(domain),
-        );
-        const finalUrl = needProxy
-            ? `/api/plugins/g-player-proxy/stream?url=${encodeURIComponent(
-                  audioUrl,
-              )}`
-            : audioUrl;
+  return new Promise((resolve) => {
+    const needProxyDomains = [
+      "music.126.net",
+      "126.net",
+      "netease.com",
+      "qq.com",
+      "qqmusic.qq.com",
+      "y.qq.com",
+      "kuwo.cn",
+      "kuwo.com",
+      "kugou.com",
+      "migu.cn",
+    ];
+    const needProxy = needProxyDomains.some((domain) =>
+      audioUrl.includes(domain),
+    );
+    const finalUrl = needProxy
+      ? `/api/plugins/g-player-proxy/stream?url=${encodeURIComponent(audioUrl)}`
+      : audioUrl;
 
-        const audio = new Audio();
-        audio.preload = "metadata";
+    const audio = new Audio();
+    audio.preload = "metadata";
 
-        const cleanup = () => {
-            audio.removeEventListener("loadedmetadata", onLoaded);
-            audio.removeEventListener("error", onError);
-            audio.src = "";
-        };
+    const cleanup = () => {
+      audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("error", onError);
+      audio.src = "";
+    };
 
-        const onLoaded = () => {
-            const duration = audio.duration;
-            cleanup();
-            resolve(isFinite(duration) ? duration : null);
-        };
+    const onLoaded = () => {
+      const duration = audio.duration;
+      cleanup();
+      resolve(isFinite(duration) ? duration : null);
+    };
 
-        const onError = () => {
-            cleanup();
-            resolve(null);
-        };
+    const onError = () => {
+      cleanup();
+      resolve(null);
+    };
 
-        const timeout = setTimeout(() => {
-            cleanup();
-            resolve(null);
-        }, 3000);
+    const timeout = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, 3000);
 
-        audio.addEventListener("loadedmetadata", () => {
-            clearTimeout(timeout);
-            onLoaded();
-        });
-        audio.addEventListener("error", () => {
-            clearTimeout(timeout);
-            onError();
-        });
-
-        audio.src = finalUrl;
+    audio.addEventListener("loadedmetadata", () => {
+      clearTimeout(timeout);
+      onLoaded();
     });
+    audio.addEventListener("error", () => {
+      clearTimeout(timeout);
+      onError();
+    });
+
+    audio.src = finalUrl;
+  });
 }
 
 async function findSongsInMessage(messageId) {
-    const message = chat[messageId];
-    if (!message || !message.mes) return [];
-    if (message.is_hidden) return [];
+  const message = chat[messageId];
+  if (!message || !message.mes) return [];
+  if (message.is_hidden) return [];
 
-    const content = message.mes;
-    BGM_REGEX.lastIndex = 0;
-    let match;
-    const songsToAdd = [];
+  const content = message.mes;
+  BGM_REGEX.lastIndex = 0;
+  let match;
+  const songsToAdd = [];
 
-    while ((match = BGM_REGEX.exec(content)) !== null) {
-        const title = match[1].trim();
-        const artist = match[2].trim();
-        if (!title || !artist) continue;
+  while ((match = BGM_REGEX.exec(content)) !== null) {
+    const title = match[1].trim();
+    const artist = match[2].trim();
+    if (!title || !artist) continue;
 
-        const cached = MusicCache.getSearch(title, artist);
-        if (cached) {
-            console.log(`[Player] ✓ 缓存命中: ${title} - ${artist}`);
-            const audioUrl = MusicCache.getAudio(cached.id, cached.source);
-            const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
-            const coverUrl = MusicCache.getCover(cached.id, cached.source);
-
-            songsToAdd.push({
-                id: cached.id,
-                source: cached.source,
-                name: cached.title,
-                title: cached.title,
-                artist: cached.artist,
-                coverUrl: coverUrl || cached.coverUrl || "",
-                audioUrl: audioUrl || "",
-                lyricsContent: lyricsData?.content || "",
-                tlyricContent: lyricsData?.tlyric || "",
-                originalTitle: title,
-                originalArtist: artist,
-                sourceMessageId: messageId,
-                _fromCache: true,
-            });
-            continue;
-        }
-
-        console.log(`[Player] 搜索: ${title} - ${artist}`);
-        const trackData = await searchSong(`${title} ${artist}`);
-
-        if (trackData) {
-            MusicCache.setSearch(title, artist, trackData);
-
-            trackData.sourceMessageId = messageId;
-            trackData.originalTitle = title;
-            trackData.originalArtist = artist;
-            trackData._fromCache = true;
-            songsToAdd.push(trackData);
-        }
-    }
-
-    return songsToAdd;
-}
-
-async function scanChatForSongs() {
-    if (!chat || chat.length === 0) return [];
-    const validMessages = chat
-        .map((msg, index) => ({ msg, index }))
-        .filter(({ msg }) => {
-            if (SCAN_CONFIG.SKIP_HIDDEN && msg.is_hidden) return false;
-            if (msg.is_system) return false;
-            if (!msg.mes || !msg.mes.includes("[bgm]")) return false;
-            return true;
-        });
-    const messagesToScan = validMessages.slice(
-        -SCAN_CONFIG.MAX_MESSAGES_TO_SCAN,
-    );
-
-    console.log(`[Player] 扫描 ${messagesToScan.length}/${chat.length} 条消息`);
-
-    if (messagesToScan.length === 0) return [];
-    const results = await asyncPool(
-        SCAN_CONFIG.CONCURRENT_LIMIT,
-        messagesToScan,
-        ({ index }) => findSongsInMessage(index),
-    );
-
-    const allSongs = results.flat();
-    const uniqueSongs = new Map();
-    allSongs.forEach((song) => {
-        const key = `${song.id}-${song.source}`;
-        if (!uniqueSongs.has(key)) {
-            uniqueSongs.set(key, song);
-        }
-    });
-
-    const finalPlaylist = Array.from(uniqueSongs.values());
-    debugLog(`[Player] 找到 ${finalPlaylist.length} 首不重复的歌`);
-    return finalPlaylist;
-}
-
-async function buildAndSetInitialPlaylist() {
-    const settings = getSettings();
-    if (!settings.playerEnabled) {
-        isPlaylistReady = true;
-        return;
-    }
-    if (isPlaylistBuilding) {
-        return;
-    }
-    isPlaylistBuilding = true;
-    isPlaylistReady = false;
-
-    try {
-        const [chatSongs, worldInfoSongsRaw] = await Promise.all([
-            scanChatForSongs(),
-            getBgmPlaylistAsync(),
-        ]);
-
-        let finalPlaylist = [...chatSongs];
-        if (worldInfoSongsRaw && worldInfoSongsRaw.length > 0) {
-            const worldInfoSongs = worldInfoSongsRaw.map((track) => ({
-                name:
-                    track.name ||
-                    track.song ||
-                    track.title ||
-                    track.歌曲名 ||
-                    t`Unknown Title`,
-                artist: Array.isArray(track.artist)
-                    ? track.artist
-                    : track.artist
-                      ? [track.artist]
-                      : [t`Unknown Artist`],
-                audioUrl: track.audioUrl || track.url || track.音频链接,
-                lyricsUrl: track.lyricsUrl || track.lrc || track.歌词链接,
-                coverUrl:
-                    track.coverUrl ||
-                    track.cover ||
-                    track.pic ||
-                    track.封面链接,
-                sourceMessageId: "world-info",
-                ...track,
-            }));
-
-            const chatSongIds = new Set(
-                chatSongs.map((s) => `${s.id}-${s.source}`),
-            );
-            worldInfoSongs.forEach((ws) => {
-                if (!chatSongIds.has(`${ws.id}-${ws.source}`)) {
-                    finalPlaylist.push(ws);
-                }
-            });
-        }
-        const avatarUrls = getAvatarUrls();
-
-        const playerIframe = document.querySelector(
-            "#music_player .theme-iframe",
-        );
-        if (playerIframe && playerIframe.contentWindow) {
-            if (finalPlaylist.length > 0) {
-                playerIframe.contentWindow.postMessage(
-                    {
-                        source: "typing-indicator-host",
-                        type: "set-initial-playlist",
-                        data: {
-                            playlist: finalPlaylist,
-                            charAvatarUrl: avatarUrls.char,
-                            userAvatarUrl: avatarUrls.user,
-                        },
-                    },
-                    "*",
-                );
-            } else {
-                playerIframe.contentWindow.postMessage(
-                    {
-                        source: "typing-indicator-host",
-                        type: "context-update",
-                        data: {
-                            charAvatarUrl: avatarUrls.char,
-                            userAvatarUrl: avatarUrls.user,
-                        },
-                    },
-                    "*",
-                );
-            }
-        }
-    } catch (error) {
-        console.error(
-            "[Typing Indicator Music] 构建并设置初始播放列表失败:",
-            error,
-        );
-    } finally {
-        isPlaylistBuilding = false;
-        isPlaylistReady = true;
-    }
-}
-
-async function handleSongPlayRequest(songData) {
-    if (!songData || !songData.title || !songData.artist) {
-        console.error(
-            "[Typing Indicator Music] 从正则点击中收到无效的歌曲数据。",
-        );
-        return;
-    }
-
-    const settings = getSettings();
-    if (!settings.playerEnabled) {
-        settings.playerEnabled = true;
-        saveSettingsDebounced();
-        showPlayer();
-        const playerEnableCheckbox =
-            document.getElementById("ti_player_enabled");
-        if (playerEnableCheckbox) {
-            playerEnableCheckbox.checked = true;
-            const playerControls =
-                document.getElementById("ti_player_controls");
-            if (playerControls) playerControls.style.display = "block";
-        }
-        toastr.info(
-            t`Player has been automatically enabled.`,
-            t`Music Player`,
-            { timeOut: 2000 },
-        );
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
-
-    const playerIframe = document.querySelector("#music_player .theme-iframe");
-    if (!playerIframe || !playerIframe.contentWindow) {
-        toastr.error(
-            t`Music player is not ready. Please try again.`,
-            t`Music Player`,
-        );
-        return;
-    }
-    if (!isPlayerInitialized || !isPlaylistReady) {
-        debugLog("[TypingIndicator] 等待播放器和播放列表初始化...");
-        const waitStart = Date.now();
-        await new Promise((resolve) => {
-            const checkReady = setInterval(() => {
-                if (
-                    (isPlayerInitialized && isPlaylistReady) ||
-                    Date.now() - waitStart > 5000
-                ) {
-                    clearInterval(checkReady);
-                    resolve();
-                }
-            }, 50);
-        });
-        if (!isPlayerInitialized || !isPlaylistReady) {
-            debugLog("[TypingIndicator] 初始化超时，继续尝试发送");
-        }
-    }
-    const searchKey = `${(songData.title || "").toLowerCase().trim()}-${(
-        songData.artist || ""
-    )
-        .toLowerCase()
-        .trim()}`;
-    const cached = MusicCache.getSearch(songData.title, songData.artist);
+    const cached = MusicCache.getSearch(title, artist);
     if (cached) {
-        const cachedArtist = MusicCache._normalizeArtist(cached.artist)
-            .toLowerCase()
-            .trim();
-        const requestedArtist = MusicCache._normalizeArtist(songData.artist)
-            .toLowerCase()
-            .trim();
-        const isValidMatch =
-            cachedArtist.includes(requestedArtist) ||
-            requestedArtist.includes(cachedArtist) ||
-            cachedArtist === requestedArtist;
+      console.log(`[Player] ✓ 缓存命中: ${title} - ${artist}`);
+      const audioUrl = MusicCache.getAudio(cached.id, cached.source);
+      const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
+      const coverUrl = MusicCache.getCover(cached.id, cached.source);
 
-        if (!isValidMatch) {
-            console.warn(
-                `[Player] ⚠️ 缓存 artist 不匹配\n` +
-                    `  期望: ${songData.artist}\n` +
-                    `  实际: ${cached.artist}\n` +
-                    `  → 删除错误缓存并重新搜索`,
-            );
-
-            MusicCache.invalidateSearch(songData.title, songData.artist);
-
-            const playerIframe = document.querySelector(
-                "#music_player .theme-iframe",
-            );
-            if (playerIframe && playerIframe.contentWindow) {
-                playerIframe.contentWindow.postMessage(
-                    {
-                        source: "typing-indicator-host",
-                        type: "play-by-info",
-                        data: {
-                            title: songData.title,
-                            artist: songData.artist,
-                        },
-                    },
-                    "*",
-                );
-            }
-            return;
-        }
-        let audioUrl = MusicCache.getAudio(cached.id, cached.source);
-
-        if (audioUrl) {
-            console.log(
-                `[Typing Indicator Music] ✓ 缓存完全命中: ${songData.title} - ${songData.artist}`,
-            );
-            sendPlayNow(playerIframe, cached, audioUrl, songData);
-            showPlayerFeedback();
-            return;
-        }
-
-        debugLog(
-            `[Typing Indicator Music] 音频URL过期，重新获取: ${songData.title}`,
-        );
-        try {
-            const sourceMap = {
-                Netease: "netease",
-                Tencent: "tencent",
-                Kuwo: "kuwo",
-            };
-            const apiSource =
-                sourceMap[cached.source] || cached.source.toLowerCase();
-
-            const response = await fetch(
-                `/api/plugins/g-player-proxy/song?id=${cached.id}&source=${apiSource}`,
-            );
-            const data = await response.json();
-
-            let newAudioUrl = "";
-            if (data.data) {
-                newAudioUrl = Array.isArray(data.data)
-                    ? data.data[0]?.url
-                    : data.data.url;
-            }
-
-            if (newAudioUrl && !newAudioUrl.includes(".mp4")) {
-                MusicCache.setAudio(cached.id, cached.source, newAudioUrl);
-                console.log(
-                    `[Typing Indicator Music] ✓ 音频URL已刷新: ${songData.title}`,
-                );
-                sendPlayNow(playerIframe, cached, newAudioUrl, songData);
-                showPlayerFeedback();
-                return;
-            }
-        } catch (e) {
-            debugWarn(`[Typing Indicator Music] 刷新音频URL失败:`, e);
-        }
-    }
-
-    console.log(
-        `[Typing Indicator Music] 缓存未命中，发送搜索请求: ${songData.title} - ${songData.artist}`,
-    );
-    playerIframe.contentWindow.postMessage(
-        {
-            source: "typing-indicator-host",
-            type: "play-by-info",
-            data: {
-                title: songData.title,
-                artist: songData.artist,
-            },
-        },
-        "*",
-    );
-    showPlayerFeedback();
-}
-
-function sendPlayNow(iframe, cached, audioUrl, originalData) {
-    const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
-    const coverUrl =
-        MusicCache.getCover(cached.id, cached.source) || cached.coverUrl || "";
-
-    const messageData = {
+      songsToAdd.push({
         id: cached.id,
         source: cached.source,
         name: cached.title,
         title: cached.title,
-        artist: Array.isArray(cached.artist) ? cached.artist : [cached.artist],
-        coverUrl: coverUrl,
-        audioUrl: audioUrl,
+        artist: cached.artist,
+        coverUrl: coverUrl || cached.coverUrl || "",
+        audioUrl: audioUrl || "",
         lyricsContent: lyricsData?.content || "",
         tlyricContent: lyricsData?.tlyric || "",
-        originalTitle: originalData.title,
-        originalArtist: originalData.artist,
-    };
+        originalTitle: title,
+        originalArtist: artist,
+        sourceMessageId: messageId,
+        _fromCache: true,
+      });
+      continue;
+    }
 
-    queuePostMessage(
-        iframe.contentWindow,
-        {
+    console.log(`[Player] 搜索: ${title} - ${artist}`);
+    const trackData = await searchSongWithDedup(title, artist);
+
+    if (trackData) {
+      trackData.sourceMessageId = messageId;
+      trackData.originalTitle = title;
+      trackData.originalArtist = artist;
+      trackData._fromCache = true;
+      songsToAdd.push(trackData);
+    } else {
+      console.log(
+        `[Player] ⚠️ 未找到可用音源: ${title} - ${artist}，继续下一首`,
+      );
+    }
+  }
+
+  return songsToAdd;
+}
+
+async function scanChatForSongs() {
+  if (!chat || chat.length === 0) return [];
+  const validMessages = chat
+    .map((msg, index) => ({ msg, index }))
+    .filter(({ msg }) => {
+      if (SCAN_CONFIG.SKIP_HIDDEN && msg.is_hidden) return false;
+      if (msg.is_system) return false;
+      if (!msg.mes || !msg.mes.includes("[bgm]")) return false;
+      return true;
+    });
+  const messagesToScan = validMessages.slice(-SCAN_CONFIG.MAX_MESSAGES_TO_SCAN);
+
+  console.log(`[Player] 扫描 ${messagesToScan.length}/${chat.length} 条消息`);
+
+  if (messagesToScan.length === 0) return [];
+  const results = await asyncPool(
+    SCAN_CONFIG.CONCURRENT_LIMIT,
+    messagesToScan,
+    ({ index }) => findSongsInMessage(index),
+  );
+
+  const allSongs = results.flat();
+  const uniqueSongs = new Map();
+  allSongs.forEach((song) => {
+    const key = `${song.id}-${song.source}`;
+    if (!uniqueSongs.has(key)) {
+      uniqueSongs.set(key, song);
+    }
+  });
+
+  const finalPlaylist = Array.from(uniqueSongs.values());
+  debugLog(`[Player] 找到 ${finalPlaylist.length} 首不重复的歌`);
+  return finalPlaylist;
+}
+
+async function buildAndSetInitialPlaylist() {
+  const settings = getSettings();
+  if (!settings.playerEnabled) {
+    isPlaylistReady = true;
+    return;
+  }
+  if (isPlaylistBuilding) {
+    return;
+  }
+  isPlaylistBuilding = true;
+  isPlaylistReady = false;
+
+  try {
+    const [chatSongs, worldInfoSongsRaw] = await Promise.all([
+      scanChatForSongs(),
+      getBgmPlaylistAsync(),
+    ]);
+
+    let finalPlaylist = [...chatSongs];
+    if (worldInfoSongsRaw && worldInfoSongsRaw.length > 0) {
+      const worldInfoSongs = worldInfoSongsRaw.map((track) => ({
+        name:
+          track.name ||
+          track.song ||
+          track.title ||
+          track.歌曲名 ||
+          t`Unknown Title`,
+        artist: Array.isArray(track.artist)
+          ? track.artist
+          : track.artist
+            ? [track.artist]
+            : [t`Unknown Artist`],
+        audioUrl: track.audioUrl || track.url || track.音频链接,
+        lyricsUrl: track.lyricsUrl || track.lrc || track.歌词链接,
+        coverUrl: track.coverUrl || track.cover || track.pic || track.封面链接,
+        sourceMessageId: "world-info",
+        ...track,
+      }));
+
+      const chatSongIds = new Set(chatSongs.map((s) => `${s.id}-${s.source}`));
+      worldInfoSongs.forEach((ws) => {
+        if (!chatSongIds.has(`${ws.id}-${ws.source}`)) {
+          finalPlaylist.push(ws);
+        }
+      });
+    }
+    const avatarUrls = getAvatarUrls();
+
+    const playerIframe = document.querySelector("#music_player .theme-iframe");
+    if (playerIframe && playerIframe.contentWindow) {
+      if (finalPlaylist.length > 0) {
+        playerIframe.contentWindow.postMessage(
+          {
             source: "typing-indicator-host",
-            type: "play-now",
-            data: messageData,
-        },
-        "*",
+            type: "set-initial-playlist",
+            data: {
+              playlist: finalPlaylist,
+              charAvatarUrl: avatarUrls.char,
+              userAvatarUrl: avatarUrls.user,
+            },
+          },
+          "*",
+        );
+      } else {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "context-update",
+            data: {
+              charAvatarUrl: avatarUrls.char,
+              userAvatarUrl: avatarUrls.user,
+            },
+          },
+          "*",
+        );
+      }
+    }
+  } catch (error) {
+    console.error(
+      "[Typing Indicator Music] 构建并设置初始播放列表失败:",
+      error,
     );
+  } finally {
+    isPlaylistBuilding = false;
+    isPlaylistReady = true;
+  }
+}
+
+async function handleSongPlayRequest(songData) {
+  if (!songData || !songData.title || !songData.artist) {
+    console.error("[Typing Indicator Music] 从正则点击中收到无效的歌曲数据。");
+    return;
+  }
+
+  const settings = getSettings();
+  if (!settings.playerEnabled) {
+    settings.playerEnabled = true;
+    saveSettingsDebounced();
+    showPlayer();
+    const playerEnableCheckbox = document.getElementById("ti_player_enabled");
+    if (playerEnableCheckbox) {
+      playerEnableCheckbox.checked = true;
+      const playerControls = document.getElementById("ti_player_controls");
+      if (playerControls) playerControls.style.display = "block";
+    }
+    toastr.info(t`Player has been automatically enabled.`, t`Music Player`, {
+      timeOut: 2000,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  const playerIframe = document.querySelector("#music_player .theme-iframe");
+  if (!playerIframe || !playerIframe.contentWindow) {
+    toastr.error(
+      t`Music player is not ready. Please try again.`,
+      t`Music Player`,
+    );
+    return;
+  }
+  if (!isPlayerInitialized || !isPlaylistReady) {
+    debugLog("[TypingIndicator] 等待播放器和播放列表初始化...");
+    const waitStart = Date.now();
+    await new Promise((resolve) => {
+      const checkReady = setInterval(() => {
+        if (
+          (isPlayerInitialized && isPlaylistReady) ||
+          Date.now() - waitStart > 5000
+        ) {
+          clearInterval(checkReady);
+          resolve();
+        }
+      }, 50);
+    });
+    if (!isPlayerInitialized || !isPlaylistReady) {
+      debugLog("[TypingIndicator] 初始化超时，继续尝试发送");
+    }
+  }
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const searchKey = `${(songData.title || "").toLowerCase().trim()}-${(
+    songData.artist || ""
+  )
+    .toLowerCase()
+    .trim()}`;
+  const cached = MusicCache.getSearch(songData.title, songData.artist);
+  if (cached) {
+    const cachedArtist = MusicCache._normalizeArtist(cached.artist)
+      .toLowerCase()
+      .trim();
+    const requestedArtist = MusicCache._normalizeArtist(songData.artist)
+      .toLowerCase()
+      .trim();
+    const isValidMatch =
+      cachedArtist.includes(requestedArtist) ||
+      requestedArtist.includes(cachedArtist) ||
+      cachedArtist === requestedArtist;
+
+    if (!isValidMatch) {
+      console.warn(
+        `[Player] ⚠️ 缓存 artist 不匹配\n` +
+          `  期望: ${songData.artist}\n` +
+          `  实际: ${cached.artist}\n` +
+          `  → 删除错误缓存并重新搜索`,
+      );
+
+      MusicCache.invalidateSearch(songData.title, songData.artist);
+
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (playerIframe && playerIframe.contentWindow) {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "play-by-info",
+            data: {
+              title: songData.title,
+              artist: songData.artist,
+            },
+          },
+          "*",
+        );
+      }
+      return;
+    }
+    let audioUrl = MusicCache.getAudio(cached.id, cached.source);
+
+    if (audioUrl) {
+      console.log(
+        `[Typing Indicator Music] ✓ 缓存完全命中: ${songData.title} - ${songData.artist}`,
+      );
+      sendPlayNow(playerIframe, cached, audioUrl, songData);
+      showPlayerFeedback();
+      return;
+    }
+
+    debugLog(
+      `[Typing Indicator Music] 音频URL过期，重新获取: ${songData.title}`,
+    );
+    try {
+      const sourceMap = {
+        Netease: "netease",
+        Tencent: "tencent",
+        Kuwo: "kuwo",
+      };
+      const apiSource = sourceMap[cached.source] || cached.source.toLowerCase();
+
+      const response = await fetch(
+        `/api/plugins/g-player-proxy/song?id=${cached.id}&source=${apiSource}`,
+      );
+      const data = await response.json();
+
+      let newAudioUrl = "";
+      if (data.data) {
+        newAudioUrl = Array.isArray(data.data)
+          ? data.data[0]?.url
+          : data.data.url;
+      }
+
+      if (newAudioUrl && !newAudioUrl.includes(".mp4")) {
+        MusicCache.setAudio(cached.id, cached.source, newAudioUrl);
+        console.log(
+          `[Typing Indicator Music] ✓ 音频URL已刷新: ${songData.title}`,
+        );
+        sendPlayNow(playerIframe, cached, newAudioUrl, songData);
+        showPlayerFeedback();
+        return;
+      }
+    } catch (e) {
+      debugWarn(`[Typing Indicator Music] 刷新音频URL失败:`, e);
+    }
+  }
+
+  console.log(
+    `[Typing Indicator Music] 缓存未命中，发送搜索请求: ${songData.title} - ${songData.artist}`,
+  );
+  playerIframe.contentWindow.postMessage(
+    {
+      source: "typing-indicator-host",
+      type: "play-by-info",
+      data: {
+        title: songData.title,
+        artist: songData.artist,
+      },
+    },
+    "*",
+  );
+  showPlayerFeedback();
+}
+
+function sendPlayNow(iframe, cached, audioUrl, originalData) {
+  const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
+  const coverUrl =
+    MusicCache.getCover(cached.id, cached.source) || cached.coverUrl || "";
+
+  const messageData = {
+    id: cached.id,
+    source: cached.source,
+    name: cached.title,
+    title: cached.title,
+    artist: Array.isArray(cached.artist) ? cached.artist : [cached.artist],
+    coverUrl: coverUrl,
+    audioUrl: audioUrl,
+    lyricsContent: lyricsData?.content || "",
+    tlyricContent: lyricsData?.tlyric || "",
+    originalTitle: originalData.title,
+    originalArtist: originalData.artist,
+  };
+
+  queuePostMessage(
+    iframe.contentWindow,
+    {
+      source: "typing-indicator-host",
+      type: "play-now",
+      data: messageData,
+    },
+    "*",
+  );
 }
 
 function showPlayerFeedback() {
-    const playerElement = document.getElementById("music_player");
-    if (playerElement) {
-        playerElement.style.transition =
-            "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out";
-        playerElement.style.boxShadow = "0 0 25px 8px rgba(160, 130, 200, 0.7)";
-        playerElement.style.transform = "translate(-50%, -50%) scale(1.03)";
-        setTimeout(() => {
-            if (playerElement) {
-                playerElement.style.boxShadow = "";
-                playerElement.style.transform =
-                    "translate(-50%, -50%) scale(1)";
-            }
-        }, 600);
-    }
+  const playerElement = document.getElementById("music_player");
+  if (playerElement) {
+    playerElement.style.transition =
+      "box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out";
+    playerElement.style.boxShadow = "0 0 25px 8px rgba(160, 130, 200, 0.7)";
+    playerElement.style.transform = "translate(-50%, -50%) scale(1.03)";
+    setTimeout(() => {
+      if (playerElement) {
+        playerElement.style.boxShadow = "";
+        playerElement.style.transform = "translate(-50%, -50%) scale(1)";
+      }
+    }, 600);
+  }
 }
 
 // ==================== 主题应用和样式 ====================
 
 function applyTheme(themeId) {
-    const settings = getSettings();
-    const theme = settings.themes.find((t) => t.id === themeId);
-    if (!theme) return;
+  const settings = getSettings();
+  const theme = settings.themes.find((t) => t.id === themeId);
+  if (!theme) return;
 
-    let oldStyleTag = document.getElementById(THEME_STYLE_ID);
-    if (oldStyleTag) oldStyleTag.remove();
+  let oldStyleTag = document.getElementById(THEME_STYLE_ID);
+  if (oldStyleTag) oldStyleTag.remove();
 
-    const styleTag = document.createElement("style");
-    styleTag.id = THEME_STYLE_ID;
+  const styleTag = document.createElement("style");
+  styleTag.id = THEME_STYLE_ID;
 
-    if (theme.useIframe) {
-        styleTag.innerHTML = `
+  if (theme.useIframe) {
+    styleTag.innerHTML = `
             .typing_indicator.iframe-theme {
                 padding: 0 !important;
                 background: transparent !important;
@@ -2655,712 +2692,684 @@ function applyTheme(themeId) {
                 height: 100%;
             }
         `;
-    } else {
-        if (theme.css) {
-            styleTag.innerHTML = theme.css;
-        }
+  } else {
+    if (theme.css) {
+      styleTag.innerHTML = theme.css;
     }
-    document.head.appendChild(styleTag);
+  }
+  document.head.appendChild(styleTag);
 }
 
 function updateAndApplyTheme(source = "unknown") {
-    debugLog(`[TypingIndicator] Theme update triggered by: ${source}`);
-    const settings = getSettings();
-    const newConfig = getActiveThemeConfig();
+  debugLog(`[TypingIndicator] Theme update triggered by: ${source}`);
+  const settings = getSettings();
+  const newConfig = getActiveThemeConfig();
 
-    if (
-        newConfig.themeId === currentlyAppliedConfig.themeId &&
-        newConfig.presetId === currentlyAppliedConfig.presetId
-    ) {
-        debugLog(
-            `[TypingIndicator] Theme config is unchanged. Skipping update.`,
-        );
-        return;
-    }
+  if (
+    newConfig.themeId === currentlyAppliedConfig.themeId &&
+    newConfig.presetId === currentlyAppliedConfig.presetId
+  ) {
+    debugLog(`[TypingIndicator] Theme config is unchanged. Skipping update.`);
+    return;
+  }
 
-    debugLog(
-        `[TypingIndicator] Applying new theme config. Old:`,
-        currentlyAppliedConfig,
-        `New:`,
-        newConfig,
-    );
+  debugLog(
+    `[TypingIndicator] Applying new theme config. Old:`,
+    currentlyAppliedConfig,
+    `New:`,
+    newConfig,
+  );
 
-    applyTheme(newConfig.themeId);
-    currentlyAppliedConfig = newConfig;
-    refreshLiveIndicators(`theme_auto_update_by_${source}`);
+  applyTheme(newConfig.themeId);
+  currentlyAppliedConfig = newConfig;
+  refreshLiveIndicators(`theme_auto_update_by_${source}`);
 }
 
 // ==================== iframe 处理 ====================
 
 function cleanupUnifiedIframe(indicatorElement) {
-    releaseIframeToPool(indicatorElement);
+  releaseIframeToPool(indicatorElement);
 }
 
 function applyThemeToIndicator(theme, indicatorElement) {
-    const existingIframe = indicatorElement.querySelector(".theme-iframe");
-    if (existingIframe) {
-        releaseIframeToPool(indicatorElement);
-        existingIframe.remove();
-    }
+  const existingIframe = indicatorElement.querySelector(".theme-iframe");
+  if (existingIframe) {
+    releaseIframeToPool(indicatorElement);
+    existingIframe.remove();
+  }
 
-    if (theme.useIframe) {
-        indicatorElement.classList.add("iframe-theme");
-        const characterName = getCurrentCharName();
+  if (theme.useIframe) {
+    indicatorElement.classList.add("iframe-theme");
+    const characterName = getCurrentCharName();
 
-        setTimeout(() => {
-            getOrCreateIframe(theme, indicatorElement, characterName);
-        }, 50);
-    } else {
-        indicatorElement.classList.remove("iframe-theme");
-    }
+    setTimeout(() => {
+      getOrCreateIframe(theme, indicatorElement, characterName);
+    }, 50);
+  } else {
+    indicatorElement.classList.remove("iframe-theme");
+  }
 }
 
 // ==================== 拖拽功能 ====================
 
 function makeDraggable(element, isPlayer = false) {
-    const settings = getSettings();
-    const positionSettings = isPlayer
-        ? settings.playerPosition
-        : settings.customPosition;
+  const settings = getSettings();
+  const positionSettings = isPlayer
+    ? settings.playerPosition
+    : settings.customPosition;
 
-    const oldHandle = element.querySelector(".ti-drag-handle");
-    if (oldHandle) {
-        oldHandle.remove();
+  const oldHandle = element.querySelector(".ti-drag-handle");
+  if (oldHandle) {
+    oldHandle.remove();
+  }
+
+  if (positionSettings.locked) {
+    element.style.cursor = "default";
+    return;
+  }
+
+  const dragHandle = document.createElement("div");
+  dragHandle.className = "ti-drag-handle";
+  dragHandle.style.cssText =
+    "position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 99;";
+  element.appendChild(dragHandle);
+
+  let initialX, initialY, startX, startY, elementWidth, elementHeight;
+
+  function onDragStart(e) {
+    const iframe = element.querySelector("iframe");
+    if (iframe) {
+      iframe.style.pointerEvents = "none";
+    }
+    document.body.style.userSelect = "none";
+
+    if (e.cancelable) e.preventDefault();
+
+    element.style.transition = "none";
+
+    const rect = element.getBoundingClientRect();
+    initialX = rect.left;
+    initialY = rect.top;
+    elementWidth = rect.width;
+    elementHeight = rect.height;
+
+    startX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+    startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+
+    document.addEventListener("mousemove", onDragMove);
+    document.addEventListener("mouseup", onDragEnd);
+    document.addEventListener("touchmove", onDragMove, { passive: false });
+    document.addEventListener("touchend", onDragEnd);
+  }
+
+  function onDragMove(e) {
+    const currentX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+    const currentY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+
+    let deltaX = currentX - startX;
+    let deltaY = currentY - startY;
+    let newX = initialX + deltaX;
+    let newY = initialY + deltaY;
+
+    newX = Math.max(0, Math.min(newX, window.innerWidth - elementWidth));
+    newY = Math.max(0, Math.min(newY, window.innerHeight - elementHeight));
+
+    let finalDeltaX = newX - initialX;
+    let finalDeltaY = newY - initialY;
+
+    element.style.transform = `translate3d(${finalDeltaX}px, ${finalDeltaY}px, 0)`;
+  }
+
+  function onDragEnd(e) {
+    const iframe = element.querySelector("iframe");
+    if (iframe) {
+      iframe.style.pointerEvents = "auto";
+    }
+    document.body.style.userSelect = "";
+
+    const finalRect = element.getBoundingClientRect();
+    element.style.transform = "";
+    element.style.left = `${finalRect.left}px`;
+    element.style.top = `${finalRect.top}px`;
+    element.style.transition = "";
+
+    document.removeEventListener("mousemove", onDragMove);
+    document.removeEventListener("mouseup", onDragEnd);
+    document.removeEventListener("touchmove", onDragMove);
+    document.removeEventListener("touchend", onDragEnd);
+
+    const centerX = finalRect.left + finalRect.width / 2;
+    const centerY = finalRect.top + finalRect.height / 2;
+
+    if (isPlayer) {
+      settings.playerPosition.x = (centerX / window.innerWidth) * 100;
+      settings.playerPosition.y = (centerY / window.innerHeight) * 100;
+    } else {
+      settings.customPosition.x = (centerX / window.innerWidth) * 100;
+      settings.customPosition.y = (centerY / window.innerHeight) * 100;
     }
 
-    if (positionSettings.locked) {
-        element.style.cursor = "default";
-        return;
-    }
+    saveSettingsDebounced();
+  }
 
-    const dragHandle = document.createElement("div");
-    dragHandle.className = "ti-drag-handle";
-    dragHandle.style.cssText =
-        "position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 99;";
-    element.appendChild(dragHandle);
-
-    let initialX, initialY, startX, startY, elementWidth, elementHeight;
-
-    function onDragStart(e) {
-        const iframe = element.querySelector("iframe");
-        if (iframe) {
-            iframe.style.pointerEvents = "none";
-        }
-        document.body.style.userSelect = "none";
-
-        if (e.cancelable) e.preventDefault();
-
-        element.style.transition = "none";
-
-        const rect = element.getBoundingClientRect();
-        initialX = rect.left;
-        initialY = rect.top;
-        elementWidth = rect.width;
-        elementHeight = rect.height;
-
-        startX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-        startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-
-        document.addEventListener("mousemove", onDragMove);
-        document.addEventListener("mouseup", onDragEnd);
-        document.addEventListener("touchmove", onDragMove, { passive: false });
-        document.addEventListener("touchend", onDragEnd);
-    }
-
-    function onDragMove(e) {
-        const currentX =
-            e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-        const currentY =
-            e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-
-        let deltaX = currentX - startX;
-        let deltaY = currentY - startY;
-        let newX = initialX + deltaX;
-        let newY = initialY + deltaY;
-
-        newX = Math.max(0, Math.min(newX, window.innerWidth - elementWidth));
-        newY = Math.max(0, Math.min(newY, window.innerHeight - elementHeight));
-
-        let finalDeltaX = newX - initialX;
-        let finalDeltaY = newY - initialY;
-
-        element.style.transform = `translate3d(${finalDeltaX}px, ${finalDeltaY}px, 0)`;
-    }
-
-    function onDragEnd(e) {
-        const iframe = element.querySelector("iframe");
-        if (iframe) {
-            iframe.style.pointerEvents = "auto";
-        }
-        document.body.style.userSelect = "";
-
-        const finalRect = element.getBoundingClientRect();
-        element.style.transform = "";
-        element.style.left = `${finalRect.left}px`;
-        element.style.top = `${finalRect.top}px`;
-        element.style.transition = "";
-
-        document.removeEventListener("mousemove", onDragMove);
-        document.removeEventListener("mouseup", onDragEnd);
-        document.removeEventListener("touchmove", onDragMove);
-        document.removeEventListener("touchend", onDragEnd);
-
-        const centerX = finalRect.left + finalRect.width / 2;
-        const centerY = finalRect.top + finalRect.height / 2;
-
-        if (isPlayer) {
-            settings.playerPosition.x = (centerX / window.innerWidth) * 100;
-            settings.playerPosition.y = (centerY / window.innerHeight) * 100;
-        } else {
-            settings.customPosition.x = (centerX / window.innerWidth) * 100;
-            settings.customPosition.y = (centerY / window.innerHeight) * 100;
-        }
-
-        saveSettingsDebounced();
-    }
-
-    dragHandle.addEventListener("mousedown", onDragStart);
-    dragHandle.addEventListener("touchstart", onDragStart, { passive: false });
+  dragHandle.addEventListener("mousedown", onDragStart);
+  dragHandle.addEventListener("touchstart", onDragStart, { passive: false });
 }
 
 // ==================== 指示器显示和隐藏 ====================
 
 function showTypingIndicator(type, _args, dryRun) {
-    isCurrentIndicatorOverlay = false;
-    const settings = getSettings();
-    const { themeId, presetId } = getActiveThemeConfig();
-    const currentTheme =
-        settings.themes.find((t) => t.id === themeId) || settings.themes[0];
+  isCurrentIndicatorOverlay = false;
+  const settings = getSettings();
+  const { themeId, presetId } = getActiveThemeConfig();
+  const currentTheme =
+    settings.themes.find((t) => t.id === themeId) || settings.themes[0];
 
-    const existingIndicator = document.getElementById("typing_indicator");
+  const existingIndicator = document.getElementById("typing_indicator");
 
-    if (isIndicatorPersisted && existingIndicator) {
-        return;
+  if (isIndicatorPersisted && existingIndicator) {
+    return;
+  }
+
+  if (!isIndicatorPersisted && existingIndicator) {
+    hideTypingIndicator();
+  }
+
+  if (!isIndicatorPersisted) {
+    if (!settings.enabled || dryRun || ["quiet", "impersonate"].includes(type))
+      return;
+    if (
+      type !== "test" &&
+      (!name2 || (!settings.streaming && isStreamingEnabled()))
+    ) {
+      return;
     }
+    if (
+      document.getElementById("typing_indicator_template") &&
+      selected_group &&
+      !isStreamingEnabled()
+    )
+      return;
+  }
 
-    if (!isIndicatorPersisted && existingIndicator) {
-        hideTypingIndicator();
+  const oldIndicator = document.getElementById("typing_indicator");
+  if (oldIndicator) {
+    cleanupUnifiedIframe(oldIndicator);
+    oldIndicator.remove();
+  }
+
+  const avatarUrls = getAvatarUrls();
+  const userName = getCurrentUserName();
+  const charName = getCurrentCharName();
+
+  debugLog("--- Typing Indicator Display ---");
+  debugLog(`User: ${userName}, Character: ${charName}`);
+
+  const defaultIframePositions = [
+    "floating_bottom",
+    "chat_center",
+    "draggable",
+  ];
+  const defaultIframeSizes = {
+    floating_bottom: { width: "320px", height: "110px" },
+    chat_center: { width: "350px", height: "120px" },
+    draggable: { width: "320px", height: "110px" },
+  };
+
+  if (currentTheme.useIframe) {
+    const supportedPositions = currentTheme.sizes
+      ? Object.keys(currentTheme.sizes)
+      : defaultIframePositions;
+    if (!supportedPositions.includes(settings.position)) {
+      console.warn(
+        `TypingIndicator: iframe 主题 "${currentTheme.name}" 不支持 "${settings.position}" 位置。`,
+      );
+      return;
     }
+  }
 
-    if (!isIndicatorPersisted) {
-        if (
-            !settings.enabled ||
-            dryRun ||
-            ["quiet", "impersonate"].includes(type)
-        )
-            return;
-        if (
-            type !== "test" &&
-            (!name2 || (!settings.streaming && isStreamingEnabled()))
-        ) {
-            return;
-        }
-        if (
-            document.getElementById("typing_indicator_template") &&
-            selected_group &&
-            !isStreamingEnabled()
-        )
-            return;
-    }
+  let typingIndicator = document.createElement("div");
+  typingIndicator.id = "typing_indicator";
+  typingIndicator.dataset.themeId = themeId;
+  typingIndicator.classList.add("typing_indicator");
 
-    const oldIndicator = document.getElementById("typing_indicator");
-    if (oldIndicator) {
-        cleanupUnifiedIframe(oldIndicator);
-        oldIndicator.remove();
-    }
-
-    const avatarUrls = getAvatarUrls();
-    const userName = getCurrentUserName();
-    const charName = getCurrentCharName();
-
-    debugLog("--- Typing Indicator Display ---");
+  if (!currentTheme.useIframe) {
+    debugLog("--- Typing Indicator Start (CSS Mode) ---");
     debugLog(`User: ${userName}, Character: ${charName}`);
+    console.log("Avatar URLs:", avatarUrls);
+    console.log(`Final names: user="${userName}", char="${charName}"`);
 
-    const defaultIframePositions = [
-        "floating_bottom",
-        "chat_center",
-        "draggable",
-    ];
-    const defaultIframeSizes = {
-        floating_bottom: { width: "320px", height: "110px" },
-        chat_center: { width: "350px", height: "120px" },
-        draggable: { width: "320px", height: "110px" },
-    };
+    let preset =
+      settings.textPresets.find((p) => p.id === presetId) ||
+      settings.textPresets.find(
+        (p) => p.id === settings.selectedTextPresetId,
+      ) ||
+      settings.textPresets[0];
 
-    if (currentTheme.useIframe) {
-        const supportedPositions = currentTheme.sizes
-            ? Object.keys(currentTheme.sizes)
-            : defaultIframePositions;
-        if (!supportedPositions.includes(settings.position)) {
-            console.warn(
-                `TypingIndicator: iframe 主题 "${currentTheme.name}" 不支持 "${settings.position}" 位置。`,
-            );
-            return;
-        }
+    if (!preset) {
+      console.warn(
+        "[TypingIndicator] CSS主题需要相应的预设设置，但当前配置中未找到任何适用的预设。",
+      );
+      return;
     }
 
-    let typingIndicator = document.createElement("div");
-    typingIndicator.id = "typing_indicator";
-    typingIndicator.dataset.themeId = themeId;
-    typingIndicator.classList.add("typing_indicator");
+    debugLog(
+      "Initial preset text:",
+      preset ? preset.text : "N/A (iframe theme)",
+    );
+    const safeCharAvatarUrl = String(avatarUrls.char);
+    const safeUserAvatarUrl = String(avatarUrls.user);
 
-    if (!currentTheme.useIframe) {
-        debugLog("--- Typing Indicator Start (CSS Mode) ---");
-        debugLog(`User: ${userName}, Character: ${charName}`);
-        console.log("Avatar URLs:", avatarUrls);
-        console.log(`Final names: user="${userName}", char="${charName}"`);
+    let baseText = preset.text
+      .replace(/\$\{name2\}/g, charName)
+      .replace(/\{\{char\}\}/g, charName)
+      .replace(/\{\{user\}\}/g, userName)
+      .replace(/\{\{char_avatar_url\}\}/g, safeCharAvatarUrl)
+      .replace(/\{\{user_avatar_url\}\}/g, safeUserAvatarUrl)
+      .replace(
+        /\{\{char_avatar\}\}/g,
+        `<img class="typing-indicator-avatar" src="${safeCharAvatarUrl}" onerror="this.onerror=null; this.src='/img/ai4.png';">`,
+      )
+      .replace(
+        /\{\{user_avatar\}\}/g,
+        `<img class="typing-indicator-avatar" src="${safeUserAvatarUrl}" onerror="this.onerror=null; this.src='/img/user-default.png';">`,
+      );
 
-        let preset =
-            settings.textPresets.find((p) => p.id === presetId) ||
-            settings.textPresets.find(
-                (p) => p.id === settings.selectedTextPresetId,
-            ) ||
-            settings.textPresets[0];
-
-        if (!preset) {
-            console.warn(
-                "[TypingIndicator] CSS主题需要相应的预设设置，但当前配置中未找到任何适用的预设。",
-            );
-            return;
-        }
-
-        debugLog(
-            "Initial preset text:",
-            preset ? preset.text : "N/A (iframe theme)",
-        );
-        const safeCharAvatarUrl = String(avatarUrls.char);
-        const safeUserAvatarUrl = String(avatarUrls.user);
-
-        let baseText = preset.text
-            .replace(/\$\{name2\}/g, charName)
-            .replace(/\{\{char\}\}/g, charName)
-            .replace(/\{\{user\}\}/g, userName)
-            .replace(/\{\{char_avatar_url\}\}/g, safeCharAvatarUrl)
-            .replace(/\{\{user_avatar_url\}\}/g, safeUserAvatarUrl)
-            .replace(
-                /\{\{char_avatar\}\}/g,
-                `<img class="typing-indicator-avatar" src="${safeCharAvatarUrl}" onerror="this.onerror=null; this.src='/img/ai4.png';">`,
-            )
-            .replace(
-                /\{\{user_avatar\}\}/g,
-                `<img class="typing-indicator-avatar" src="${safeUserAvatarUrl}" onerror="this.onerror=null; this.src='/img/user-default.png';">`,
-            );
-
-        const defsRegex = /<defs>([\s\S]*?)<\/defs>/i;
-        const match = baseText.match(defsRegex);
-        if (match && match[0]) {
-            updateGlobalDefs({ name: "runtime-theme", text: match[0] });
-            baseText = baseText.replace(match[0], "");
-        }
-
-        debugLog("Text after all replaces:", baseText);
-
-        const svgAnimation = `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
-        const htmlContent = `${baseText}${
-            settings.showAnimation ? svgAnimation : ""
-        }`;
-
-        debugLog("Final HTML content:", htmlContent);
-        typingIndicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
+    const defsRegex = /<defs>([\s\S]*?)<\/defs>/i;
+    const match = baseText.match(defsRegex);
+    if (match && match[0]) {
+      updateGlobalDefs({ name: "runtime-theme", text: match[0] });
+      baseText = baseText.replace(match[0], "");
     }
 
-    const position = settings.position;
-    let parentContainer;
+    debugLog("Text after all replaces:", baseText);
 
-    switch (position) {
-        case "floating_bottom":
-            typingIndicator.classList.add("typing_indicator_floating");
-            const sendForm = document.getElementById("send_form");
-            const memoryTable = document.getElementById("tableStatusContainer");
-            let bottomOffset = 5;
-            if (sendForm) bottomOffset += sendForm.offsetHeight;
-            if (
-                memoryTable &&
-                getComputedStyle(memoryTable).display !== "none"
-            ) {
-                bottomOffset += memoryTable.offsetHeight;
-            }
-            typingIndicator.style.bottom = `${bottomOffset}px`;
-            typingIndicator.style.position = "fixed";
-            parentContainer = document.body;
-            break;
-        case "chat_center":
-            const chatEl = document.getElementById("chat");
-            if (chatEl) {
-                const rect = chatEl.getBoundingClientRect();
-                typingIndicator.style.left = `${rect.left + rect.width / 2}px`;
-                typingIndicator.style.top = `${rect.top + rect.height / 2}px`;
-                typingIndicator.style.transform = "translate(-50%, -50%)";
-            }
-            typingIndicator.style.position = "fixed";
-            parentContainer = document.body;
-            break;
-        case "draggable":
-            typingIndicator.style.left = `${
-                (settings.customPosition.x / 100) * window.innerWidth
-            }px`;
-            typingIndicator.style.top = `${
-                (settings.customPosition.y / 100) * window.innerHeight
-            }px`;
-            typingIndicator.style.transform = "translate(-50%, -50%)";
-            typingIndicator.style.position = "fixed";
-            parentContainer = document.body;
-            break;
-        case "above_input":
-        case "full_width_banner":
-            parentContainer = document.getElementById("send_form");
-            if (position === "full_width_banner") {
-                typingIndicator.classList.add("typing_indicator_full_width");
-            }
-            typingIndicator.style.position = "static";
-            break;
-        case "bottom":
-        default:
-            parentContainer = document.getElementById("chat");
-            typingIndicator.style.position = "sticky";
-            typingIndicator.style.bottom = "0";
-            typingIndicator.style.alignSelf = "center";
-            typingIndicator.style.zIndex = "10";
-            break;
-    }
+    const svgAnimation = `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
+    const htmlContent = `${baseText}${
+      settings.showAnimation ? svgAnimation : ""
+    }`;
 
-    if (parentContainer) {
-        if (position === "above_input" || position === "full_width_banner") {
-            parentContainer.parentNode.insertBefore(
-                typingIndicator,
-                parentContainer,
-            );
-        } else {
-            parentContainer.appendChild(typingIndicator);
-        }
+    debugLog("Final HTML content:", htmlContent);
+    typingIndicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
+  }
+
+  const position = settings.position;
+  let parentContainer;
+
+  switch (position) {
+    case "floating_bottom":
+      typingIndicator.classList.add("typing_indicator_floating");
+      const sendForm = document.getElementById("send_form");
+      const memoryTable = document.getElementById("tableStatusContainer");
+      let bottomOffset = 5;
+      if (sendForm) bottomOffset += sendForm.offsetHeight;
+      if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
+        bottomOffset += memoryTable.offsetHeight;
+      }
+      typingIndicator.style.bottom = `${bottomOffset}px`;
+      typingIndicator.style.position = "fixed";
+      parentContainer = document.body;
+      break;
+    case "chat_center":
+      const chatEl = document.getElementById("chat");
+      if (chatEl) {
+        const rect = chatEl.getBoundingClientRect();
+        typingIndicator.style.left = `${rect.left + rect.width / 2}px`;
+        typingIndicator.style.top = `${rect.top + rect.height / 2}px`;
+        typingIndicator.style.transform = "translate(-50%, -50%)";
+      }
+      typingIndicator.style.position = "fixed";
+      parentContainer = document.body;
+      break;
+    case "draggable":
+      typingIndicator.style.left = `${
+        (settings.customPosition.x / 100) * window.innerWidth
+      }px`;
+      typingIndicator.style.top = `${
+        (settings.customPosition.y / 100) * window.innerHeight
+      }px`;
+      typingIndicator.style.transform = "translate(-50%, -50%)";
+      typingIndicator.style.position = "fixed";
+      parentContainer = document.body;
+      break;
+    case "above_input":
+    case "full_width_banner":
+      parentContainer = document.getElementById("send_form");
+      if (position === "full_width_banner") {
+        typingIndicator.classList.add("typing_indicator_full_width");
+      }
+      typingIndicator.style.position = "static";
+      break;
+    case "bottom":
+    default:
+      parentContainer = document.getElementById("chat");
+      typingIndicator.style.position = "sticky";
+      typingIndicator.style.bottom = "0";
+      typingIndicator.style.alignSelf = "center";
+      typingIndicator.style.zIndex = "10";
+      break;
+  }
+
+  if (parentContainer) {
+    if (position === "above_input" || position === "full_width_banner") {
+      parentContainer.parentNode.insertBefore(typingIndicator, parentContainer);
     } else {
-        document.body.appendChild(typingIndicator);
-        console.warn(
-            "TypingIndicator: Parent container not found, appending to body.",
-        );
+      parentContainer.appendChild(typingIndicator);
+    }
+  } else {
+    document.body.appendChild(typingIndicator);
+    console.warn(
+      "TypingIndicator: Parent container not found, appending to body.",
+    );
+  }
+
+  $(typingIndicator).hide();
+
+  const chat = document.getElementById("chat");
+  const wasChatScrolledDown =
+    Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
+
+  $(typingIndicator).show(() => {
+    if (currentTheme.useIframe) {
+      const themeSizes = currentTheme.sizes || defaultIframeSizes;
+      const size = themeSizes[position];
+
+      if (size) {
+        typingIndicator.style.width = size.width || "auto";
+        typingIndicator.style.height = size.height || "auto";
+        if (size.maxWidth) typingIndicator.style.maxWidth = size.maxWidth;
+        if (size.maxHeight) typingIndicator.style.maxHeight = size.maxHeight;
+      }
+      typingIndicator.style.resize = "none";
+      typingIndicator.style.overflow = "hidden";
     }
 
-    $(typingIndicator).hide();
-
-    const chat = document.getElementById("chat");
-    const wasChatScrolledDown =
-        Math.ceil(chat.scrollTop + chat.clientHeight) >= chat.scrollHeight;
-
-    $(typingIndicator).show(() => {
-        if (currentTheme.useIframe) {
-            const themeSizes = currentTheme.sizes || defaultIframeSizes;
-            const size = themeSizes[position];
-
-            if (size) {
-                typingIndicator.style.width = size.width || "auto";
-                typingIndicator.style.height = size.height || "auto";
-                if (size.maxWidth)
-                    typingIndicator.style.maxWidth = size.maxWidth;
-                if (size.maxHeight)
-                    typingIndicator.style.maxHeight = size.maxHeight;
-            }
-            typingIndicator.style.resize = "none";
-            typingIndicator.style.overflow = "hidden";
-        }
-
-        if (position === "draggable") {
-            makeDraggable(typingIndicator);
-        }
-        if (position === "bottom" && wasChatScrolledDown) {
-            chat.scrollTop = chat.scrollHeight;
-        }
-        applyThemeToIndicator(currentTheme, typingIndicator);
-    });
+    if (position === "draggable") {
+      makeDraggable(typingIndicator);
+    }
+    if (position === "bottom" && wasChatScrolledDown) {
+      chat.scrollTop = chat.scrollHeight;
+    }
+    applyThemeToIndicator(currentTheme, typingIndicator);
+  });
 }
 
 async function hideTypingIndicator() {
-    const settings = getSettings();
-    if (
-        isIndicatorPersisted ||
-        (settings.enableDynamicThemes && dynamicThemeTimeoutId)
-    ) {
-        console.log(
-            "[TypingIndicator] 隐藏请求被跳过 (固定模式或动态停留中)。",
+  const settings = getSettings();
+  if (
+    isIndicatorPersisted ||
+    (settings.enableDynamicThemes && dynamicThemeTimeoutId)
+  ) {
+    console.log("[TypingIndicator] 隐藏请求被跳过 (固定模式或动态停留中)。");
+    return;
+  }
+
+  const typingIndicator = document.getElementById("typing_indicator");
+  if (typingIndicator) {
+    const iframe = typingIndicator.querySelector(".theme-iframe");
+    if (iframe && iframe.contentWindow) {
+      const isDevMode = settings.devMode === true;
+      let startTime;
+
+      if (isDevMode) {
+        startTime = performance.now();
+      }
+
+      let messageListener;
+
+      try {
+        const themeResponsePromise = new Promise((resolve) => {
+          messageListener = (event) => {
+            if (
+              event.source === iframe.contentWindow &&
+              event.data?.source === "typing-indicator-theme" &&
+              event.data?.type === "graceful-shutdown-response"
+            ) {
+              resolve(event.data.data);
+            }
+          };
+          window.addEventListener("message", messageListener);
+        });
+
+        const themeId =
+          typingIndicator.dataset.themeId || settings.selectedThemeId;
+        const shutdownTimeout =
+          (typeof themeShutdownTimeouts !== "undefined" &&
+            themeShutdownTimeouts[themeId]) ||
+          200;
+
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => resolve({ timedOut: true }), shutdownTimeout);
+        });
+
+        queuePostMessage(
+          iframe.contentWindow,
+          {
+            source: "typing-indicator-host",
+            type: "graceful-shutdown-request",
+          },
+          "*",
         );
-        return;
-    }
 
-    const typingIndicator = document.getElementById("typing_indicator");
-    if (typingIndicator) {
-        const iframe = typingIndicator.querySelector(".theme-iframe");
-        if (iframe && iframe.contentWindow) {
-            const isDevMode = settings.devMode === true;
-            let startTime;
+        const result = await Promise.race([
+          themeResponsePromise,
+          timeoutPromise,
+        ]);
 
-            if (isDevMode) {
-                startTime = performance.now();
-            }
+        if (result && result.timedOut) {
+          if (shutdownTimeout > 200) {
+            console.warn(
+              `[TypingIndicator] Graceful shutdown for theme "${themeId}" failed: Timed out after ${shutdownTimeout}ms.`,
+            );
+          }
+        } else {
+          if (isDevMode) {
+            const endTime = performance.now();
+            const duration = endTime - startTime;
+            console.log(
+              `%c[TypingIndicator DevMode]%c Theme "${themeId}" responded in %c${duration.toFixed(
+                2,
+              )}ms`,
+              "background: #3498db; color: #fff; padding: 2px 6px; border-radius: 3px;",
+              "background: transparent; color: inherit;",
+              "font-weight: bold;",
+            );
+          }
 
-            let messageListener;
-
-            try {
-                const themeResponsePromise = new Promise((resolve) => {
-                    messageListener = (event) => {
-                        if (
-                            event.source === iframe.contentWindow &&
-                            event.data?.source === "typing-indicator-theme" &&
-                            event.data?.type === "graceful-shutdown-response"
-                        ) {
-                            resolve(event.data.data);
-                        }
-                    };
-                    window.addEventListener("message", messageListener);
-                });
-
-                const themeId =
-                    typingIndicator.dataset.themeId || settings.selectedThemeId;
-                const shutdownTimeout =
-                    (typeof themeShutdownTimeouts !== "undefined" &&
-                        themeShutdownTimeouts[themeId]) ||
-                    200;
-
-                const timeoutPromise = new Promise((resolve) => {
-                    setTimeout(
-                        () => resolve({ timedOut: true }),
-                        shutdownTimeout,
-                    );
-                });
-
-                queuePostMessage(
-                    iframe.contentWindow,
-                    {
-                        source: "typing-indicator-host",
-                        type: "graceful-shutdown-request",
-                    },
-                    "*",
-                );
-
-                const result = await Promise.race([
-                    themeResponsePromise,
-                    timeoutPromise,
-                ]);
-
-                if (result && result.timedOut) {
-                    if (shutdownTimeout > 200) {
-                        console.warn(
-                            `[TypingIndicator] Graceful shutdown for theme "${themeId}" failed: Timed out after ${shutdownTimeout}ms.`,
-                        );
-                    }
-                } else {
-                    if (isDevMode) {
-                        const endTime = performance.now();
-                        const duration = endTime - startTime;
-                        console.log(
-                            `%c[TypingIndicator DevMode]%c Theme "${themeId}" responded in %c${duration.toFixed(
-                                2,
-                            )}ms`,
-                            "background: #3498db; color: #fff; padding: 2px 6px; border-radius: 3px;",
-                            "background: transparent; color: inherit;",
-                            "font-weight: bold;",
-                        );
-                    }
-
-                    const themeDataToSave = result;
-                    if (
-                        themeDataToSave &&
-                        Object.keys(themeDataToSave).length > 0
-                    ) {
-                        if (!settings.themeData) settings.themeData = {};
-                        if (!settings.themeData[themeId])
-                            settings.themeData[themeId] = {};
-                        Object.assign(
-                            settings.themeData[themeId],
-                            themeDataToSave,
-                        );
-                        saveSettingsDebounced();
-                        console.log(
-                            `[TypingIndicator] Gracefully saved data for theme ${themeId}:`,
-                            themeDataToSave,
-                        );
-                    }
-                }
-            } catch (error) {
-                console.warn(
-                    "[TypingIndicator] An unexpected error occurred during graceful shutdown:",
-                    error,
-                );
-            } finally {
-                if (messageListener) {
-                    window.removeEventListener("message", messageListener);
-                }
-            }
+          const themeDataToSave = result;
+          if (themeDataToSave && Object.keys(themeDataToSave).length > 0) {
+            if (!settings.themeData) settings.themeData = {};
+            if (!settings.themeData[themeId]) settings.themeData[themeId] = {};
+            Object.assign(settings.themeData[themeId], themeDataToSave);
+            saveSettingsDebounced();
+            console.log(
+              `[TypingIndicator] Gracefully saved data for theme ${themeId}:`,
+              themeDataToSave,
+            );
+          }
         }
-
-        cleanupUnifiedIframe(typingIndicator);
-        $(typingIndicator).hide(() => typingIndicator.remove());
+      } catch (error) {
+        console.warn(
+          "[TypingIndicator] An unexpected error occurred during graceful shutdown:",
+          error,
+        );
+      } finally {
+        if (messageListener) {
+          window.removeEventListener("message", messageListener);
+        }
+      }
     }
+
+    cleanupUnifiedIframe(typingIndicator);
+    $(typingIndicator).hide(() => typingIndicator.remove());
+  }
 }
 
 async function updatePlayerContext() {
-    const player = document.getElementById("music_player");
-    if (!player) return;
+  const player = document.getElementById("music_player");
+  if (!player) return;
 
-    const iframe = player.querySelector(".theme-iframe");
-    if (iframe && iframe.contentWindow) {
-        console.log("[TypingIndicator] 正在更新新角色的播放器上下文...");
-        const newPlaylist = await getBgmPlaylistAsync();
-        const avatarUrls = getAvatarUrls();
+  const iframe = player.querySelector(".theme-iframe");
+  if (iframe && iframe.contentWindow) {
+    console.log("[TypingIndicator] 正在更新新角色的播放器上下文...");
+    const newPlaylist = await getBgmPlaylistAsync();
+    const avatarUrls = getAvatarUrls();
 
-        const context = getCurrentCharContext();
-        queuePostMessage(
-            iframe.contentWindow,
-            {
-                source: "typing-indicator-host",
-                type: "context-update",
-                data: {
-                    ...context,
-                    playlist: newPlaylist,
-                },
-            },
-            "*",
-        );
-    }
+    const context = getCurrentCharContext();
+    queuePostMessage(
+      iframe.contentWindow,
+      {
+        source: "typing-indicator-host",
+        type: "context-update",
+        data: {
+          ...context,
+          playlist: newPlaylist,
+        },
+      },
+      "*",
+    );
+  }
 }
 
 function showPlayer() {
-    const settings = getSettings();
-    if (!settings.playerEnabled) return;
+  const settings = getSettings();
+  if (!settings.playerEnabled) return;
 
-    const existingPlayer = document.getElementById("music_player");
-    if (existingPlayer) return;
+  const existingPlayer = document.getElementById("music_player");
+  if (existingPlayer) return;
 
-    const playerThemes = settings.themes.filter(
-        (t) => t.name.startsWith("播放器") || t.name.startsWith("Player"),
-    );
+  const playerThemes = settings.themes.filter(
+    (t) => t.name.startsWith("播放器") || t.name.startsWith("Player"),
+  );
 
-    if (playerThemes.length === 0) {
-        console.warn("[TypingIndicator] 没有找到播放器主题");
-        return;
-    }
+  if (playerThemes.length === 0) {
+    console.warn("[TypingIndicator] 没有找到播放器主题");
+    return;
+  }
 
-    const selectedTheme =
-        playerThemes.find((t) => t.id === settings.selectedPlayerThemeId) ||
-        playerThemes[0];
+  const selectedTheme =
+    playerThemes.find((t) => t.id === settings.selectedPlayerThemeId) ||
+    playerThemes[0];
 
-    if (!selectedTheme) {
-        console.warn("[TypingIndicator] 没有可用的播放器主题");
-        return;
-    }
+  if (!selectedTheme) {
+    console.warn("[TypingIndicator] 没有可用的播放器主题");
+    return;
+  }
 
-    let musicPlayer = document.createElement("div");
-    musicPlayer.id = "music_player";
-    musicPlayer.classList.add("music_player_container", "iframe-theme");
-    musicPlayer.dataset.themeId = selectedTheme.id;
+  let musicPlayer = document.createElement("div");
+  musicPlayer.id = "music_player";
+  musicPlayer.classList.add("music_player_container", "iframe-theme");
+  musicPlayer.dataset.themeId = selectedTheme.id;
 
-    musicPlayer.style.left = `${
-        (settings.playerPosition.x / 100) * window.innerWidth
-    }px`;
-    musicPlayer.style.top = `${
-        (settings.playerPosition.y / 100) * window.innerHeight
-    }px`;
-    musicPlayer.style.transform = "translate(-50%, -50%)";
-    musicPlayer.style.position = "fixed";
-    musicPlayer.style.zIndex = "1000";
+  musicPlayer.style.left = `${
+    (settings.playerPosition.x / 100) * window.innerWidth
+  }px`;
+  musicPlayer.style.top = `${
+    (settings.playerPosition.y / 100) * window.innerHeight
+  }px`;
+  musicPlayer.style.transform = "translate(-50%, -50%)";
+  musicPlayer.style.position = "fixed";
+  musicPlayer.style.zIndex = "1000";
 
-    const defaultSize = { width: "320px", height: "110px" };
-    const themeSizes = selectedTheme.sizes || { draggable: defaultSize };
-    const size =
-        themeSizes.draggable || Object.values(themeSizes)[0] || defaultSize;
+  const defaultSize = { width: "320px", height: "110px" };
+  const themeSizes = selectedTheme.sizes || { draggable: defaultSize };
+  const size =
+    themeSizes.draggable || Object.values(themeSizes)[0] || defaultSize;
 
-    musicPlayer.style.width = size.width || "auto";
-    musicPlayer.style.height = size.height || "auto";
-    if (size.maxWidth) musicPlayer.style.maxWidth = size.maxWidth;
-    if (size.maxHeight) musicPlayer.style.maxHeight = size.maxHeight;
-    musicPlayer.style.resize = "none";
-    musicPlayer.style.overflow = "hidden";
+  musicPlayer.style.width = size.width || "auto";
+  musicPlayer.style.height = size.height || "auto";
+  if (size.maxWidth) musicPlayer.style.maxWidth = size.maxWidth;
+  if (size.maxHeight) musicPlayer.style.maxHeight = size.maxHeight;
+  musicPlayer.style.resize = "none";
+  musicPlayer.style.overflow = "hidden";
 
-    document.body.appendChild(musicPlayer);
-    makeDraggable(musicPlayer, true);
-    applyThemeToIndicator(selectedTheme, musicPlayer);
-    if (settings.playerHidden) {
-        musicPlayer.style.setProperty("display", "none", "important");
-    } else {
-        musicPlayer.style.opacity = "0";
-        musicPlayer.style.display = "block";
-        $(musicPlayer).animate({ opacity: 1 }, 300);
-    }
+  document.body.appendChild(musicPlayer);
+  makeDraggable(musicPlayer, true);
+  applyThemeToIndicator(selectedTheme, musicPlayer);
+  if (settings.playerHidden) {
+    musicPlayer.style.setProperty("display", "none", "important");
+  } else {
+    musicPlayer.style.opacity = "0";
+    musicPlayer.style.display = "block";
+    $(musicPlayer).animate({ opacity: 1 }, 300);
+  }
 }
 
 // ==================== 悬浮歌词功能 ====================
 
 function parseLRC(lrcText) {
-    if (!lrcText || typeof lrcText !== "string") return [];
+  if (!lrcText || typeof lrcText !== "string") return [];
 
-    const lines = [];
-    const regex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/g;
-    let match;
+  const lines = [];
+  const regex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\](.*)/g;
+  let match;
 
-    while ((match = regex.exec(lrcText)) !== null) {
-        const minutes = parseInt(match[1]);
-        const seconds = parseInt(match[2]);
-        const msStr = match[3];
-        const ms = msStr
-            ? msStr.length === 2
-                ? parseInt(msStr) * 10
-                : parseInt(msStr)
-            : 0;
-        const time = minutes * 60 + seconds + ms / 1000;
-        const text = match[4].trim();
-        if (text) lines.push({ time, text });
-    }
+  while ((match = regex.exec(lrcText)) !== null) {
+    const minutes = parseInt(match[1]);
+    const seconds = parseInt(match[2]);
+    const msStr = match[3];
+    const ms = msStr
+      ? msStr.length === 2
+        ? parseInt(msStr) * 10
+        : parseInt(msStr)
+      : 0;
+    const time = minutes * 60 + seconds + ms / 1000;
+    const text = match[4].trim();
+    if (text) lines.push({ time, text });
+  }
 
-    return lines.sort((a, b) => a.time - b.time);
+  return lines.sort((a, b) => a.time - b.time);
 }
 
 async function fetchLyrics(lyricsUrl) {
-    if (!lyricsUrl) return null;
-    try {
-        const response = await fetch(lyricsUrl);
-        if (!response.ok) return null;
-        const text = await response.text();
-        return parseLRC(text);
-    } catch (error) {
-        console.error("[Lyrics] 获取歌词失败:", error);
-        return null;
-    }
+  if (!lyricsUrl) return null;
+  try {
+    const response = await fetch(lyricsUrl);
+    if (!response.ok) return null;
+    const text = await response.text();
+    return parseLRC(text);
+  } catch (error) {
+    console.error("[Lyrics] 获取歌词失败:", error);
+    return null;
+  }
 }
 
 function createLyricsOverlay() {
-    if (lyricsOverlayElement) return lyricsOverlayElement;
+  if (lyricsOverlayElement) return lyricsOverlayElement;
 
-    const settings = getSettings();
-    const overlay = document.createElement("div");
-    overlay.id = "floating_lyrics";
-    overlay.innerHTML = `
+  const settings = getSettings();
+  const overlay = document.createElement("div");
+  overlay.id = "floating_lyrics";
+  overlay.innerHTML = `
         <div class="lyrics-line lyrics-current"><span class="lyrics-line-inner"></span></div>
         <div class="lyrics-line lyrics-next"><span class="lyrics-line-inner"></span></div>
     `;
 
-    applyLyricsStyles(overlay);
+  applyLyricsStyles(overlay);
 
-    document.body.appendChild(overlay);
-    lyricsOverlayElement = overlay;
+  document.body.appendChild(overlay);
+  lyricsOverlayElement = overlay;
 
-    overlay.style.left = `${
-        (settings.lyricsPosition.x / 100) * window.innerWidth
-    }px`;
-    overlay.style.top = `${
-        (settings.lyricsPosition.y / 100) * window.innerHeight
-    }px`;
-    overlay.style.transform = "translate(-50%, -50%)";
+  overlay.style.left = `${
+    (settings.lyricsPosition.x / 100) * window.innerWidth
+  }px`;
+  overlay.style.top = `${
+    (settings.lyricsPosition.y / 100) * window.innerHeight
+  }px`;
+  overlay.style.transform = "translate(-50%, -50%)";
 
-    if (!settings.lyricsPosition.locked) {
-        makeLyricsDraggable(overlay);
-    }
+  if (!settings.lyricsPosition.locked) {
+    makeLyricsDraggable(overlay);
+  }
 
-    return overlay;
+  return overlay;
 }
 
 function applyLyricsStyles(overlay) {
-    const settings = getSettings();
-    const pointerEvents = settings.lyricsPosition.locked ? "none" : "auto";
+  const settings = getSettings();
+  const pointerEvents = settings.lyricsPosition.locked ? "none" : "auto";
 
-    overlay.style.cssText = `
+  overlay.style.cssText = `
         position: fixed;
         z-index: 1002;
         padding: 4px 10px;
@@ -3377,11 +3386,11 @@ function applyLyricsStyles(overlay) {
         text-shadow: none !important;
     `;
 
-    const currentLine = overlay.querySelector(".lyrics-current");
-    const nextLine = overlay.querySelector(".lyrics-next");
+  const currentLine = overlay.querySelector(".lyrics-current");
+  const nextLine = overlay.querySelector(".lyrics-next");
 
-    if (currentLine) {
-        currentLine.style.cssText = `
+  if (currentLine) {
+    currentLine.style.cssText = `
             font-size: ${settings.lyricsFontSize}px;
             font-weight: bold;
             margin-bottom: ${settings.lyricsShowNextLine ? "4px" : "0"};
@@ -3390,10 +3399,10 @@ function applyLyricsStyles(overlay) {
             overflow: hidden;
             text-shadow: none !important;
         `;
-    }
+  }
 
-    if (nextLine) {
-        nextLine.style.cssText = `
+  if (nextLine) {
+    nextLine.style.cssText = `
             font-size: ${settings.lyricsFontSize - 4}px;
             color: ${settings.lyricsUnsungColor};
             opacity: 0.6;
@@ -3403,15 +3412,15 @@ function applyLyricsStyles(overlay) {
             overflow: hidden;
             text-shadow: none !important;
         `;
-    }
+  }
 
-    let styleEl = document.getElementById("ti-lyrics-scroll-style");
-    if (!styleEl) {
-        styleEl = document.createElement("style");
-        styleEl.id = "ti-lyrics-scroll-style";
-        document.head.appendChild(styleEl);
-    }
-    styleEl.textContent = `
+  let styleEl = document.getElementById("ti-lyrics-scroll-style");
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "ti-lyrics-scroll-style";
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `
         @keyframes lyrics-scroll {
             0% { transform: translateX(0); }
             10% { transform: translateX(0); }
@@ -3433,146 +3442,144 @@ function applyLyricsStyles(overlay) {
 }
 
 function makeLyricsDraggable(element) {
-    const settings = getSettings();
-    const oldHandle = element.querySelector(".lyrics-drag-handle");
-    if (oldHandle) oldHandle.remove();
+  const settings = getSettings();
+  const oldHandle = element.querySelector(".lyrics-drag-handle");
+  if (oldHandle) oldHandle.remove();
 
-    if (settings.lyricsPosition.locked) {
-        element.style.cursor = "default";
-        return;
-    }
+  if (settings.lyricsPosition.locked) {
+    element.style.cursor = "default";
+    return;
+  }
 
-    const dragHandle = document.createElement("div");
-    dragHandle.className = "lyrics-drag-handle";
-    dragHandle.style.cssText =
-        "position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 99;";
-    element.appendChild(dragHandle);
+  const dragHandle = document.createElement("div");
+  dragHandle.className = "lyrics-drag-handle";
+  dragHandle.style.cssText =
+    "position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 99;";
+  element.appendChild(dragHandle);
 
-    let initialX, initialY, startX, startY, elementWidth, elementHeight;
+  let initialX, initialY, startX, startY, elementWidth, elementHeight;
 
-    function onDragStart(e) {
-        if (e.cancelable) e.preventDefault();
-        document.body.style.userSelect = "none";
-        element.style.transition = "none";
+  function onDragStart(e) {
+    if (e.cancelable) e.preventDefault();
+    document.body.style.userSelect = "none";
+    element.style.transition = "none";
 
-        const rect = element.getBoundingClientRect();
-        initialX = rect.left;
-        initialY = rect.top;
-        elementWidth = rect.width;
-        elementHeight = rect.height;
+    const rect = element.getBoundingClientRect();
+    initialX = rect.left;
+    initialY = rect.top;
+    elementWidth = rect.width;
+    elementHeight = rect.height;
 
-        startX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-        startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+    startX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+    startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
 
-        document.addEventListener("mousemove", onDragMove);
-        document.addEventListener("mouseup", onDragEnd);
-        document.addEventListener("touchmove", onDragMove, { passive: false });
-        document.addEventListener("touchend", onDragEnd);
-    }
+    document.addEventListener("mousemove", onDragMove);
+    document.addEventListener("mouseup", onDragEnd);
+    document.addEventListener("touchmove", onDragMove, { passive: false });
+    document.addEventListener("touchend", onDragEnd);
+  }
 
-    function onDragMove(e) {
-        const currentX =
-            e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-        const currentY =
-            e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+  function onDragMove(e) {
+    const currentX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+    const currentY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
 
-        let newX = initialX + (currentX - startX);
-        let newY = initialY + (currentY - startY);
+    let newX = initialX + (currentX - startX);
+    let newY = initialY + (currentY - startY);
 
-        newX = Math.max(0, Math.min(newX, window.innerWidth - elementWidth));
-        newY = Math.max(0, Math.min(newY, window.innerHeight - elementHeight));
+    newX = Math.max(0, Math.min(newX, window.innerWidth - elementWidth));
+    newY = Math.max(0, Math.min(newY, window.innerHeight - elementHeight));
 
-        element.style.transform = `translate3d(${newX - initialX}px, ${
-            newY - initialY
-        }px, 0)`;
-    }
+    element.style.transform = `translate3d(${newX - initialX}px, ${
+      newY - initialY
+    }px, 0)`;
+  }
 
-    function onDragEnd() {
-        document.body.style.userSelect = "";
+  function onDragEnd() {
+    document.body.style.userSelect = "";
 
-        const finalRect = element.getBoundingClientRect();
-        element.style.transform = "";
-        element.style.left = `${finalRect.left}px`;
-        element.style.top = `${finalRect.top}px`;
-        element.style.transition = "";
+    const finalRect = element.getBoundingClientRect();
+    element.style.transform = "";
+    element.style.left = `${finalRect.left}px`;
+    element.style.top = `${finalRect.top}px`;
+    element.style.transition = "";
 
-        document.removeEventListener("mousemove", onDragMove);
-        document.removeEventListener("mouseup", onDragEnd);
-        document.removeEventListener("touchmove", onDragMove);
-        document.removeEventListener("touchend", onDragEnd);
+    document.removeEventListener("mousemove", onDragMove);
+    document.removeEventListener("mouseup", onDragEnd);
+    document.removeEventListener("touchmove", onDragMove);
+    document.removeEventListener("touchend", onDragEnd);
 
-        const centerX = finalRect.left + finalRect.width / 2;
-        const centerY = finalRect.top + finalRect.height / 2;
+    const centerX = finalRect.left + finalRect.width / 2;
+    const centerY = finalRect.top + finalRect.height / 2;
 
-        settings.lyricsPosition.x = (centerX / window.innerWidth) * 100;
-        settings.lyricsPosition.y = (centerY / window.innerHeight) * 100;
-        saveSettingsDebounced();
-    }
+    settings.lyricsPosition.x = (centerX / window.innerWidth) * 100;
+    settings.lyricsPosition.y = (centerY / window.innerHeight) * 100;
+    saveSettingsDebounced();
+  }
 
-    dragHandle.addEventListener("mousedown", onDragStart);
-    dragHandle.addEventListener("touchstart", onDragStart, { passive: false });
+  dragHandle.addEventListener("mousedown", onDragStart);
+  dragHandle.addEventListener("touchstart", onDragStart, { passive: false });
 }
 
 function showLyricsOverlay() {
-    const settings = getSettings();
-    if (!settings.lyricsEnabled) return;
+  const settings = getSettings();
+  if (!settings.lyricsEnabled) return;
 
-    if (!lyricsOverlayElement) {
-        createLyricsOverlay();
-    }
+  if (!lyricsOverlayElement) {
+    createLyricsOverlay();
+  }
 
-    lyricsOverlayElement.style.display = "block";
-    lyricsOverlayElement.style.opacity = "1";
+  lyricsOverlayElement.style.display = "block";
+  lyricsOverlayElement.style.opacity = "1";
 }
 
 function hideLyricsOverlay() {
-    if (lyricsOverlayElement) {
-        lyricsOverlayElement.style.opacity = "0";
-        setTimeout(() => {
-            if (lyricsOverlayElement) {
-                lyricsOverlayElement.style.display = "none";
-            }
-        }, 300);
-    }
+  if (lyricsOverlayElement) {
+    lyricsOverlayElement.style.opacity = "0";
+    setTimeout(() => {
+      if (lyricsOverlayElement) {
+        lyricsOverlayElement.style.display = "none";
+      }
+    }, 300);
+  }
 }
 
 function removeLyricsOverlay() {
-    if (lyricsOverlayElement) {
-        lyricsOverlayElement.remove();
-        lyricsOverlayElement = null;
-    }
-    currentLyrics = [];
-    currentLyricIndex = -1;
+  if (lyricsOverlayElement) {
+    lyricsOverlayElement.remove();
+    lyricsOverlayElement = null;
+  }
+  currentLyrics = [];
+  currentLyricIndex = -1;
 }
 
 async function loadLyricsForTrack(track) {
-    currentLyrics = [];
+  currentLyrics = [];
+  currentLyricIndex = -1;
+
+  if (!track) {
+    hideLyricsOverlay();
+    return;
+  }
+
+  const lyricsUrl = track.lyricsUrl || track.lrc;
+  if (!lyricsUrl) {
+    console.log("[Lyrics] 当前歌曲没有歌词URL");
+    hideLyricsOverlay();
+    return;
+  }
+
+  console.log("[Lyrics] 正在加载歌词:", lyricsUrl);
+  const lyrics = await fetchLyrics(lyricsUrl);
+
+  if (lyrics && lyrics.length > 0) {
+    currentLyrics = lyrics;
     currentLyricIndex = -1;
-
-    if (!track) {
-        hideLyricsOverlay();
-        return;
-    }
-
-    const lyricsUrl = track.lyricsUrl || track.lrc;
-    if (!lyricsUrl) {
-        console.log("[Lyrics] 当前歌曲没有歌词URL");
-        hideLyricsOverlay();
-        return;
-    }
-
-    console.log("[Lyrics] 正在加载歌词:", lyricsUrl);
-    const lyrics = await fetchLyrics(lyricsUrl);
-
-    if (lyrics && lyrics.length > 0) {
-        currentLyrics = lyrics;
-        currentLyricIndex = -1;
-        showLyricsOverlay();
-        console.log(`[Lyrics] 成功加载 ${lyrics.length} 行歌词`);
-    } else {
-        console.log("[Lyrics] 歌词加载失败或为空");
-        hideLyricsOverlay();
-    }
+    showLyricsOverlay();
+    console.log(`[Lyrics] 成功加载 ${lyrics.length} 行歌词`);
+  } else {
+    console.log("[Lyrics] 歌词加载失败或为空");
+    hideLyricsOverlay();
+  }
 }
 
 let lastLyricsUpdateTime = 0;
@@ -3580,810 +3587,789 @@ let lastLyricsProgress = -1;
 let lyricsRAFId = null;
 
 function updateLyricsDisplay(currentTime) {
-    if (document.hidden) return;
+  if (document.hidden) return;
 
-    const settings = getSettings();
-    if (
-        !settings.lyricsEnabled ||
-        !lyricsOverlayElement ||
-        currentLyrics.length === 0
-    ) {
-        return;
+  const settings = getSettings();
+  if (
+    !settings.lyricsEnabled ||
+    !lyricsOverlayElement ||
+    currentLyrics.length === 0
+  ) {
+    return;
+  }
+  const now = performance.now();
+  if (now - lastLyricsUpdateTime < 100) {
+    return;
+  }
+  lastLyricsUpdateTime = now;
+
+  let newIndex = -1;
+  for (let i = currentLyrics.length - 1; i >= 0; i--) {
+    if (currentTime >= currentLyrics[i].time) {
+      newIndex = i;
+      break;
     }
-    const now = performance.now();
-    if (now - lastLyricsUpdateTime < 100) {
-        return;
+  }
+
+  const currentLineEl = lyricsOverlayElement.querySelector(".lyrics-current");
+  const nextLineEl = lyricsOverlayElement.querySelector(".lyrics-next");
+  const currentInner = currentLineEl?.querySelector(".lyrics-line-inner");
+  const nextInner = nextLineEl?.querySelector(".lyrics-line-inner");
+
+  if (!currentInner) return;
+  const updateScrollEffect = (innerEl, containerEl, text) => {
+    if (!innerEl || !containerEl) return;
+
+    // 先移除动画，设置文本
+    innerEl.classList.remove("scrolling");
+    innerEl.textContent = text;
+
+    // 等DOM更新后检测是否需要滚动
+    requestAnimationFrame(() => {
+      const textWidth = innerEl.scrollWidth;
+      const containerWidth = containerEl.clientWidth;
+
+      if (textWidth > containerWidth) {
+        const scrollDistance = textWidth - containerWidth + 30;
+        const scrollDuration = Math.max(3, text.length * 0.2);
+
+        innerEl.style.setProperty("--scroll-distance", `-${scrollDistance}px`);
+        innerEl.style.setProperty("--scroll-duration", `${scrollDuration}s`);
+        innerEl.classList.add("scrolling");
+      }
+    });
+  };
+
+  if (newIndex >= 0 && newIndex < currentLyrics.length) {
+    const currentLyric = currentLyrics[newIndex];
+    const nextLyric = currentLyrics[newIndex + 1];
+
+    // 计算当前行的进度（改进版卡拉OK效果）
+    const nextTime = nextLyric ? nextLyric.time : currentLyric.time + 5;
+    const lineDuration = nextTime - currentLyric.time;
+    const elapsed = currentTime - currentLyric.time;
+
+    const textLength = currentLyric.text.length || 1;
+    const timePerChar = lineDuration / textLength;
+    const charsCompleted = Math.floor(elapsed / timePerChar);
+    const charProgress = (elapsed % timePerChar) / timePerChar;
+
+    const baseProgress = (charsCompleted / textLength) * 100;
+    const currentCharProgress = (charProgress / textLength) * 100;
+    let lineProgress = Math.min(
+      100,
+      Math.max(0, baseProgress + currentCharProgress),
+    );
+    lineProgress = Math.min(100, lineProgress * 1.25);
+    if (newIndex !== currentLyricIndex) {
+      updateScrollEffect(currentInner, currentLineEl, currentLyric.text);
+      if (nextInner && settings.lyricsShowNextLine) {
+        const translatedText = currentLyric.translated || "";
+        updateScrollEffect(nextInner, nextLineEl, translatedText);
+      }
+
+      currentLyricIndex = newIndex;
     }
-    lastLyricsUpdateTime = now;
 
-    let newIndex = -1;
-    for (let i = currentLyrics.length - 1; i >= 0; i--) {
-        if (currentTime >= currentLyrics[i].time) {
-            newIndex = i;
-            break;
-        }
-    }
-
-    const currentLineEl = lyricsOverlayElement.querySelector(".lyrics-current");
-    const nextLineEl = lyricsOverlayElement.querySelector(".lyrics-next");
-    const currentInner = currentLineEl?.querySelector(".lyrics-line-inner");
-    const nextInner = nextLineEl?.querySelector(".lyrics-line-inner");
-
-    if (!currentInner) return;
-    const updateScrollEffect = (innerEl, containerEl, text) => {
-        if (!innerEl || !containerEl) return;
-
-        // 先移除动画，设置文本
-        innerEl.classList.remove("scrolling");
-        innerEl.textContent = text;
-
-        // 等DOM更新后检测是否需要滚动
-        requestAnimationFrame(() => {
-            const textWidth = innerEl.scrollWidth;
-            const containerWidth = containerEl.clientWidth;
-
-            if (textWidth > containerWidth) {
-                const scrollDistance = textWidth - containerWidth + 30;
-                const scrollDuration = Math.max(3, text.length * 0.2);
-
-                innerEl.style.setProperty(
-                    "--scroll-distance",
-                    `-${scrollDistance}px`,
-                );
-                innerEl.style.setProperty(
-                    "--scroll-duration",
-                    `${scrollDuration}s`,
-                );
-                innerEl.classList.add("scrolling");
-            }
-        });
-    };
-
-    if (newIndex >= 0 && newIndex < currentLyrics.length) {
-        const currentLyric = currentLyrics[newIndex];
-        const nextLyric = currentLyrics[newIndex + 1];
-
-        // 计算当前行的进度（改进版卡拉OK效果）
-        const nextTime = nextLyric ? nextLyric.time : currentLyric.time + 5;
-        const lineDuration = nextTime - currentLyric.time;
-        const elapsed = currentTime - currentLyric.time;
-
-        const textLength = currentLyric.text.length || 1;
-        const timePerChar = lineDuration / textLength;
-        const charsCompleted = Math.floor(elapsed / timePerChar);
-        const charProgress = (elapsed % timePerChar) / timePerChar;
-
-        const baseProgress = (charsCompleted / textLength) * 100;
-        const currentCharProgress = (charProgress / textLength) * 100;
-        let lineProgress = Math.min(
-            100,
-            Math.max(0, baseProgress + currentCharProgress),
-        );
-        lineProgress = Math.min(100, lineProgress * 1.25);
-        if (newIndex !== currentLyricIndex) {
-            updateScrollEffect(currentInner, currentLineEl, currentLyric.text);
-            if (nextInner && settings.lyricsShowNextLine) {
-                const translatedText = currentLyric.translated || "";
-                updateScrollEffect(nextInner, nextLineEl, translatedText);
-            }
-
-            currentLyricIndex = newIndex;
-        }
-
-        const roundedProgress = Math.round(lineProgress);
-        if (roundedProgress !== lastLyricsProgress) {
-            lastLyricsProgress = roundedProgress;
-            currentInner.style.background = `linear-gradient(to right,
+    const roundedProgress = Math.round(lineProgress);
+    if (roundedProgress !== lastLyricsProgress) {
+      lastLyricsProgress = roundedProgress;
+      currentInner.style.background = `linear-gradient(to right,
         ${settings.lyricsSungColor} 0%,
         ${settings.lyricsSungColor} ${roundedProgress}%,
         ${settings.lyricsUnsungColor} ${roundedProgress}%,
         ${settings.lyricsUnsungColor} 100%)`;
-            currentInner.style.webkitBackgroundClip = "text";
-            currentInner.style.backgroundClip = "text";
-            currentInner.style.webkitTextFillColor = "transparent";
-            currentInner.style.color = "transparent";
-        }
-    } else {
-        currentInner.classList.remove("scrolling");
-        currentInner.style.background = "none";
-        currentInner.style.webkitBackgroundClip = "initial";
-        currentInner.style.backgroundClip = "initial";
-        currentInner.style.webkitTextFillColor = settings.lyricsUnsungColor;
-        currentInner.style.color = settings.lyricsUnsungColor;
-        currentInner.textContent = currentLyrics[0]?.text || "♪ ♪ ♪";
-        lastLyricsProgress = -1;
-
-        if (nextInner) {
-            nextInner.classList.remove("scrolling");
-            nextInner.textContent = currentLyrics[0]?.translated || "";
-        }
+      currentInner.style.webkitBackgroundClip = "text";
+      currentInner.style.backgroundClip = "text";
+      currentInner.style.webkitTextFillColor = "transparent";
+      currentInner.style.color = "transparent";
     }
+  } else {
+    currentInner.classList.remove("scrolling");
+    currentInner.style.background = "none";
+    currentInner.style.webkitBackgroundClip = "initial";
+    currentInner.style.backgroundClip = "initial";
+    currentInner.style.webkitTextFillColor = settings.lyricsUnsungColor;
+    currentInner.style.color = settings.lyricsUnsungColor;
+    currentInner.textContent = currentLyrics[0]?.text || "♪ ♪ ♪";
+    lastLyricsProgress = -1;
+
+    if (nextInner) {
+      nextInner.classList.remove("scrolling");
+      nextInner.textContent = currentLyrics[0]?.translated || "";
+    }
+  }
 }
 
 function refreshLyricsOverlay() {
-    if (!lyricsOverlayElement) return;
-    applyLyricsStyles(lyricsOverlayElement);
+  if (!lyricsOverlayElement) return;
+  applyLyricsStyles(lyricsOverlayElement);
 
-    const settings = getSettings();
-    lyricsOverlayElement.style.left = `${
-        (settings.lyricsPosition.x / 100) * window.innerWidth
-    }px`;
-    lyricsOverlayElement.style.top = `${
-        (settings.lyricsPosition.y / 100) * window.innerHeight
-    }px`;
-    lyricsOverlayElement.style.transform = "translate(-50%, -50%)";
+  const settings = getSettings();
+  lyricsOverlayElement.style.left = `${
+    (settings.lyricsPosition.x / 100) * window.innerWidth
+  }px`;
+  lyricsOverlayElement.style.top = `${
+    (settings.lyricsPosition.y / 100) * window.innerHeight
+  }px`;
+  lyricsOverlayElement.style.transform = "translate(-50%, -50%)";
 
-    const oldHandle = lyricsOverlayElement.querySelector(".lyrics-drag-handle");
-    if (oldHandle) oldHandle.remove();
+  const oldHandle = lyricsOverlayElement.querySelector(".lyrics-drag-handle");
+  if (oldHandle) oldHandle.remove();
 
-    if (!settings.lyricsPosition.locked) {
-        makeLyricsDraggable(lyricsOverlayElement);
-    } else {
-        lyricsOverlayElement.style.cursor = "default";
-    }
+  if (!settings.lyricsPosition.locked) {
+    makeLyricsDraggable(lyricsOverlayElement);
+  } else {
+    lyricsOverlayElement.style.cursor = "default";
+  }
 
-    const currentInner = lyricsOverlayElement.querySelector(
-        ".lyrics-current .lyrics-line-inner",
-    );
-    const nextLine = lyricsOverlayElement.querySelector(".lyrics-next");
+  const currentInner = lyricsOverlayElement.querySelector(
+    ".lyrics-current .lyrics-line-inner",
+  );
+  const nextLine = lyricsOverlayElement.querySelector(".lyrics-next");
 
-    if (currentInner) {
-        if (currentLyrics.length > 0 && currentLyricIndex >= 0) {
-            const currentProgress =
-                lastLyricsProgress >= 0 ? lastLyricsProgress : 0;
-            currentInner.style.background = `linear-gradient(to right,
+  if (currentInner) {
+    if (currentLyrics.length > 0 && currentLyricIndex >= 0) {
+      const currentProgress = lastLyricsProgress >= 0 ? lastLyricsProgress : 0;
+      currentInner.style.background = `linear-gradient(to right,
                 ${settings.lyricsSungColor} 0%,
                 ${settings.lyricsSungColor} ${currentProgress}%,
                 ${settings.lyricsUnsungColor} ${currentProgress}%,
                 ${settings.lyricsUnsungColor} 100%)`;
-            currentInner.style.webkitBackgroundClip = "text";
-            currentInner.style.backgroundClip = "text";
-            currentInner.style.webkitTextFillColor = "transparent";
-            currentInner.style.color = "transparent";
-        } else {
-            currentInner.style.background = "none";
-            currentInner.style.webkitBackgroundClip = "initial";
-            currentInner.style.backgroundClip = "initial";
-            currentInner.style.webkitTextFillColor = settings.lyricsUnsungColor;
-            currentInner.style.color = settings.lyricsUnsungColor;
-        }
+      currentInner.style.webkitBackgroundClip = "text";
+      currentInner.style.backgroundClip = "text";
+      currentInner.style.webkitTextFillColor = "transparent";
+      currentInner.style.color = "transparent";
+    } else {
+      currentInner.style.background = "none";
+      currentInner.style.webkitBackgroundClip = "initial";
+      currentInner.style.backgroundClip = "initial";
+      currentInner.style.webkitTextFillColor = settings.lyricsUnsungColor;
+      currentInner.style.color = settings.lyricsUnsungColor;
     }
+  }
 
-    if (nextLine) {
-        nextLine.style.color = settings.lyricsUnsungColor;
-    }
+  if (nextLine) {
+    nextLine.style.color = settings.lyricsUnsungColor;
+  }
 }
 
 // ========== 听歌时长统计函数 ==========
 function settleListeningTime(reason = "unknown") {
-    if (!listeningSession.isPlaying || !listeningSession.startTime) return;
+  if (!listeningSession.isPlaying || !listeningSession.startTime) return;
 
-    const duration = Date.now() - listeningSession.startTime;
-    const charAvatar = listeningSession.charAvatar;
+  const duration = Date.now() - listeningSession.startTime;
+  const charAvatar = listeningSession.charAvatar;
 
-    if (charAvatar && duration > 1000) {
-        const settings = getSettings();
-        if (!settings.listeningStats) settings.listeningStats = {};
-        if (!settings.listeningStats[charAvatar]) {
-            settings.listeningStats[charAvatar] = {
-                totalTime: 0,
-                sessions: 0,
-                lastPlayed: "",
-            };
-        }
-        settings.listeningStats[charAvatar].totalTime += duration;
-        settings.listeningStats[charAvatar].sessions += 1;
-        settings.listeningStats[charAvatar].lastPlayed =
-            new Date().toISOString();
-        saveSettingsDebounced();
-        console.log(
-            `[ListeningStats] ${reason}: +${Math.round(duration / 1000)}秒 → ${charAvatar}`,
-        );
+  if (charAvatar && duration > 1000) {
+    const settings = getSettings();
+    if (!settings.listeningStats) settings.listeningStats = {};
+    if (!settings.listeningStats[charAvatar]) {
+      settings.listeningStats[charAvatar] = {
+        totalTime: 0,
+        sessions: 0,
+        lastPlayed: "",
+      };
     }
-    listeningSession.startTime = null;
+    settings.listeningStats[charAvatar].totalTime += duration;
+    settings.listeningStats[charAvatar].sessions += 1;
+    settings.listeningStats[charAvatar].lastPlayed = new Date().toISOString();
+    saveSettingsDebounced();
+    console.log(
+      `[ListeningStats] ${reason}: +${Math.round(duration / 1000)}秒 → ${charAvatar}`,
+    );
+  }
+  listeningSession.startTime = null;
 }
 
 function startListeningSession() {
-    if (listeningSession.isPlaying && listeningSession.startTime) {
-        settleListeningTime("new_session");
-    }
-    listeningSession = {
-        charAvatar: characters[this_chid]?.avatar || null,
-        startTime: Date.now(),
-        isPlaying: true,
-    };
+  if (listeningSession.isPlaying && listeningSession.startTime) {
+    settleListeningTime("new_session");
+  }
+  listeningSession = {
+    charAvatar: characters[this_chid]?.avatar || null,
+    startTime: Date.now(),
+    isPlaying: true,
+  };
 }
 
 function formatListeningTime(ms) {
-    if (!ms || ms < 0) return "0分钟";
-    const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (!ms || ms < 0) return "0分钟";
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
 
-    if (hours > 0) {
-        const hoursText = t`${hours} hours`;
-        const minutesText = t`${minutes} minutes`;
-        return `${hoursText} ${minutesText}`;
-    } else if (minutes > 0) {
-        return t`${minutes} minutes`;
-    } else {
-        return t`${totalSeconds} seconds`;
-    }
+  if (hours > 0) {
+    const hoursText = t`${hours} hours`;
+    const minutesText = t`${minutes} minutes`;
+    return `${hoursText} ${minutesText}`;
+  } else if (minutes > 0) {
+    return t`${minutes} minutes`;
+  } else {
+    return t`${totalSeconds} seconds`;
+  }
 }
 
 function startStatsUpdateTimer() {
-    stopStatsUpdateTimer();
-    listeningStatsUpdateTimer = setInterval(() => {
-        if (listeningStatsUpdateCallback) {
-            listeningStatsUpdateCallback();
-        }
-    }, 1000);
+  stopStatsUpdateTimer();
+  listeningStatsUpdateTimer = setInterval(() => {
+    if (listeningStatsUpdateCallback) {
+      listeningStatsUpdateCallback();
+    }
+  }, 1000);
 }
 
 function stopStatsUpdateTimer() {
-    if (listeningStatsUpdateTimer) {
-        clearInterval(listeningStatsUpdateTimer);
-        listeningStatsUpdateTimer = null;
-    }
+  if (listeningStatsUpdateTimer) {
+    clearInterval(listeningStatsUpdateTimer);
+    listeningStatsUpdateTimer = null;
+  }
 }
 
 function getCurrentCharStats() {
-    if (this_chid === undefined || !characters[this_chid]) return null;
-    const charAvatar = characters[this_chid].avatar;
-    const settings = getSettings();
-    const stats = settings.listeningStats?.[charAvatar];
-    return {
-        charName: characters[this_chid].name,
-        charAvatar: charAvatar,
-        totalTime: stats?.totalTime || 0,
-        sessions: stats?.sessions || 0,
-        lastPlayed: stats?.lastPlayed || null,
-    };
+  if (this_chid === undefined || !characters[this_chid]) return null;
+  const charAvatar = characters[this_chid].avatar;
+  const settings = getSettings();
+  const stats = settings.listeningStats?.[charAvatar];
+  return {
+    charName: characters[this_chid].name,
+    charAvatar: charAvatar,
+    totalTime: stats?.totalTime || 0,
+    sessions: stats?.sessions || 0,
+    lastPlayed: stats?.lastPlayed || null,
+  };
 }
 
 function hidePlayer() {
-    settleListeningTime("player_closed");
-    listeningSession.isPlaying = false;
-    stopStatsUpdateTimer();
-    const musicPlayer = document.getElementById("music_player");
-    if (musicPlayer) {
-        cleanupUnifiedIframe(musicPlayer);
-        $(musicPlayer).hide(() => musicPlayer.remove());
-    }
-    removeLyricsOverlay();
+  settleListeningTime("player_closed");
+  listeningSession.isPlaying = false;
+  stopStatsUpdateTimer();
+  const musicPlayer = document.getElementById("music_player");
+  if (musicPlayer) {
+    cleanupUnifiedIframe(musicPlayer);
+    $(musicPlayer).hide(() => musicPlayer.remove());
+  }
+  removeLyricsOverlay();
 }
 
 function reloadPlayer() {
-    isPlayerInitialized = false;
-    isPlaylistReady = false;
+  isPlayerInitialized = false;
+  isPlaylistReady = false;
 
-    const musicPlayer = document.getElementById("music_player");
-    if (musicPlayer) {
-        cleanupUnifiedIframe(musicPlayer);
-        musicPlayer.remove();
-    }
-    showPlayer();
+  const musicPlayer = document.getElementById("music_player");
+  if (musicPlayer) {
+    cleanupUnifiedIframe(musicPlayer);
+    musicPlayer.remove();
+  }
+  showPlayer();
 
-    const waitForInit = () =>
-        new Promise((resolve) => {
-            const checkInterval = setInterval(() => {
-                if (isPlayerInitialized) {
-                    clearInterval(checkInterval);
-                    resolve();
-                }
-            }, 50);
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                resolve();
-            }, 3000);
-        });
-
-    waitForInit().then(async () => {
-        await buildAndSetInitialPlaylist();
-        isPlaylistReady = true;
+  const waitForInit = () =>
+    new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (isPlayerInitialized) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 50);
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        resolve();
+      }, 3000);
     });
+
+  waitForInit().then(async () => {
+    await buildAndSetInitialPlaylist();
+    isPlaylistReady = true;
+  });
 }
 
 // ==================== 刷新和更新功能 ====================
 
 function requestSettingsRender(preserveDrawerState = true) {
-    clearTimeout(renderTimeout);
-    renderTimeout = setTimeout(() => {
-        const allPanels = document.querySelectorAll(
-            "#typing_indicator_settings",
-        );
-        if (allPanels.length > 1) {
-            console.warn(
-                "[TypingIndicator] Detected duplicate settings panels. Cleaning up.",
-            );
-            allPanels.forEach((panel, index) => {
-                if (index > 0) panel.remove();
-            });
-        }
+  clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(() => {
+    const allPanels = document.querySelectorAll("#typing_indicator_settings");
+    if (allPanels.length > 1) {
+      console.warn(
+        "[TypingIndicator] Detected duplicate settings panels. Cleaning up.",
+      );
+      allPanels.forEach((panel, index) => {
+        if (index > 0) panel.remove();
+      });
+    }
 
-        const oldSection = document.getElementById("typing_indicator_settings");
-        let wasOpen = false;
+    const oldSection = document.getElementById("typing_indicator_settings");
+    let wasOpen = false;
 
-        if (oldSection) {
-            const activeTab = oldSection.querySelector(".tab-button.active");
-            if (activeTab) {
-                currentActiveTab = activeTab.dataset.tab;
-            }
-            wasOpen =
-                preserveDrawerState &&
-                oldSection.querySelector(".inline-drawer-content").style
-                    .display !== "none";
-            oldSection.remove();
-        }
+    if (oldSection) {
+      const activeTab = oldSection.querySelector(".tab-button.active");
+      if (activeTab) {
+        currentActiveTab = activeTab.dataset.tab;
+      }
+      wasOpen =
+        preserveDrawerState &&
+        oldSection.querySelector(".inline-drawer-content").style.display !==
+          "none";
+      oldSection.remove();
+    }
 
-        const renderFn = addExtensionSettings();
-        renderFn(wasOpen);
-    }, 50);
+    const renderFn = addExtensionSettings();
+    renderFn(wasOpen);
+  }, 50);
 }
 
 function replaceIndicator(source = "unknown") {
-    debugLog(`[TypingIndicator] 执行原子化替换操作。来源: ${source}`);
-    const oldIndicator = document.getElementById("typing_indicator");
+  debugLog(`[TypingIndicator] 执行原子化替换操作。来源: ${source}`);
+  const oldIndicator = document.getElementById("typing_indicator");
 
-    if (oldIndicator) {
-        cleanupUnifiedIframe(oldIndicator);
-        oldIndicator.remove();
-    }
-    showTypingIndicator(`persistent-replace-${source}`);
+  if (oldIndicator) {
+    cleanupUnifiedIframe(oldIndicator);
+    oldIndicator.remove();
+  }
+  showTypingIndicator(`persistent-replace-${source}`);
 }
 
 async function handlePersistentModeUpdate(source) {
-    const indicator = document.getElementById("typing_indicator");
-    const settings = getSettings();
+  const indicator = document.getElementById("typing_indicator");
+  const settings = getSettings();
 
-    if (!indicator) {
-        if (
-            settings.persistentMode &&
-            (this_chid !== undefined || selected_group)
-        ) {
-            debugLog(`[TypingIndicator] 无指示器，正在创建。来源: ${source}`);
-            showTypingIndicator(`persistent-init-${source}`);
-        }
-        return;
+  if (!indicator) {
+    if (
+      settings.persistentMode &&
+      (this_chid !== undefined || selected_group)
+    ) {
+      debugLog(`[TypingIndicator] 无指示器，正在创建。来源: ${source}`);
+      showTypingIndicator(`persistent-init-${source}`);
     }
+    return;
+  }
 
-    const runningThemeId = indicator.dataset.themeId;
-    const runningTheme = runningThemeId
-        ? settings.themes.find((t) => t.id === runningThemeId)
-        : null;
-    const isRunningStateful =
-        runningTheme &&
-        (statefulThemes.has(runningThemeId) ||
-            runningTheme.name.startsWith("播放器"));
+  const runningThemeId = indicator.dataset.themeId;
+  const runningTheme = runningThemeId
+    ? settings.themes.find((t) => t.id === runningThemeId)
+    : null;
+  const isRunningStateful =
+    runningTheme &&
+    (statefulThemes.has(runningThemeId) ||
+      runningTheme.name.startsWith("播放器"));
 
-    if (isRunningStateful) {
-        debugLog(
-            `[TypingIndicator] State-Lock: 锁定有状态主题 "${runningTheme.name}"。来源: ${source}. 只更新内容。`,
-        );
-        const iframe = indicator.querySelector(".theme-iframe");
-        if (iframe && iframe.contentWindow) {
-            if (runningTheme.name.startsWith("播放器")) {
-                const newPlaylist = await getBgmPlaylistAsync();
-                queuePostMessage(
-                    iframe.contentWindow,
-                    {
-                        source: "typing-indicator-host",
-                        type: "update-playlist",
-                        data: newPlaylist,
-                    },
-                    "*",
-                );
-            } else {
-                const context = getCurrentCharContext();
-                queuePostMessage(
-                    iframe.contentWindow,
-                    {
-                        source: "typing-indicator-host",
-                        type: "context-update",
-                        data: context,
-                    },
-                    "*",
-                );
-            }
-        } else {
-            console.warn(
-                `[TypingIndicator] 尝试更新有状态主题内容时，iframe或contentWindow未就绪。Source: ${source}`,
-            );
-        }
-        return;
-    }
-
+  if (isRunningStateful) {
     debugLog(
-        `[TypingIndicator] State-Lock Disengaged: 当前运行的是无状态主题，将根据新环境更新。Source: ${source}`,
+      `[TypingIndicator] State-Lock: 锁定有状态主题 "${runningTheme.name}"。来源: ${source}. 只更新内容。`,
     );
-    const newConfig = getActiveThemeConfig();
-
-    if (indicator.dataset.themeId === newConfig.themeId) {
-        debugLog(
-            `[TypingIndicator] 新旧主题ID相同 (${newConfig.themeId})，仅刷新内容。`,
+    const iframe = indicator.querySelector(".theme-iframe");
+    if (iframe && iframe.contentWindow) {
+      if (runningTheme.name.startsWith("播放器")) {
+        const newPlaylist = await getBgmPlaylistAsync();
+        queuePostMessage(
+          iframe.contentWindow,
+          {
+            source: "typing-indicator-host",
+            type: "update-playlist",
+            data: newPlaylist,
+          },
+          "*",
         );
-        refreshIndicatorContent(indicator);
+      } else {
+        const context = getCurrentCharContext();
+        queuePostMessage(
+          iframe.contentWindow,
+          {
+            source: "typing-indicator-host",
+            type: "context-update",
+            data: context,
+          },
+          "*",
+        );
+      }
     } else {
-        debugLog(
-            `[TypingIndicator] 新旧主题ID不同 (old: ${indicator.dataset.themeId}, new: ${newConfig.themeId})，执行替换。`,
-        );
-        replaceIndicator(source);
+      console.warn(
+        `[TypingIndicator] 尝试更新有状态主题内容时，iframe或contentWindow未就绪。Source: ${source}`,
+      );
     }
+    return;
+  }
+
+  debugLog(
+    `[TypingIndicator] State-Lock Disengaged: 当前运行的是无状态主题，将根据新环境更新。Source: ${source}`,
+  );
+  const newConfig = getActiveThemeConfig();
+
+  if (indicator.dataset.themeId === newConfig.themeId) {
+    debugLog(
+      `[TypingIndicator] 新旧主题ID相同 (${newConfig.themeId})，仅刷新内容。`,
+    );
+    refreshIndicatorContent(indicator);
+  } else {
+    debugLog(
+      `[TypingIndicator] 新旧主题ID不同 (old: ${indicator.dataset.themeId}, new: ${newConfig.themeId})，执行替换。`,
+    );
+    replaceIndicator(source);
+  }
 }
 
 function refreshLiveIndicators(source = "unknown") {
-    debugLog(`[TypingIndicator] 刷新请求来源: ${source}`);
-    const indicator = document.getElementById("typing_indicator");
+  debugLog(`[TypingIndicator] 刷新请求来源: ${source}`);
+  const indicator = document.getElementById("typing_indicator");
 
-    const previewArea = document.getElementById("theme_preview_area");
-    if (previewArea && previewArea.querySelector(".typing_indicator")) {
-        const previewButton = document.getElementById("preview_theme");
-        if (previewButton) {
-            previewButton.click();
-        }
+  const previewArea = document.getElementById("theme_preview_area");
+  if (previewArea && previewArea.querySelector(".typing_indicator")) {
+    const previewButton = document.getElementById("preview_theme");
+    if (previewButton) {
+      previewButton.click();
+    }
+  }
+
+  const settings = getSettings();
+  if (settings.persistentMode && indicator) {
+    if (isStatefulThemeLocked) {
+      debugLog(
+        "[TypingIndicator] 刷新被全局锁阻止。有状态主题不允许被替换式刷新。",
+      );
+      handlePersistentModeUpdate(`refresh_content_only_for_stateful`);
+      return;
     }
 
-    const settings = getSettings();
-    if (settings.persistentMode && indicator) {
-        if (isStatefulThemeLocked) {
-            debugLog(
-                "[TypingIndicator] 刷新被全局锁阻止。有状态主题不允许被替换式刷新。",
-            );
-            handlePersistentModeUpdate(`refresh_content_only_for_stateful`);
-            return;
-        }
-
-        debugLog("[TypingIndicator] 执行替换式刷新...");
-        $(indicator).fadeOut(150, function () {
-            cleanupUnifiedIframe(this);
-            $(this).remove();
-            showTypingIndicator("persistent-refresh");
-        });
-    }
+    debugLog("[TypingIndicator] 执行替换式刷新...");
+    $(indicator).fadeOut(150, function () {
+      cleanupUnifiedIframe(this);
+      $(this).remove();
+      showTypingIndicator("persistent-refresh");
+    });
+  }
 }
 
 function refreshIndicatorContent(indicator) {
-    const { themeId, presetId } = getActiveThemeConfig();
-    const settings = getSettings();
-    const theme = settings.themes.find((t) => t.id === themeId);
-    if (!theme) return;
+  const { themeId, presetId } = getActiveThemeConfig();
+  const settings = getSettings();
+  const theme = settings.themes.find((t) => t.id === themeId);
+  if (!theme) return;
 
-    indicator.removeAttribute("style");
+  indicator.removeAttribute("style");
 
-    const positionStyles = {
-        floating_bottom: () => {
-            const sendForm = document.getElementById("send_form");
-            const memoryTable = document.getElementById("tableStatusContainer");
-            let bottomOffset = 5;
-            if (sendForm) bottomOffset += sendForm.offsetHeight;
-            if (
-                memoryTable &&
-                getComputedStyle(memoryTable).display !== "none"
-            ) {
-                bottomOffset += memoryTable.offsetHeight;
-            }
-            indicator.style.bottom = `${bottomOffset}px`;
-            indicator.style.position = "fixed";
-        },
-        chat_center: () => {
-            const chatEl = document.getElementById("chat");
-            if (chatEl) {
-                const rect = chatEl.getBoundingClientRect();
-                indicator.style.left = `${rect.left + rect.width / 2}px`;
-                indicator.style.top = `${rect.top + rect.height / 2}px`;
-                indicator.style.transform = "translate(-50%, -50%)";
-            }
-            indicator.style.position = "fixed";
-        },
-        draggable: () => {
-            indicator.style.left = `${
-                (settings.customPosition.x / 100) * window.innerWidth
-            }px`;
-            indicator.style.top = `${
-                (settings.customPosition.y / 100) * window.innerHeight
-            }px`;
-            indicator.style.transform = "translate(-50%, -50%)";
-            indicator.style.position = "fixed";
-        },
-        above_input: () => {
-            indicator.style.position = "static";
-        },
-        full_width_banner: () => {
-            indicator.style.position = "static";
-        },
-        bottom: () => {
-            indicator.style.position = "static";
-        },
+  const positionStyles = {
+    floating_bottom: () => {
+      const sendForm = document.getElementById("send_form");
+      const memoryTable = document.getElementById("tableStatusContainer");
+      let bottomOffset = 5;
+      if (sendForm) bottomOffset += sendForm.offsetHeight;
+      if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
+        bottomOffset += memoryTable.offsetHeight;
+      }
+      indicator.style.bottom = `${bottomOffset}px`;
+      indicator.style.position = "fixed";
+    },
+    chat_center: () => {
+      const chatEl = document.getElementById("chat");
+      if (chatEl) {
+        const rect = chatEl.getBoundingClientRect();
+        indicator.style.left = `${rect.left + rect.width / 2}px`;
+        indicator.style.top = `${rect.top + rect.height / 2}px`;
+        indicator.style.transform = "translate(-50%, -50%)";
+      }
+      indicator.style.position = "fixed";
+    },
+    draggable: () => {
+      indicator.style.left = `${
+        (settings.customPosition.x / 100) * window.innerWidth
+      }px`;
+      indicator.style.top = `${
+        (settings.customPosition.y / 100) * window.innerHeight
+      }px`;
+      indicator.style.transform = "translate(-50%, -50%)";
+      indicator.style.position = "fixed";
+    },
+    above_input: () => {
+      indicator.style.position = "static";
+    },
+    full_width_banner: () => {
+      indicator.style.position = "static";
+    },
+    bottom: () => {
+      indicator.style.position = "static";
+    },
+  };
+
+  const positionHandler = positionStyles[settings.position];
+  if (positionHandler) positionHandler();
+
+  if (theme.useIframe) {
+    const defaultIframeSizes = {
+      floating_bottom: { width: "320px", height: "110px" },
+      chat_center: { width: "350px", height: "120px" },
+      draggable: { width: "320px", height: "110px" },
     };
-
-    const positionHandler = positionStyles[settings.position];
-    if (positionHandler) positionHandler();
-
-    if (theme.useIframe) {
-        const defaultIframeSizes = {
-            floating_bottom: { width: "320px", height: "110px" },
-            chat_center: { width: "350px", height: "120px" },
-            draggable: { width: "320px", height: "110px" },
-        };
-        const themeSizes = theme.sizes || defaultIframeSizes;
-        const size =
-            themeSizes[settings.position] || Object.values(themeSizes)[0];
-        if (size) {
-            indicator.style.width = size.width || "auto";
-            indicator.style.height = size.height || "auto";
-            if (size.maxWidth) indicator.style.maxWidth = size.maxWidth;
-            if (size.maxHeight) indicator.style.maxHeight = size.maxHeight;
-            indicator.style.resize = "none";
-            indicator.style.overflow = "hidden";
-        }
+    const themeSizes = theme.sizes || defaultIframeSizes;
+    const size = themeSizes[settings.position] || Object.values(themeSizes)[0];
+    if (size) {
+      indicator.style.width = size.width || "auto";
+      indicator.style.height = size.height || "auto";
+      if (size.maxWidth) indicator.style.maxWidth = size.maxWidth;
+      if (size.maxHeight) indicator.style.maxHeight = size.maxHeight;
+      indicator.style.resize = "none";
+      indicator.style.overflow = "hidden";
     }
+  }
 
-    cleanupUnifiedIframe(indicator);
+  cleanupUnifiedIframe(indicator);
 
-    if (theme.useIframe) {
-        indicator.innerHTML = "";
-        applyThemeToIndicator(theme, indicator);
-    } else {
-        const preset =
-            settings.textPresets.find((p) => p.id === presetId) ||
-            settings.textPresets[0];
-        const charName = getCurrentCharName();
-        const userName = getCurrentUserName();
-        const avatarUrls = getAvatarUrls();
+  if (theme.useIframe) {
+    indicator.innerHTML = "";
+    applyThemeToIndicator(theme, indicator);
+  } else {
+    const preset =
+      settings.textPresets.find((p) => p.id === presetId) ||
+      settings.textPresets[0];
+    const charName = getCurrentCharName();
+    const userName = getCurrentUserName();
+    const avatarUrls = getAvatarUrls();
 
-        let baseText = preset.text
-            .replace(/\$\{name2\}/g, charName)
-            .replace(/\{\{char\}\}/g, charName)
-            .replace(/\{\{user\}\}/g, userName)
-            .replace(/\{\{char_avatar_url\}\}/g, avatarUrls.char)
-            .replace(/\{\{user_avatar_url\}\}/g, avatarUrls.user)
-            .replace(
-                /\{\{char_avatar\}\}/g,
-                `<img class="typing-indicator-avatar" src="${avatarUrls.char}">`,
-            )
-            .replace(
-                /\{\{user_avatar\}\}/g,
-                `<img class="typing-indicator-avatar" src="${avatarUrls.user}">`,
-            );
+    let baseText = preset.text
+      .replace(/\$\{name2\}/g, charName)
+      .replace(/\{\{char\}\}/g, charName)
+      .replace(/\{\{user\}\}/g, userName)
+      .replace(/\{\{char_avatar_url\}\}/g, avatarUrls.char)
+      .replace(/\{\{user_avatar_url\}\}/g, avatarUrls.user)
+      .replace(
+        /\{\{char_avatar\}\}/g,
+        `<img class="typing-indicator-avatar" src="${avatarUrls.char}">`,
+      )
+      .replace(
+        /\{\{user_avatar\}\}/g,
+        `<img class="typing-indicator-avatar" src="${avatarUrls.user}">`,
+      );
 
-        const svgAnimation = `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
-        const htmlContent = `${baseText}${
-            settings.showAnimation ? svgAnimation : ""
-        }`;
-        indicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
-    }
+    const svgAnimation = `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
+    const htmlContent = `${baseText}${
+      settings.showAnimation ? svgAnimation : ""
+    }`;
+    indicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
+  }
 }
 
 // ==================== 动态主题处理 ====================
 
 function revertDynamicTheme(source = "unknown") {
-    if (!currentDynamicThemeId) return;
+  if (!currentDynamicThemeId) return;
 
-    console.log(`[TypingIndicator] Reverting dynamic theme. Source: ${source}`);
-    currentDynamicThemeId = null;
-    currentDynamicPresetId = null;
+  console.log(`[TypingIndicator] Reverting dynamic theme. Source: ${source}`);
+  currentDynamicThemeId = null;
+  currentDynamicPresetId = null;
 
-    const indicator = document.getElementById("typing_indicator");
-    const settings = getSettings();
-    if (settings.persistentMode) {
-        const newConfig = getActiveThemeConfig();
-        if (newConfig.themeId !== currentlyAppliedConfig.themeId) {
-            applyTheme(newConfig.themeId);
-            currentlyAppliedConfig = newConfig;
-        }
-
-        if (indicator) {
-            refreshIndicatorContent(indicator);
-        }
-    } else {
-        hideTypingIndicator();
+  const indicator = document.getElementById("typing_indicator");
+  const settings = getSettings();
+  if (settings.persistentMode) {
+    const newConfig = getActiveThemeConfig();
+    if (newConfig.themeId !== currentlyAppliedConfig.themeId) {
+      applyTheme(newConfig.themeId);
+      currentlyAppliedConfig = newConfig;
     }
+
+    if (indicator) {
+      refreshIndicatorContent(indicator);
+    }
+  } else {
+    hideTypingIndicator();
+  }
 }
 
 function applyDynamicTheme(themeName) {
-    const settings = getSettings();
-    const matchedTheme = settings.themes.find((t) => t.name === themeName);
+  const settings = getSettings();
+  const matchedTheme = settings.themes.find((t) => t.name === themeName);
 
-    if (matchedTheme) {
-        if (currentDynamicThemeId === matchedTheme.id) return;
+  if (matchedTheme) {
+    if (currentDynamicThemeId === matchedTheme.id) return;
 
-        currentDynamicThemeId = matchedTheme.id;
-        currentDynamicPresetId = null;
-        if (!matchedTheme.useIframe) {
-            const baseName = matchedTheme.name
-                .replace(/-美化$|-Style$/i, "")
-                .trim();
-            const matchedPreset = settings.textPresets.find(
-                (p) => p.name === baseName,
-            );
-            if (matchedPreset) currentDynamicPresetId = matchedPreset.id;
-        }
-        updateAndApplyTheme("dynamic_theme_apply", true);
-
-        const indicator = document.getElementById("typing_indicator");
-        if (indicator) {
-            refreshIndicatorContent(indicator);
-        }
+    currentDynamicThemeId = matchedTheme.id;
+    currentDynamicPresetId = null;
+    if (!matchedTheme.useIframe) {
+      const baseName = matchedTheme.name.replace(/-美化$|-Style$/i, "").trim();
+      const matchedPreset = settings.textPresets.find(
+        (p) => p.name === baseName,
+      );
+      if (matchedPreset) currentDynamicPresetId = matchedPreset.id;
     }
+    updateAndApplyTheme("dynamic_theme_apply", true);
+
+    const indicator = document.getElementById("typing_indicator");
+    if (indicator) {
+      refreshIndicatorContent(indicator);
+    }
+  }
 }
 
 function processMessageForTheme(messageId) {
-    const settings = getSettings();
-    if (!settings.enabled || !settings.enableDynamicThemes) return false;
-    const message = chat[messageId];
-    if (message && message.mes) {
-        const themeName = parseThemeFromText(message.mes);
-        if (themeName) {
-            applyDynamicTheme(themeName);
-            if (
-                !document.getElementById("typing_indicator") &&
-                !settings.persistentMode
-            ) {
-                showTypingIndicator("dynamic-post-process");
-            }
-            return true;
-        }
+  const settings = getSettings();
+  if (!settings.enabled || !settings.enableDynamicThemes) return false;
+  const message = chat[messageId];
+  if (message && message.mes) {
+    const themeName = parseThemeFromText(message.mes);
+    if (themeName) {
+      applyDynamicTheme(themeName);
+      if (
+        !document.getElementById("typing_indicator") &&
+        !settings.persistentMode
+      ) {
+        showTypingIndicator("dynamic-post-process");
+      }
+      return true;
     }
-    return false;
+  }
+  return false;
 }
 
 // ==================== 主界面主题跟随 ====================
 
 function handleMainThemeChange(renderFn) {
-    const settings = getSettings();
-    if (!settings.autoFollowTheme) {
-        return;
-    }
+  const settings = getSettings();
+  if (!settings.autoFollowTheme) {
+    return;
+  }
 
-    let mainThemeName;
-    try {
-        mainThemeName = power_user.theme;
-    } catch (error) {
-        console.warn(
-            "[TypingIndicator] Could not read power_user.theme:",
-            error,
-        );
-        return;
-    }
+  let mainThemeName;
+  try {
+    mainThemeName = power_user.theme;
+  } catch (error) {
+    console.warn("[TypingIndicator] Could not read power_user.theme:", error);
+    return;
+  }
 
-    if (!mainThemeName) {
-        return;
-    }
+  if (!mainThemeName) {
+    return;
+  }
 
-    const themeBaseName = mainThemeName;
-    let switched = false;
+  const themeBaseName = mainThemeName;
+  let switched = false;
 
-    const findThemeByBaseName = (baseName) => {
-        const themes = settings.themes;
-        const iframeMatch = themes.find(
-            (t) => t.name.startsWith(baseName) && t.useIframe,
-        );
-        if (iframeMatch) return iframeMatch;
-        return themes.find((t) => t.name.startsWith(baseName) && !t.useIframe);
-    };
-
-    const matchedTheme = findThemeByBaseName(themeBaseName);
-    if (matchedTheme && settings.selectedThemeId !== matchedTheme.id) {
-        settings.selectedThemeId = matchedTheme.id;
-        switched = true;
-    }
-
-    const matchedPreset = settings.textPresets.find((p) =>
-        p.name.startsWith(themeBaseName),
+  const findThemeByBaseName = (baseName) => {
+    const themes = settings.themes;
+    const iframeMatch = themes.find(
+      (t) => t.name.startsWith(baseName) && t.useIframe,
     );
-    if (matchedPreset && settings.selectedTextPresetId !== matchedPreset.id) {
-        settings.selectedTextPresetId = matchedPreset.id;
-        switched = true;
-    }
+    if (iframeMatch) return iframeMatch;
+    return themes.find((t) => t.name.startsWith(baseName) && !t.useIframe);
+  };
 
-    if (switched) {
-        saveSettingsDebounced();
-        requestSettingsRender();
-        toastr.info(
-            t`Indicator theme has been automatically synced to: ${themeBaseName}`,
-            "",
-            { timeOut: 1500 },
-        );
-    } else if (!matchedTheme) {
-        if (settings.devMode) {
-            console.debug(
-                `[TypingIndicator] 未找到与基础名称匹配的指示器主题 "${themeBaseName}".`,
-            );
-        }
-    }
+  const matchedTheme = findThemeByBaseName(themeBaseName);
+  if (matchedTheme && settings.selectedThemeId !== matchedTheme.id) {
+    settings.selectedThemeId = matchedTheme.id;
+    switched = true;
+  }
 
-    updateAndApplyTheme(
-        switched ? "main_theme_sync_success" : "main_theme_sync_check",
+  const matchedPreset = settings.textPresets.find((p) =>
+    p.name.startsWith(themeBaseName),
+  );
+  if (matchedPreset && settings.selectedTextPresetId !== matchedPreset.id) {
+    settings.selectedTextPresetId = matchedPreset.id;
+    switched = true;
+  }
+
+  if (switched) {
+    saveSettingsDebounced();
+    requestSettingsRender();
+    toastr.info(
+      t`Indicator theme has been automatically synced to: ${themeBaseName}`,
+      "",
+      { timeOut: 1500 },
     );
+  } else if (!matchedTheme) {
+    if (settings.devMode) {
+      console.debug(
+        `[TypingIndicator] 未找到与基础名称匹配的指示器主题 "${themeBaseName}".`,
+      );
+    }
+  }
+
+  updateAndApplyTheme(
+    switched ? "main_theme_sync_success" : "main_theme_sync_check",
+  );
 }
 
 // ==================== SVG Defs 全局管理 ====================
 
 function setupGlobalSvgDefs() {
-    if (document.getElementById("ti-global-svg-defs")) return;
+  if (document.getElementById("ti-global-svg-defs")) return;
 
-    const svgDefsContainer = document.createElement("div");
-    svgDefsContainer.id = "ti-global-svg-defs";
-    svgDefsContainer.style.position = "absolute";
-    svgDefsContainer.style.width = "0";
-    svgDefsContainer.style.height = "0";
-    svgDefsContainer.style.overflow = "hidden";
-    svgDefsContainer.innerHTML = `
+  const svgDefsContainer = document.createElement("div");
+  svgDefsContainer.id = "ti-global-svg-defs";
+  svgDefsContainer.style.position = "absolute";
+  svgDefsContainer.style.width = "0";
+  svgDefsContainer.style.height = "0";
+  svgDefsContainer.style.overflow = "hidden";
+  svgDefsContainer.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" version="1.1">
             <defs></defs>
         </svg>
     `;
-    document.body.appendChild(svgDefsContainer);
-    console.log("[TypingIndicator] Global SVG defs container initialized.");
+  document.body.appendChild(svgDefsContainer);
+  console.log("[TypingIndicator] Global SVG defs container initialized.");
 }
 
 function updateGlobalDefs(itemToProcess = null) {
-    let globalSvgContainer = document.getElementById("ti-global-svg-defs");
+  let globalSvgContainer = document.getElementById("ti-global-svg-defs");
+  if (!globalSvgContainer) {
+    console.warn(
+      "[TypingIndicator] Global SVG defs container not found. Initializing now.",
+    );
+    setupGlobalSvgDefs();
+    globalSvgContainer = document.getElementById("ti-global-svg-defs");
     if (!globalSvgContainer) {
-        console.warn(
-            "[TypingIndicator] Global SVG defs container not found. Initializing now.",
-        );
-        setupGlobalSvgDefs();
-        globalSvgContainer = document.getElementById("ti-global-svg-defs");
-        if (!globalSvgContainer) {
-            console.error(
-                "[TypingIndicator] Failed to create global SVG defs container.",
-            );
-            return;
-        }
+      console.error(
+        "[TypingIndicator] Failed to create global SVG defs container.",
+      );
+      return;
     }
+  }
 
-    const masterDefs = globalSvgContainer.querySelector("defs");
-    if (!masterDefs) {
-        console.error(
-            "[TypingIndicator] 'defs' tag not found in global container.",
+  const masterDefs = globalSvgContainer.querySelector("defs");
+  if (!masterDefs) {
+    console.error(
+      "[TypingIndicator] 'defs' tag not found in global container.",
+    );
+    return;
+  }
+
+  const defsRegex = /<defs>([\s\S]*?)<\/defs>/i;
+  const itemsToProcess = itemToProcess
+    ? [itemToProcess]
+    : [...getSettings().textPresets, ...getSettings().themes];
+
+  itemsToProcess.forEach((item) => {
+    const content = item.text || item.html || item.css || "";
+    const match = content.match(defsRegex);
+
+    if (match && match[1]) {
+      const defsContent = match[1].trim();
+      if (defsContent && !masterDefs.innerHTML.includes(defsContent)) {
+        masterDefs.innerHTML += defsContent;
+        console.log(
+          `[TypingIndicator] Defs from "${item.name}" dynamically updated.`,
         );
-        return;
+      }
     }
-
-    const defsRegex = /<defs>([\s\S]*?)<\/defs>/i;
-    const itemsToProcess = itemToProcess
-        ? [itemToProcess]
-        : [...getSettings().textPresets, ...getSettings().themes];
-
-    itemsToProcess.forEach((item) => {
-        const content = item.text || item.html || item.css || "";
-        const match = content.match(defsRegex);
-
-        if (match && match[1]) {
-            const defsContent = match[1].trim();
-            if (defsContent && !masterDefs.innerHTML.includes(defsContent)) {
-                masterDefs.innerHTML += defsContent;
-                console.log(
-                    `[TypingIndicator] Defs from "${item.name}" dynamically updated.`,
-                );
-            }
-        }
-    });
+  });
 }
 
 // ==================== 扩展设置界面 ====================
 
 function addExtensionSettings() {
-    const existingSection = document.getElementById(
-        "typing_indicator_settings",
-    );
-    if (existingSection) {
-        return (preserveDrawerState = true) => {
-            requestSettingsRender(preserveDrawerState);
-        };
-    }
+  const existingSection = document.getElementById("typing_indicator_settings");
+  if (existingSection) {
+    return (preserveDrawerState = true) => {
+      requestSettingsRender(preserveDrawerState);
+    };
+  }
 
-    const settings = getSettings();
-    const container = document.getElementById("extensions_settings");
-    const section = document.createElement("div");
-    section.id = "typing_indicator_settings";
-    section.className = "extension_container";
+  const settings = getSettings();
+  const container = document.getElementById("extensions_settings");
+  const section = document.createElement("div");
+  section.id = "typing_indicator_settings";
+  section.className = "extension_container";
 
-    const render = (preserveDrawerState = false) => {
-        const isDrawerOpen = preserveDrawerState;
+  const render = (preserveDrawerState = false) => {
+    const isDrawerOpen = preserveDrawerState;
 
-        section.innerHTML = `
+    section.innerHTML = `
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
             <b>${t`Typing Indicator Themes`}</b>
@@ -4391,43 +4377,43 @@ function addExtensionSettings() {
         </div>
 
         <div class="inline-drawer-content" style="display: ${
-            isDrawerOpen ? "flex" : "none"
+          isDrawerOpen ? "flex" : "none"
         };">
             <div class="ti-tabs-container">
                 <div class="ti-tab-buttons">
                     <button class="tab-button ${
-                        currentActiveTab === "main" ? "active" : ""
+                      currentActiveTab === "main" ? "active" : ""
                     }" data-tab="main">${t`Main Settings`}</button>
                     <button class="tab-button ${
-                        currentActiveTab === "indicator" ? "active" : ""
+                      currentActiveTab === "indicator" ? "active" : ""
                     }" data-tab="indicator">${t`Indicator`}</button>
                     <button class="tab-button ${
-                        currentActiveTab === "player" ? "active" : ""
+                      currentActiveTab === "player" ? "active" : ""
                     }" data-tab="player">${t`Player`}</button>
                     <button class="tab-button ${
-                        currentActiveTab === "tools" ? "active" : ""
+                      currentActiveTab === "tools" ? "active" : ""
                     }" data-tab="tools">${t`Tools`}</button>
                 </div>
 
                 <div class="ti-tab-content">
                     <!-- 主设置标签页 -->
                     <div class="tab-panel ${
-                        currentActiveTab === "main" ? "active" : ""
+                      currentActiveTab === "main" ? "active" : ""
                     }" data-tab="main">
                         <div class="ti-section">
                             <h4>${t`Core Functions`}</h4>
                             <div class="ti-checkbox-container">
                                 <label class="checkbox_label"><input type="checkbox" id="ti_enabled" ${
-                                    settings.enabled ? "checked" : ""
+                                  settings.enabled ? "checked" : ""
                                 }>${t`Enabled`}</label>
                                 <label class="checkbox_label"><input type="checkbox" id="ti_streaming" ${
-                                    settings.streaming ? "checked" : ""
+                                  settings.streaming ? "checked" : ""
                                 }>${t`Show if streaming`}</label>
                                 <label class="checkbox_label"><input type="checkbox" id="ti_show_animation" ${
-                                    settings.showAnimation ? "checked" : ""
+                                  settings.showAnimation ? "checked" : ""
                                 }>${t`Show typing animation`}</label>
                                 <label class="checkbox_label"><input type="checkbox" id="ti_persistent_mode" ${
-                                    settings.persistentMode ? "checked" : ""
+                                  settings.persistentMode ? "checked" : ""
                                 }>${t`Persistent Mode`}</label>
                             </div>
                         </div>
@@ -4435,29 +4421,27 @@ function addExtensionSettings() {
                             <h4>${t`Automation & Dynamic Effects`}</h4>
                             <div class="ti-checkbox-container">
                                 <label class="checkbox_label"><input type="checkbox" id="ti_auto_follow_theme" ${
-                                    settings.autoFollowTheme ? "checked" : ""
+                                  settings.autoFollowTheme ? "checked" : ""
                                 }>${t`Auto-sync with Main UI Theme`}</label>
                                 <label class="checkbox_label"><input type="checkbox" id="ti_enable_dynamic_themes" ${
-                                    settings.enableDynamicThemes
-                                        ? "checked"
-                                        : ""
+                                  settings.enableDynamicThemes ? "checked" : ""
                                 }>${t`Enable Dynamic Themes`}</label>
                             </div>
                             <div id="ti_dynamic_options_container" style="display: ${
-                                settings.enableDynamicThemes ? "block" : "none"
+                              settings.enableDynamicThemes ? "block" : "none"
                             }; margin-top: 12px;">
                                 <div class="ti-grid-2-col" style="max-width: 400px;">
                                     <label for="ti_dynamic_theme_duration">${t`Theme Duration (seconds)`}:</label>
                                     <input type="number" id="ti_dynamic_theme_duration" class="text_pole" min="0" value="${
-                                        settings.dynamicThemeDuration
+                                      settings.dynamicThemeDuration
                                     }" style="width: 80px;">
                                 </div>
                                 <small>${t`0 = Hide immediately after generation.`}</small>
                                 <div style="margin-top: 10px;">
                                     <label class="checkbox_label"><input type="checkbox" id="ti_dynamic_themes_in_persistent" ${
-                                        settings.dynamicThemesInPersistent
-                                            ? "checked"
-                                            : ""
+                                      settings.dynamicThemesInPersistent
+                                        ? "checked"
+                                        : ""
                                     }>${t`Enable in Persistent Mode`}</label>
                                     <small>${t`Theme will temporarily change and revert on your next action.`}</small>
                                 </div>
@@ -4467,7 +4451,7 @@ function addExtensionSettings() {
 
                     <!-- 指示器标签页 -->
                     <div class="tab-panel ${
-                        currentActiveTab === "indicator" ? "active" : ""
+                      currentActiveTab === "indicator" ? "active" : ""
                     }" data-tab="indicator">
                         <div id="ti_char_specific_settings" class="ti-section" style="display: none;">
                             <h4>${t`Character Specific Theme`}</h4>
@@ -4483,32 +4467,28 @@ function addExtensionSettings() {
                                     <div id="ti_char_preset_row" style="display: contents;">
                                         <label for="ti_char_preset_select" style="font-weight: bold; text-align: right;">${t`Text Preset`}:</label>
                                         <select id="ti_char_preset_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.textPresets
-                                            .map(
-                                                (p) =>
-                                                    `<option value="${p.id}">${p.name}</option>`,
-                                            )
-                                            .join("")}</select>
+                                          .map(
+                                            (p) =>
+                                              `<option value="${p.id}">${p.name}</option>`,
+                                          )
+                                          .join("")}</select>
                                     </div>
                                     <label for="ti_char_theme_select" style="font-weight: bold; text-align: right;">${t`Style Themes`}:</label>
                                     <select id="ti_char_theme_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.themes
-                                        .filter(
-                                            (theme) =>
-                                                !theme.name.startsWith(
-                                                    "播放器",
-                                                ) &&
-                                                !theme.name.startsWith(
-                                                    "Player",
-                                                ),
-                                        )
-                                        .map(
-                                            (theme) =>
-                                                `<option value="${theme.id}">${theme.name}${
-                                                    theme.useIframe
-                                                        ? " [iframe]"
-                                                        : " [CSS]"
-                                                }</option>`,
-                                        )
-                                        .join("")}</select>
+                                      .filter(
+                                        (theme) =>
+                                          !theme.name.startsWith("播放器") &&
+                                          !theme.name.startsWith("Player"),
+                                      )
+                                      .map(
+                                        (theme) =>
+                                          `<option value="${theme.id}">${theme.name}${
+                                            theme.useIframe
+                                              ? " [iframe]"
+                                              : " [CSS]"
+                                          }</option>`,
+                                      )
+                                      .join("")}</select>
                                 </div>
                             </div>
                         </div>
@@ -4517,15 +4497,15 @@ function addExtensionSettings() {
                             <h4>${t`Indicator Position`}</h4>
                             <div style="display: flex; align-items: center; gap: 10px;"><select id="ti_position" class="text_pole" style="flex-grow: 1;"></select></div>
                             <div id="ti_draggable_controls" style="display: ${
-                                settings.position === "draggable"
-                                    ? "flex"
-                                    : "none"
+                              settings.position === "draggable"
+                                ? "flex"
+                                : "none"
                             }; flex-direction: column; gap: 8px; margin-top: 10px;">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <label class="checkbox_label" style="margin-bottom: 0;"><input type="checkbox" id="ti_position_locked" ${
-                                        settings.customPosition.locked
-                                            ? "checked"
-                                            : ""
+                                      settings.customPosition.locked
+                                        ? "checked"
+                                        : ""
                                     }>${t`Lock Position`}</label>
                                     <div style="display: flex; gap: 5px;"><button id="ti_reset_position" class="menu_button fa-solid fa-undo" title="${t`Reset Position`}"></button><button id="ti_test_draggable" class="menu_button fa-solid fa-crosshairs" title="${t`Test Dragging`}"></button></div>
                                 </div>
@@ -4585,30 +4565,30 @@ function addExtensionSettings() {
 
                     <!-- 播放器标签页 -->
                     <div class="tab-panel ${
-                        currentActiveTab === "player" ? "active" : ""
+                      currentActiveTab === "player" ? "active" : ""
                     }" data-tab="player">
                         <div class="ti-section">
                             <div class="ti-checkbox-container"><label class="checkbox_label"><input type="checkbox" id="ti_player_enabled" ${
-                                settings.playerEnabled ? "checked" : ""
+                              settings.playerEnabled ? "checked" : ""
                             }>${t`Enable Player`}</label></div>
                         </div>
 
                         <div id="ti_player_controls" class="ti-section" style="display: ${
-                            settings.playerEnabled ? "block" : "none"
+                          settings.playerEnabled ? "block" : "none"
                         };">
     <h4>${t`Player Controls`}</h4>
     <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 15px;">
         <div style="display: flex; flex-direction: column; gap: 8px;">
     <label class="checkbox_label" style="margin-bottom: 0;">
         <input type="checkbox" id="ti_player_hidden" ${
-            settings.playerHidden ? "checked" : ""
+          settings.playerHidden ? "checked" : ""
         }>
         ${t`Background Mode`}
     </label>
     <div style="display: flex; flex-direction: column; gap: 2px;">
         <label class="checkbox_label" style="margin-bottom: 0;">
             <input type="checkbox" id="ti_player_locked" ${
-                settings.playerPosition.locked ? "checked" : ""
+              settings.playerPosition.locked ? "checked" : ""
             }>
             ${t`Lock Position`}
         </label>
@@ -4652,7 +4632,7 @@ function addExtensionSettings() {
 
                         <!-- 播放器主题section -->
                         <div id="ti_player_theme_section" class="ti-section" style="display: ${
-                            settings.playerEnabled ? "block" : "none"
+                          settings.playerEnabled ? "block" : "none"
                         };">
                             <h4>${t`Music Player Themes`}</h4>
                             <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
@@ -4685,43 +4665,43 @@ function addExtensionSettings() {
                             <div class="ti-checkbox-container" style="margin-bottom: 15px;">
                                 <label class="checkbox_label">
                                     <input type="checkbox" id="ti_lyrics_enabled" ${
-                                        settings.lyricsEnabled ? "checked" : ""
+                                      settings.lyricsEnabled ? "checked" : ""
                                     }>
                                     ${t`Enable Floating Lyrics`}
                                 </label>
                             </div>
 
                             <div id="ti_lyrics_controls" style="display: ${
-                                settings.lyricsEnabled ? "block" : "none"
+                              settings.lyricsEnabled ? "block" : "none"
                             };">
                                 <div class="ti-grid-2-col" style="gap: 10px; margin-bottom: 15px;">
                                     <label style="text-align: right;">${t`Sung Color`}:</label>
                                     <input type="color" id="ti_lyrics_sung_color" value="${
-                                        settings.lyricsSungColor
+                                      settings.lyricsSungColor
                                     }" style="width: 60px; height: 30px;">
 
                                     <label style="text-align: right;">${t`Unsung Color`}:</label>
                                     <input type="color" id="ti_lyrics_unsung_color" value="${
-                                        settings.lyricsUnsungColor
+                                      settings.lyricsUnsungColor
                                     }" style="width: 60px; height: 30px;">
 
                                     <label style="text-align: right;">${t`Background`}:</label>
                                     <input type="text" id="ti_lyrics_background" class="text_pole" value="${
-                                        settings.lyricsBackground
+                                      settings.lyricsBackground
                                     }" style="width: 150px;" placeholder="rgba(0,0,0,0.6)">
 
                                     <label style="text-align: right;">${t`Font Size`}:</label>
                                     <input type="number" id="ti_lyrics_font_size" class="text_pole" value="${
-                                        settings.lyricsFontSize
+                                      settings.lyricsFontSize
                                     }" min="12" max="36" style="width: 80px;">
                                 </div>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <label class="checkbox_label" style="margin-bottom: 0;">
                                         <input type="checkbox" id="ti_lyrics_show_next" ${
-                                            settings.lyricsShowNextLine
-                                                ? "checked"
-                                                : ""
+                                          settings.lyricsShowNextLine
+                                            ? "checked"
+                                            : ""
                                         }>
                                         ${t`Show Translation`}
                                     </label>
@@ -4730,9 +4710,9 @@ function addExtensionSettings() {
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                     <label class="checkbox_label" style="margin-bottom: 0;">
                                         <input type="checkbox" id="ti_lyrics_locked" ${
-                                            settings.lyricsPosition.locked
-                                                ? "checked"
-                                                : ""
+                                          settings.lyricsPosition.locked
+                                            ? "checked"
+                                            : ""
                                         }>
                                         ${t`Lock Position`}
                                     </label>
@@ -4749,7 +4729,7 @@ function addExtensionSettings() {
     <div class="ti-checkbox-container" style="margin-bottom: 10px;">
         <label class="checkbox_label">
             <input type="checkbox" id="ti_bubble_enabled" ${
-                settings.enableBubbleReplacement ? "checked" : ""
+              settings.enableBubbleReplacement ? "checked" : ""
             }>
             ${t`Enable BGM Bubble Replacement`}
         </label>
@@ -4757,7 +4737,7 @@ function addExtensionSettings() {
     <small style="display: block; margin-bottom: 10px;">${t`Automatically convert [bgm]Song-Artist[/bgm] tags in messages to clickable bubbles.`}</small>
 
     <div id="ti_bubble_controls" style="display: ${
-        settings.enableBubbleReplacement ? "block" : "none"
+      settings.enableBubbleReplacement ? "block" : "none"
     };">
         <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
     <select id="ti_bubble_style_select" class="text_pole" style="flex-grow: 1;"></select>
@@ -4790,7 +4770,7 @@ function addExtensionSettings() {
 
                     <!-- 工具标签页 -->
                     <div class="tab-panel ${
-                        currentActiveTab === "tools" ? "active" : ""
+                      currentActiveTab === "tools" ? "active" : ""
                     }" data-tab="tools">
                         <div class="ti-section">
                             <h4>${t`Utilities`}</h4>
@@ -4815,10 +4795,10 @@ function addExtensionSettings() {
                             ${t`Show FPS Monitor`}
                             </label>
                             <label class="checkbox_label" style="color: var(--text-color-secondary);"><input type="checkbox" id="ti_dev_mode" ${
-                                settings.devMode ? "checked" : ""
+                              settings.devMode ? "checked" : ""
                             }>${t`Developer: Log theme performance`}</label>
                             <label class="checkbox_label" style="color: var(--text-color-secondary);"><input type="checkbox" id="ti_debug_logs" ${
-                                settings.debugLogs ? "checked" : ""
+                              settings.debugLogs ? "checked" : ""
                             }>${t`Debug: Show detailed logs`}</label>
                         </div>
                     </div>
@@ -4828,670 +4808,633 @@ function addExtensionSettings() {
     </div>
 `;
 
-        container.appendChild(section);
+    container.appendChild(section);
 
-        // 标签页切换逻辑
-        const tabButtons = section.querySelectorAll(".tab-button");
-        const tabPanels = section.querySelectorAll(".tab-panel");
+    // 标签页切换逻辑
+    const tabButtons = section.querySelectorAll(".tab-button");
+    const tabPanels = section.querySelectorAll(".tab-panel");
 
-        tabButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                const targetTab = button.dataset.tab;
-                currentActiveTab = targetTab;
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const targetTab = button.dataset.tab;
+        currentActiveTab = targetTab;
 
-                // 更新按钮状态
-                tabButtons.forEach((btn) => btn.classList.remove("active"));
-                button.classList.add("active");
+        // 更新按钮状态
+        tabButtons.forEach((btn) => btn.classList.remove("active"));
+        button.classList.add("active");
 
-                // 更新面板显示
-                tabPanels.forEach((panel) => {
-                    panel.classList.remove("active");
-                    if (panel.dataset.tab === targetTab) {
-                        panel.classList.add("active");
-                    }
-                });
-            });
+        // 更新面板显示
+        tabPanels.forEach((panel) => {
+          panel.classList.remove("active");
+          if (panel.dataset.tab === targetTab) {
+            panel.classList.add("active");
+          }
         });
+      });
+    });
 
-        const drawerToggle = section.querySelector(".inline-drawer-toggle");
-        const drawerContent = section.querySelector(".inline-drawer-content");
+    const drawerToggle = section.querySelector(".inline-drawer-toggle");
+    const drawerContent = section.querySelector(".inline-drawer-content");
 
-        if (isDrawerOpen) {
-            drawerToggle.classList.add("open");
-        }
-
-        let hasCheckedChangelog = false;
-        drawerToggle.addEventListener("click", () => {
-            const isOpening = drawerContent.style.display === "none";
-            if (isOpening && !hasCheckedChangelog) {
-                hasCheckedChangelog = true;
-                setTimeout(() => {
-                    checkAndShowChangelog();
-                }, 300);
-            }
-        });
-        initializeMainSettings();
-        initializeIndicatorSettings();
-        initializePlayerSettings();
-        initializeToolsSettings();
-    };
-
-    function initializeMainSettings() {
-        const settings = getSettings();
-
-        section.querySelector("#ti_enabled").addEventListener("change", (e) => {
-            settings.enabled = e.target.checked;
-            saveSettingsDebounced();
-        });
-
-        section
-            .querySelector("#ti_streaming")
-            .addEventListener("change", (e) => {
-                settings.streaming = e.target.checked;
-                saveSettingsDebounced();
-            });
-
-        section
-            .querySelector("#ti_show_animation")
-            .addEventListener("change", (e) => {
-                settings.showAnimation = e.target.checked;
-                saveSettingsDebounced();
-            });
-
-        section
-            .querySelector("#ti_auto_follow_theme")
-            .addEventListener("change", (e) => {
-                manualOverrideActive = false;
-                settings.autoFollowTheme = e.target.checked;
-                saveSettingsDebounced();
-                updateAndApplyTheme("auto_follow_toggled");
-                const { themeId, presetId } = getActiveThemeConfig();
-                loadThemeIntoMainEditor(themeId);
-                loadPresetIntoMainEditor(presetId);
-            });
-
-        section
-            .querySelector("#ti_persistent_mode")
-            .addEventListener("change", (e) => {
-                settings.persistentMode = e.target.checked;
-                saveSettingsDebounced();
-
-                if (settings.persistentMode) {
-                    isIndicatorPersisted = true;
-                    showTypingIndicator("persistent-start");
-                    const testButton =
-                        section.querySelector("#ti_test_draggable");
-                    if (testButton) {
-                        testButton.disabled = true;
-                        testButton.title = t`Unavailable in Persistent Mode`;
-                    }
-                } else {
-                    isIndicatorPersisted = false;
-                    const indicator =
-                        document.getElementById("typing_indicator");
-                    if (indicator) {
-                        cleanupUnifiedIframe(indicator);
-                        $(indicator).hide(() => indicator.remove());
-                    }
-                    const testButton =
-                        section.querySelector("#ti_test_draggable");
-                    if (testButton) {
-                        testButton.disabled = false;
-                        testButton.title = t`Test Dragging`;
-                    }
-                }
-            });
-
-        // 动态主题设置
-        const dynamicThemesToggle = section.querySelector(
-            "#ti_enable_dynamic_themes",
-        );
-        const dynamicOptionsContainer = section.querySelector(
-            "#ti_dynamic_options_container",
-        );
-
-        dynamicThemesToggle.addEventListener("change", (e) => {
-            settings.enableDynamicThemes = e.target.checked;
-            dynamicOptionsContainer.style.display = e.target.checked
-                ? "block"
-                : "none";
-            saveSettingsDebounced();
-        });
-
-        section
-            .querySelector("#ti_dynamic_theme_duration")
-            .addEventListener("input", (e) => {
-                const value = parseInt(e.target.value, 10);
-                if (!isNaN(value) && value >= 0) {
-                    settings.dynamicThemeDuration = value;
-                    saveSettingsDebounced();
-                }
-            });
-
-        section
-            .querySelector("#ti_dynamic_themes_in_persistent")
-            .addEventListener("change", (e) => {
-                settings.dynamicThemesInPersistent = e.target.checked;
-                saveSettingsDebounced();
-            });
+    if (isDrawerOpen) {
+      drawerToggle.classList.add("open");
     }
 
-    function initializeIndicatorSettings() {
-        const settings = getSettings();
+    let hasCheckedChangelog = false;
+    drawerToggle.addEventListener("click", () => {
+      const isOpening = drawerContent.style.display === "none";
+      if (isOpening && !hasCheckedChangelog) {
+        hasCheckedChangelog = true;
+        setTimeout(() => {
+          checkAndShowChangelog();
+        }, 300);
+      }
+    });
+    initializeMainSettings();
+    initializeIndicatorSettings();
+    initializePlayerSettings();
+    initializeToolsSettings();
+  };
 
-        // 位置设置
-        updatePositionOptions();
+  function initializeMainSettings() {
+    const settings = getSettings();
 
-        const positionSelect = section.querySelector("#ti_position");
-        const draggableControls = section.querySelector(
-            "#ti_draggable_controls",
-        );
+    section.querySelector("#ti_enabled").addEventListener("change", (e) => {
+      settings.enabled = e.target.checked;
+      saveSettingsDebounced();
+    });
 
-        positionSelect.addEventListener("change", (e) => {
-            settings.position = e.target.value;
-            draggableControls.style.display =
-                settings.position === "draggable" ? "flex" : "none";
-            saveSettingsDebounced();
+    section.querySelector("#ti_streaming").addEventListener("change", (e) => {
+      settings.streaming = e.target.checked;
+      saveSettingsDebounced();
+    });
+
+    section
+      .querySelector("#ti_show_animation")
+      .addEventListener("change", (e) => {
+        settings.showAnimation = e.target.checked;
+        saveSettingsDebounced();
+      });
+
+    section
+      .querySelector("#ti_auto_follow_theme")
+      .addEventListener("change", (e) => {
+        manualOverrideActive = false;
+        settings.autoFollowTheme = e.target.checked;
+        saveSettingsDebounced();
+        updateAndApplyTheme("auto_follow_toggled");
+        const { themeId, presetId } = getActiveThemeConfig();
+        loadThemeIntoMainEditor(themeId);
+        loadPresetIntoMainEditor(presetId);
+      });
+
+    section
+      .querySelector("#ti_persistent_mode")
+      .addEventListener("change", (e) => {
+        settings.persistentMode = e.target.checked;
+        saveSettingsDebounced();
+
+        if (settings.persistentMode) {
+          isIndicatorPersisted = true;
+          showTypingIndicator("persistent-start");
+          const testButton = section.querySelector("#ti_test_draggable");
+          if (testButton) {
+            testButton.disabled = true;
+            testButton.title = t`Unavailable in Persistent Mode`;
+          }
+        } else {
+          isIndicatorPersisted = false;
+          const indicator = document.getElementById("typing_indicator");
+          if (indicator) {
+            cleanupUnifiedIframe(indicator);
+            $(indicator).hide(() => indicator.remove());
+          }
+          const testButton = section.querySelector("#ti_test_draggable");
+          if (testButton) {
+            testButton.disabled = false;
+            testButton.title = t`Test Dragging`;
+          }
+        }
+      });
+
+    // 动态主题设置
+    const dynamicThemesToggle = section.querySelector(
+      "#ti_enable_dynamic_themes",
+    );
+    const dynamicOptionsContainer = section.querySelector(
+      "#ti_dynamic_options_container",
+    );
+
+    dynamicThemesToggle.addEventListener("change", (e) => {
+      settings.enableDynamicThemes = e.target.checked;
+      dynamicOptionsContainer.style.display = e.target.checked
+        ? "block"
+        : "none";
+      saveSettingsDebounced();
+    });
+
+    section
+      .querySelector("#ti_dynamic_theme_duration")
+      .addEventListener("input", (e) => {
+        const value = parseInt(e.target.value, 10);
+        if (!isNaN(value) && value >= 0) {
+          settings.dynamicThemeDuration = value;
+          saveSettingsDebounced();
+        }
+      });
+
+    section
+      .querySelector("#ti_dynamic_themes_in_persistent")
+      .addEventListener("change", (e) => {
+        settings.dynamicThemesInPersistent = e.target.checked;
+        saveSettingsDebounced();
+      });
+  }
+
+  function initializeIndicatorSettings() {
+    const settings = getSettings();
+
+    // 位置设置
+    updatePositionOptions();
+
+    const positionSelect = section.querySelector("#ti_position");
+    const draggableControls = section.querySelector("#ti_draggable_controls");
+
+    positionSelect.addEventListener("change", (e) => {
+      settings.position = e.target.value;
+      draggableControls.style.display =
+        settings.position === "draggable" ? "flex" : "none";
+      saveSettingsDebounced();
+    });
+
+    section
+      .querySelector("#ti_position_locked")
+      .addEventListener("change", (e) => {
+        settings.customPosition.locked = e.target.checked;
+        saveSettingsDebounced();
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator) {
+          const oldHandle = indicator.querySelector(".ti-drag-handle");
+          if (oldHandle) oldHandle.remove();
+          if (!settings.customPosition.locked) {
+            makeDraggable(indicator);
+          } else {
+            indicator.style.cursor = "default";
+          }
+        }
+      });
+
+    section
+      .querySelector("#ti_reset_position")
+      .addEventListener("click", () => {
+        settings.customPosition.x = 50;
+        settings.customPosition.y = 50;
+        settings.customPosition.locked = false;
+        section.querySelector("#ti_position_locked").checked = false;
+        toastr.success(t`Position has been reset.`, "", {
+          timeOut: 500,
         });
+        saveSettingsDebounced();
 
-        section
-            .querySelector("#ti_position_locked")
-            .addEventListener("change", (e) => {
-                settings.customPosition.locked = e.target.checked;
-                saveSettingsDebounced();
-                const indicator = document.getElementById("typing_indicator");
-                if (indicator) {
-                    const oldHandle =
-                        indicator.querySelector(".ti-drag-handle");
-                    if (oldHandle) oldHandle.remove();
-                    if (!settings.customPosition.locked) {
-                        makeDraggable(indicator);
-                    } else {
-                        indicator.style.cursor = "default";
-                    }
-                }
-            });
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator) {
+          indicator.style.transition = "left 0.3s ease, top 0.3s ease";
+          indicator.style.left = `${window.innerWidth / 2}px`;
+          indicator.style.top = `${window.innerHeight / 2}px`;
+          indicator.style.transform = "translate(-50%, -50%)";
 
-        section
-            .querySelector("#ti_reset_position")
-            .addEventListener("click", () => {
-                settings.customPosition.x = 50;
-                settings.customPosition.y = 50;
-                settings.customPosition.locked = false;
-                section.querySelector("#ti_position_locked").checked = false;
-                toastr.success(t`Position has been reset.`, "", {
-                    timeOut: 500,
-                });
-                saveSettingsDebounced();
+          setTimeout(() => {
+            if (indicator) {
+              indicator.style.transition = "";
+            }
+          }, 300);
 
-                const indicator = document.getElementById("typing_indicator");
-                if (indicator) {
-                    indicator.style.transition =
-                        "left 0.3s ease, top 0.3s ease";
-                    indicator.style.left = `${window.innerWidth / 2}px`;
-                    indicator.style.top = `${window.innerHeight / 2}px`;
-                    indicator.style.transform = "translate(-50%, -50%)";
+          const oldHandle = indicator.querySelector(
+            'div[style*="cursor: move"]',
+          );
+          if (oldHandle) oldHandle.remove();
+          makeDraggable(indicator);
+          toastr.info(t`Draggable state refreshed.`, "", {
+            timeOut: 1000,
+          });
+        }
+      });
 
-                    setTimeout(() => {
-                        if (indicator) {
-                            indicator.style.transition = "";
-                        }
-                    }, 300);
+    section
+      .querySelector("#ti_test_draggable")
+      .addEventListener("click", () => {
+        const indicator = document.getElementById("typing_indicator");
+        const testButton = section.querySelector("#ti_test_draggable");
 
-                    const oldHandle = indicator.querySelector(
-                        'div[style*="cursor: move"]',
-                    );
-                    if (oldHandle) oldHandle.remove();
-                    makeDraggable(indicator);
-                    toastr.info(t`Draggable state refreshed.`, "", {
-                        timeOut: 1000,
-                    });
-                }
-            });
+        if (indicator) {
+          isIndicatorPersisted = false;
+          hideTypingIndicator();
+          testButton.classList.remove("fa-solid", "fa-eye-slash");
+          testButton.classList.add("fa-solid", "fa-crosshairs");
+          testButton.title = t`Test Dragging`;
+          isTestIndicatorActive = false;
+        } else {
+          showTypingIndicator("test");
+          testButton.classList.remove("fa-solid", "fa-crosshairs");
+          testButton.classList.add("fa-solid", "fa-eye-slash");
+          testButton.title = t`Hide Test Indicator`;
+          isTestIndicatorActive = true;
+        }
+      });
+    updateCharSpecificUI();
+    populatePresets();
+    setupPresetEventListeners();
+    populateThemes();
+    setupThemeEventListeners();
+  }
 
-        section
-            .querySelector("#ti_test_draggable")
-            .addEventListener("click", () => {
-                const indicator = document.getElementById("typing_indicator");
-                const testButton = section.querySelector("#ti_test_draggable");
+  function initializePlayerSettings() {
+    const settings = getSettings();
+    const playerEnabledCheckbox = section.querySelector("#ti_player_enabled");
+    const playerControls = section.querySelector("#ti_player_controls");
+    const lockCheckbox = section.querySelector("#ti_player_locked");
+    function populateBubbleStyles() {
+      const settings = getSettings();
+      const select = section.querySelector("#ti_bubble_style_select");
+      const htmlTextarea = section.querySelector("#ti_bubble_html");
+      const cssTextarea = section.querySelector("#ti_bubble_css");
 
-                if (indicator) {
-                    isIndicatorPersisted = false;
-                    hideTypingIndicator();
-                    testButton.classList.remove("fa-solid", "fa-eye-slash");
-                    testButton.classList.add("fa-solid", "fa-crosshairs");
-                    testButton.title = t`Test Dragging`;
-                    isTestIndicatorActive = false;
-                } else {
-                    showTypingIndicator("test");
-                    testButton.classList.remove("fa-solid", "fa-crosshairs");
-                    testButton.classList.add("fa-solid", "fa-eye-slash");
-                    testButton.title = t`Hide Test Indicator`;
-                    isTestIndicatorActive = true;
-                }
-            });
-        updateCharSpecificUI();
-        populatePresets();
-        setupPresetEventListeners();
-        populateThemes();
-        setupThemeEventListeners();
+      if (!select) return;
+
+      select.innerHTML = settings.bubbleStyles
+        .map(
+          (style) =>
+            `<option value="${style.id}" ${
+              style.id === settings.selectedBubbleStyleId ? "selected" : ""
+            }>${style.name}</option>`,
+        )
+        .join("");
+
+      const currentStyle = settings.bubbleStyles.find(
+        (s) => s.id === settings.selectedBubbleStyleId,
+      );
+      if (currentStyle && htmlTextarea && cssTextarea) {
+        htmlTextarea.value = currentStyle.html || "";
+        cssTextarea.value = currentStyle.css || "";
+      }
+
+      updateBubblePreview();
     }
 
-    function initializePlayerSettings() {
+    function updateBubblePreview() {
+      const previewArea = section.querySelector("#ti_bubble_preview_area");
+      const htmlTextarea = section.querySelector("#ti_bubble_html");
+      const cssTextarea = section.querySelector("#ti_bubble_css");
+
+      if (!previewArea || !htmlTextarea || !cssTextarea) return;
+
+      const html = htmlTextarea.value
+        .replace(/\{\{title\}\}/g, t`Sample Song`)
+        .replace(/\{\{artist\}\}/g, t`Sample Artist`);
+
+      let tempStyle = document.getElementById("ti-bubble-preview-style");
+      if (!tempStyle) {
+        tempStyle = document.createElement("style");
+        tempStyle.id = "ti-bubble-preview-style";
+        document.head.appendChild(tempStyle);
+      }
+      tempStyle.textContent = cssTextarea.value;
+
+      previewArea.innerHTML = html;
+    }
+
+    function setupBubbleStyleEventListeners() {
+      const enableCheckbox = section.querySelector("#ti_bubble_enabled");
+      const controls = section.querySelector("#ti_bubble_controls");
+      const select = section.querySelector("#ti_bubble_style_select");
+      const htmlTextarea = section.querySelector("#ti_bubble_html");
+      const cssTextarea = section.querySelector("#ti_bubble_css");
+
+      if (!enableCheckbox || !controls) return;
+
+      enableCheckbox.addEventListener("change", (e) => {
         const settings = getSettings();
-        const playerEnabledCheckbox =
-            section.querySelector("#ti_player_enabled");
-        const playerControls = section.querySelector("#ti_player_controls");
-        const lockCheckbox = section.querySelector("#ti_player_locked");
-        function populateBubbleStyles() {
-            const settings = getSettings();
-            const select = section.querySelector("#ti_bubble_style_select");
-            const htmlTextarea = section.querySelector("#ti_bubble_html");
-            const cssTextarea = section.querySelector("#ti_bubble_css");
+        settings.enableBubbleReplacement = e.target.checked;
+        controls.style.display = e.target.checked ? "block" : "none";
+        saveSettingsDebounced();
+        applyBubbleStyles();
+      });
 
-            if (!select) return;
+      if (select) {
+        select.addEventListener("change", () => {
+          const settings = getSettings();
+          settings.selectedBubbleStyleId = select.value;
+          saveSettingsDebounced();
+          populateBubbleStyles();
+          applyBubbleStyles();
+          refreshAllBubbles();
+        });
+      }
 
-            select.innerHTML = settings.bubbleStyles
-                .map(
-                    (style) =>
-                        `<option value="${style.id}" ${
-                            style.id === settings.selectedBubbleStyleId
-                                ? "selected"
-                                : ""
-                        }>${style.name}</option>`,
-                )
-                .join("");
+      const saveBtn = section.querySelector("#ti_bubble_save");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", () => {
+          const settings = getSettings();
+          const style = settings.bubbleStyles.find(
+            (s) => s.id === settings.selectedBubbleStyleId,
+          );
+          if (style) {
+            style.html = htmlTextarea.value;
+            style.css = cssTextarea.value;
+            saveSettingsDebounced();
+            applyBubbleStyles();
+            refreshAllBubbles();
+            toastr.success(t`Bubble style saved.`);
+          }
+        });
+      }
 
-            const currentStyle = settings.bubbleStyles.find(
-                (s) => s.id === settings.selectedBubbleStyleId,
+      const addBtn = section.querySelector("#ti_bubble_add");
+      if (addBtn) {
+        addBtn.addEventListener("click", () => {
+          const name = prompt(t`Style Name`);
+          if (!name) return;
+
+          const settings = getSettings();
+          const newStyle = {
+            id: "bubble_" + Date.now(),
+            name: name,
+            html: `<div class="music-bubble music-bubble-from-regex" data-title="{{title}}" data-artist="{{artist}}">🎵 {{title}} - {{artist}}</div>`,
+            css: `.music-bubble { display: inline-flex; padding: 5px 10px; background: #333; color: #fff; border-radius: 10px; cursor: pointer; }`,
+          };
+          settings.bubbleStyles.push(newStyle);
+          settings.selectedBubbleStyleId = newStyle.id;
+          saveSettingsDebounced();
+          populateBubbleStyles();
+        });
+      }
+
+      const renameBtn = section.querySelector("#ti_bubble_rename");
+      if (renameBtn) {
+        renameBtn.addEventListener("click", () => {
+          const settings = getSettings();
+          const style = settings.bubbleStyles.find(
+            (s) => s.id === settings.selectedBubbleStyleId,
+          );
+          if (!style) return;
+
+          const newName = prompt(t`Enter new name:`, style.name);
+          if (newName && newName.trim()) {
+            style.name = newName.trim();
+            saveSettingsDebounced();
+            populateBubbleStyles();
+            toastr.success(t`Style renamed.`);
+          }
+        });
+      }
+
+      const delBtn = section.querySelector("#ti_bubble_del");
+      if (delBtn) {
+        delBtn.addEventListener("click", () => {
+          const settings = getSettings();
+          if (settings.bubbleStyles.length <= 1) {
+            toastr.warning(t`Cannot delete the last style.`);
+            return;
+          }
+          const style = settings.bubbleStyles.find(
+            (s) => s.id === settings.selectedBubbleStyleId,
+          );
+          if (style && style.isBuiltIn) {
+            toastr.warning(t`Cannot delete built-in style.`);
+            return;
+          }
+          if (confirm(t`Delete this style?`)) {
+            settings.bubbleStyles = settings.bubbleStyles.filter(
+              (s) => s.id !== settings.selectedBubbleStyleId,
             );
-            if (currentStyle && htmlTextarea && cssTextarea) {
-                htmlTextarea.value = currentStyle.html || "";
-                cssTextarea.value = currentStyle.css || "";
-            }
-
-            updateBubblePreview();
-        }
-
-        function updateBubblePreview() {
-            const previewArea = section.querySelector(
-                "#ti_bubble_preview_area",
-            );
-            const htmlTextarea = section.querySelector("#ti_bubble_html");
-            const cssTextarea = section.querySelector("#ti_bubble_css");
-
-            if (!previewArea || !htmlTextarea || !cssTextarea) return;
-
-            const html = htmlTextarea.value
-                .replace(/\{\{title\}\}/g, t`Sample Song`)
-                .replace(/\{\{artist\}\}/g, t`Sample Artist`);
-
-            let tempStyle = document.getElementById("ti-bubble-preview-style");
-            if (!tempStyle) {
-                tempStyle = document.createElement("style");
-                tempStyle.id = "ti-bubble-preview-style";
-                document.head.appendChild(tempStyle);
-            }
-            tempStyle.textContent = cssTextarea.value;
-
-            previewArea.innerHTML = html;
-        }
-
-        function setupBubbleStyleEventListeners() {
-            const enableCheckbox = section.querySelector("#ti_bubble_enabled");
-            const controls = section.querySelector("#ti_bubble_controls");
-            const select = section.querySelector("#ti_bubble_style_select");
-            const htmlTextarea = section.querySelector("#ti_bubble_html");
-            const cssTextarea = section.querySelector("#ti_bubble_css");
-
-            if (!enableCheckbox || !controls) return;
-
-            enableCheckbox.addEventListener("change", (e) => {
-                const settings = getSettings();
-                settings.enableBubbleReplacement = e.target.checked;
-                controls.style.display = e.target.checked ? "block" : "none";
-                saveSettingsDebounced();
-                applyBubbleStyles();
-            });
-
-            if (select) {
-                select.addEventListener("change", () => {
-                    const settings = getSettings();
-                    settings.selectedBubbleStyleId = select.value;
-                    saveSettingsDebounced();
-                    populateBubbleStyles();
-                    applyBubbleStyles();
-                    refreshAllBubbles();
-                });
-            }
-
-            const saveBtn = section.querySelector("#ti_bubble_save");
-            if (saveBtn) {
-                saveBtn.addEventListener("click", () => {
-                    const settings = getSettings();
-                    const style = settings.bubbleStyles.find(
-                        (s) => s.id === settings.selectedBubbleStyleId,
-                    );
-                    if (style) {
-                        style.html = htmlTextarea.value;
-                        style.css = cssTextarea.value;
-                        saveSettingsDebounced();
-                        applyBubbleStyles();
-                        refreshAllBubbles();
-                        toastr.success(t`Bubble style saved.`);
-                    }
-                });
-            }
-
-            const addBtn = section.querySelector("#ti_bubble_add");
-            if (addBtn) {
-                addBtn.addEventListener("click", () => {
-                    const name = prompt(t`Style Name`);
-                    if (!name) return;
-
-                    const settings = getSettings();
-                    const newStyle = {
-                        id: "bubble_" + Date.now(),
-                        name: name,
-                        html: `<div class="music-bubble music-bubble-from-regex" data-title="{{title}}" data-artist="{{artist}}">🎵 {{title}} - {{artist}}</div>`,
-                        css: `.music-bubble { display: inline-flex; padding: 5px 10px; background: #333; color: #fff; border-radius: 10px; cursor: pointer; }`,
-                    };
-                    settings.bubbleStyles.push(newStyle);
-                    settings.selectedBubbleStyleId = newStyle.id;
-                    saveSettingsDebounced();
-                    populateBubbleStyles();
-                });
-            }
-
-            const renameBtn = section.querySelector("#ti_bubble_rename");
-            if (renameBtn) {
-                renameBtn.addEventListener("click", () => {
-                    const settings = getSettings();
-                    const style = settings.bubbleStyles.find(
-                        (s) => s.id === settings.selectedBubbleStyleId,
-                    );
-                    if (!style) return;
-
-                    const newName = prompt(t`Enter new name:`, style.name);
-                    if (newName && newName.trim()) {
-                        style.name = newName.trim();
-                        saveSettingsDebounced();
-                        populateBubbleStyles();
-                        toastr.success(t`Style renamed.`);
-                    }
-                });
-            }
-
-            const delBtn = section.querySelector("#ti_bubble_del");
-            if (delBtn) {
-                delBtn.addEventListener("click", () => {
-                    const settings = getSettings();
-                    if (settings.bubbleStyles.length <= 1) {
-                        toastr.warning(t`Cannot delete the last style.`);
-                        return;
-                    }
-                    const style = settings.bubbleStyles.find(
-                        (s) => s.id === settings.selectedBubbleStyleId,
-                    );
-                    if (style && style.isBuiltIn) {
-                        toastr.warning(t`Cannot delete built-in style.`);
-                        return;
-                    }
-                    if (confirm(t`Delete this style?`)) {
-                        settings.bubbleStyles = settings.bubbleStyles.filter(
-                            (s) => s.id !== settings.selectedBubbleStyleId,
-                        );
-                        settings.selectedBubbleStyleId =
-                            settings.bubbleStyles[0].id;
-                        saveSettingsDebounced();
-                        populateBubbleStyles();
-                        applyBubbleStyles();
-                    }
-                });
-            }
-
-            const importBtn = section.querySelector("#ti_bubble_import");
-            if (importBtn) {
-                importBtn.addEventListener("click", () => {
-                    const input = document.createElement("input");
-                    input.type = "file";
-                    input.accept = "application/json,.json";
-                    input.onchange = (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            try {
-                                const imported = JSON.parse(
-                                    event.target.result,
-                                );
-
-                                if (!imported.name || !imported.html) {
-                                    throw new Error(
-                                        t`Invalid bubble style format.`,
-                                    );
-                                }
-
-                                const settings = getSettings();
-                                const newStyle = {
-                                    id: imported.id || "bubble_" + Date.now(),
-                                    name: imported.name,
-                                    html: imported.html || "",
-                                    css: imported.css || "",
-                                    isBuiltIn: false,
-                                };
-
-                                const existingIndex =
-                                    settings.bubbleStyles.findIndex(
-                                        (s) => s.id === newStyle.id,
-                                    );
-                                if (existingIndex !== -1) {
-                                    settings.bubbleStyles[existingIndex] =
-                                        newStyle;
-                                } else {
-                                    settings.bubbleStyles.push(newStyle);
-                                }
-
-                                settings.selectedBubbleStyleId = newStyle.id;
-                                saveSettingsDebounced();
-                                populateBubbleStyles();
-                                applyBubbleStyles();
-                                refreshAllBubbles();
-                                toastr.success(
-                                    t`Bubble style "${newStyle.name}" imported.`,
-                                );
-                            } catch (error) {
-                                toastr.error(
-                                    t`Failed to import bubble style: ${error.message}`,
-                                );
-                            }
-                        };
-                        reader.readAsText(file);
-                    };
-                    input.click();
-                });
-            }
-
-            const exportBtn = section.querySelector("#ti_bubble_export");
-            if (exportBtn) {
-                exportBtn.addEventListener("click", () => {
-                    const settings = getSettings();
-                    const style = settings.bubbleStyles.find(
-                        (s) => s.id === settings.selectedBubbleStyleId,
-                    );
-                    if (!style) return;
-
-                    const exportData = {
-                        id: style.id,
-                        name: style.name,
-                        html: style.html,
-                        css: style.css,
-                        _metadata: {
-                            exportedAt: new Date().toISOString(),
-                            exportedBy:
-                                "SillyTavern Typing Indicator Themes Extension",
-                            type: "bubble-style",
-                        },
-                    };
-
-                    const blob = new Blob(
-                        [JSON.stringify(exportData, null, 2)],
-                        {
-                            type: "application/json",
-                        },
-                    );
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = `${style.name.replace(
-                        /[\\/*?:"<>|]/g,
-                        "_",
-                    )} [Bubble].json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    a.remove();
-
-                    toastr.success(t`Bubble style "${style.name}" exported.`);
-                });
-            }
-
-            if (htmlTextarea) {
-                htmlTextarea.addEventListener("input", updateBubblePreview);
-            }
-            if (cssTextarea) {
-                cssTextarea.addEventListener("input", updateBubblePreview);
-            }
-
+            settings.selectedBubbleStyleId = settings.bubbleStyles[0].id;
+            saveSettingsDebounced();
             populateBubbleStyles();
             applyBubbleStyles();
-        }
-
-        playerEnabledCheckbox.addEventListener("change", (e) => {
-            settings.playerEnabled = e.target.checked;
-
-            const sectionsToToggle = [
-                section.querySelector("#ti_player_controls"),
-                section.querySelector("#ti_player_theme_section"),
-            ];
-
-            sectionsToToggle.forEach((el) => {
-                if (el) el.style.display = e.target.checked ? "block" : "none";
-            });
-
-            saveSettingsDebounced();
-
-            if (settings.playerEnabled) {
-                showPlayer();
-            } else {
-                hidePlayer();
-            }
+          }
         });
+      }
 
-        const hiddenCheckbox = section.querySelector("#ti_player_hidden");
-        if (hiddenCheckbox) {
-            hiddenCheckbox.addEventListener("change", (e) => {
+      const importBtn = section.querySelector("#ti_bubble_import");
+      if (importBtn) {
+        importBtn.addEventListener("click", () => {
+          const input = document.createElement("input");
+          input.type = "file";
+          input.accept = "application/json,.json";
+          input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              try {
+                const imported = JSON.parse(event.target.result);
+
+                if (!imported.name || !imported.html) {
+                  throw new Error(t`Invalid bubble style format.`);
+                }
+
                 const settings = getSettings();
-                settings.playerHidden = e.target.checked;
-                saveSettingsDebounced();
+                const newStyle = {
+                  id: imported.id || "bubble_" + Date.now(),
+                  name: imported.name,
+                  html: imported.html || "",
+                  css: imported.css || "",
+                  isBuiltIn: false,
+                };
 
-                const player = document.getElementById("music_player");
-                if (player) {
-                    if (e.target.checked) {
-                        player.style.setProperty(
-                            "display",
-                            "none",
-                            "important",
-                        );
-                    } else {
-                        player.style.setProperty(
-                            "display",
-                            "block",
-                            "important",
-                        );
-                    }
-                }
-            });
-        }
-
-        lockCheckbox.addEventListener("change", (e) => {
-            settings.playerPosition.locked = e.target.checked;
-            saveSettingsDebounced();
-
-            const player = document.getElementById("music_player");
-            if (player) {
-                const oldHandle = player.querySelector(".ti-drag-handle");
-                if (oldHandle) oldHandle.remove();
-                if (!settings.playerPosition.locked) {
-                    makeDraggable(player, true);
+                const existingIndex = settings.bubbleStyles.findIndex(
+                  (s) => s.id === newStyle.id,
+                );
+                if (existingIndex !== -1) {
+                  settings.bubbleStyles[existingIndex] = newStyle;
                 } else {
-                    player.style.cursor = "default";
-                }
-            }
-        });
-
-        section
-            .querySelector("#ti_player_reset")
-            .addEventListener("click", () => {
-                settings.playerPosition.x = 50;
-                settings.playerPosition.y = 50;
-                settings.playerPosition.locked = false;
-
-                if (lockCheckbox) {
-                    lockCheckbox.checked = false;
+                  settings.bubbleStyles.push(newStyle);
                 }
 
+                settings.selectedBubbleStyleId = newStyle.id;
                 saveSettingsDebounced();
-                toastr.success(t`Position has been reset.`, "", {
-                    timeOut: 500,
-                });
+                populateBubbleStyles();
+                applyBubbleStyles();
+                refreshAllBubbles();
+                toastr.success(t`Bubble style "${newStyle.name}" imported.`);
+              } catch (error) {
+                toastr.error(
+                  t`Failed to import bubble style: ${error.message}`,
+                );
+              }
+            };
+            reader.readAsText(file);
+          };
+          input.click();
+        });
+      }
 
-                const player = document.getElementById("music_player");
-                if (player) {
-                    player.style.transition = "left 0.3s ease, top 0.3s ease";
-                    player.style.left = `${window.innerWidth / 2}px`;
-                    player.style.top = `${window.innerHeight / 2}px`;
-                    player.style.transform = "translate(-50%, -50%)";
+      const exportBtn = section.querySelector("#ti_bubble_export");
+      if (exportBtn) {
+        exportBtn.addEventListener("click", () => {
+          const settings = getSettings();
+          const style = settings.bubbleStyles.find(
+            (s) => s.id === settings.selectedBubbleStyleId,
+          );
+          if (!style) return;
 
-                    setTimeout(() => {
-                        if (player) {
-                            player.style.transition = "";
-                        }
-                    }, 300);
-                    const oldHandle = player.querySelector(".ti-drag-handle");
-                    if (oldHandle) oldHandle.remove();
-                    makeDraggable(player, true);
+          const exportData = {
+            id: style.id,
+            name: style.name,
+            html: style.html,
+            css: style.css,
+            _metadata: {
+              exportedAt: new Date().toISOString(),
+              exportedBy: "SillyTavern Typing Indicator Themes Extension",
+              type: "bubble-style",
+            },
+          };
 
-                    toastr.info(t`Draggable state refreshed.`, "", {
-                        timeOut: 1000,
-                    });
-                }
-            });
-        populatePlayerThemes();
-        setupPlayerThemeEventListeners();
-        setupBubbleStyleEventListeners();
-        setupLyricsEventListeners();
-        function updateCacheStats() {
-            const statsDiv = section.querySelector("#ti_cache_stats");
-            if (!statsDiv) return;
+          const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+            type: "application/json",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${style.name.replace(
+            /[\\/*?:"<>|]/g,
+            "_",
+          )} [Bubble].json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          a.remove();
 
-            const stats = MusicCache.getStats();
-            const size = MusicCache.getSize();
+          toastr.success(t`Bubble style "${style.name}" exported.`);
+        });
+      }
 
-            statsDiv.innerHTML = `
+      if (htmlTextarea) {
+        htmlTextarea.addEventListener("input", updateBubblePreview);
+      }
+      if (cssTextarea) {
+        cssTextarea.addEventListener("input", updateBubblePreview);
+      }
+
+      populateBubbleStyles();
+      applyBubbleStyles();
+    }
+
+    playerEnabledCheckbox.addEventListener("change", (e) => {
+      settings.playerEnabled = e.target.checked;
+
+      const sectionsToToggle = [
+        section.querySelector("#ti_player_controls"),
+        section.querySelector("#ti_player_theme_section"),
+      ];
+
+      sectionsToToggle.forEach((el) => {
+        if (el) el.style.display = e.target.checked ? "block" : "none";
+      });
+
+      saveSettingsDebounced();
+
+      if (settings.playerEnabled) {
+        showPlayer();
+      } else {
+        hidePlayer();
+      }
+    });
+
+    const hiddenCheckbox = section.querySelector("#ti_player_hidden");
+    if (hiddenCheckbox) {
+      hiddenCheckbox.addEventListener("change", (e) => {
+        const settings = getSettings();
+        settings.playerHidden = e.target.checked;
+        saveSettingsDebounced();
+
+        const player = document.getElementById("music_player");
+        if (player) {
+          if (e.target.checked) {
+            player.style.setProperty("display", "none", "important");
+          } else {
+            player.style.setProperty("display", "block", "important");
+          }
+        }
+      });
+    }
+
+    lockCheckbox.addEventListener("change", (e) => {
+      settings.playerPosition.locked = e.target.checked;
+      saveSettingsDebounced();
+
+      const player = document.getElementById("music_player");
+      if (player) {
+        const oldHandle = player.querySelector(".ti-drag-handle");
+        if (oldHandle) oldHandle.remove();
+        if (!settings.playerPosition.locked) {
+          makeDraggable(player, true);
+        } else {
+          player.style.cursor = "default";
+        }
+      }
+    });
+
+    section.querySelector("#ti_player_reset").addEventListener("click", () => {
+      settings.playerPosition.x = 50;
+      settings.playerPosition.y = 50;
+      settings.playerPosition.locked = false;
+
+      if (lockCheckbox) {
+        lockCheckbox.checked = false;
+      }
+
+      saveSettingsDebounced();
+      toastr.success(t`Position has been reset.`, "", {
+        timeOut: 500,
+      });
+
+      const player = document.getElementById("music_player");
+      if (player) {
+        player.style.transition = "left 0.3s ease, top 0.3s ease";
+        player.style.left = `${window.innerWidth / 2}px`;
+        player.style.top = `${window.innerHeight / 2}px`;
+        player.style.transform = "translate(-50%, -50%)";
+
+        setTimeout(() => {
+          if (player) {
+            player.style.transition = "";
+          }
+        }, 300);
+        const oldHandle = player.querySelector(".ti-drag-handle");
+        if (oldHandle) oldHandle.remove();
+        makeDraggable(player, true);
+
+        toastr.info(t`Draggable state refreshed.`, "", {
+          timeOut: 1000,
+        });
+      }
+    });
+    populatePlayerThemes();
+    setupPlayerThemeEventListeners();
+    setupBubbleStyleEventListeners();
+    setupLyricsEventListeners();
+    function updateCacheStats() {
+      const statsDiv = section.querySelector("#ti_cache_stats");
+      if (!statsDiv) return;
+
+      const stats = MusicCache.getStats();
+      const size = MusicCache.getSize();
+
+      statsDiv.innerHTML = `
 <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
     ${(() => {
-        const chipStyle =
-            "background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.9em; white-space: nowrap;";
-        return `
+      const chipStyle =
+        "background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.9em; white-space: nowrap;";
+      return `
             <span style="${chipStyle}">${t`Songs`}: <b>${
-                stats.search
+              stats.search
             }</b></span>
             <span style="${chipStyle}">${t`Audio`}: <b>${stats.audio}</b></span>
             <span style="${chipStyle}">${t`Lyrics`}: <b>${
-                stats.lyrics
+              stats.lyrics
             }</b></span>
             <span style="${chipStyle}">${t`Covers`}: <b>${
-                stats.cover
+              stats.cover
             }</b></span>
         `;
     })()}
@@ -5501,282 +5444,260 @@ function addExtensionSettings() {
     </span>
 </div>
 `;
-        }
+    }
 
+    updateCacheStats();
+    setupListeningStatsUI();
+
+    const clearCacheBtn = section.querySelector("#ti_cache_clear");
+    if (clearCacheBtn) {
+      clearCacheBtn.addEventListener("click", () => {
+        if (
+          confirm(
+            t`Clear all music cache? You will need to search songs again.`,
+          )
+        ) {
+          MusicCache.clear();
+          updateCacheStats();
+          toastr.success(t`Cache cleared`);
+        }
+      });
+    }
+
+    const cleanupCacheBtn = section.querySelector("#ti_cache_cleanup");
+    if (cleanupCacheBtn) {
+      cleanupCacheBtn.addEventListener("click", () => {
+        MusicCache.cleanup();
         updateCacheStats();
-        setupListeningStatsUI();
+        toastr.success(t`Expired cache cleaned`);
+      });
+    }
 
-        const clearCacheBtn = section.querySelector("#ti_cache_clear");
-        if (clearCacheBtn) {
-            clearCacheBtn.addEventListener("click", () => {
-                if (
-                    confirm(
-                        t`Clear all music cache? You will need to search songs again.`,
-                    )
-                ) {
-                    MusicCache.clear();
-                    updateCacheStats();
-                    toastr.success(t`Cache cleared`);
-                }
-            });
+    function setupLyricsEventListeners() {
+      const lyricsEnabledCheckbox = section.querySelector("#ti_lyrics_enabled");
+      const lyricsControls = section.querySelector("#ti_lyrics_controls");
+
+      if (!lyricsEnabledCheckbox) return;
+      let colorUpdateTimeout = null;
+      const debouncedRefreshLyrics = () => {
+        clearTimeout(colorUpdateTimeout);
+        colorUpdateTimeout = setTimeout(() => {
+          refreshLyricsOverlay();
+        }, 150);
+      };
+
+      lyricsEnabledCheckbox.addEventListener("change", (e) => {
+        const settings = getSettings();
+        settings.lyricsEnabled = e.target.checked;
+        lyricsControls.style.display = e.target.checked ? "block" : "none";
+        saveSettingsDebounced();
+
+        if (e.target.checked) {
+          if (currentPlayerTrack) {
+            loadLyricsForTrack(currentPlayerTrack);
+          }
+        } else {
+          removeLyricsOverlay();
         }
+      });
 
-        const cleanupCacheBtn = section.querySelector("#ti_cache_cleanup");
-        if (cleanupCacheBtn) {
-            cleanupCacheBtn.addEventListener("click", () => {
-                MusicCache.cleanup();
-                updateCacheStats();
-                toastr.success(t`Expired cache cleaned`);
-            });
-        }
+      const sungColorInput = section.querySelector("#ti_lyrics_sung_color");
+      if (sungColorInput) {
+        sungColorInput.addEventListener("input", (e) => {
+          const settings = getSettings();
+          settings.lyricsSungColor = e.target.value;
+          saveSettingsDebounced();
+          debouncedRefreshLyrics();
+        });
+      }
 
-        function setupLyricsEventListeners() {
+      const unsungColorInput = section.querySelector("#ti_lyrics_unsung_color");
+      if (unsungColorInput) {
+        unsungColorInput.addEventListener("input", (e) => {
+          const settings = getSettings();
+          settings.lyricsUnsungColor = e.target.value;
+          saveSettingsDebounced();
+          debouncedRefreshLyrics();
+        });
+      }
+
+      const backgroundInput = section.querySelector("#ti_lyrics_background");
+      if (backgroundInput) {
+        backgroundInput.addEventListener("change", (e) => {
+          const settings = getSettings();
+          settings.lyricsBackground = e.target.value;
+          saveSettingsDebounced();
+          refreshLyricsOverlay();
+        });
+      }
+
+      const fontSizeInput = section.querySelector("#ti_lyrics_font_size");
+      if (fontSizeInput) {
+        fontSizeInput.addEventListener("change", (e) => {
+          const settings = getSettings();
+          settings.lyricsFontSize = parseInt(e.target.value) || 18;
+          saveSettingsDebounced();
+          refreshLyricsOverlay();
+        });
+      }
+
+      const showNextCheckbox = section.querySelector("#ti_lyrics_show_next");
+      if (showNextCheckbox) {
+        showNextCheckbox.addEventListener("change", (e) => {
+          const settings = getSettings();
+          settings.lyricsShowNextLine = e.target.checked;
+          saveSettingsDebounced();
+          refreshLyricsOverlay();
+        });
+      }
+
+      const lockedCheckbox = section.querySelector("#ti_lyrics_locked");
+      if (lockedCheckbox) {
+        lockedCheckbox.addEventListener("change", (e) => {
+          const settings = getSettings();
+          settings.lyricsPosition.locked = e.target.checked;
+          saveSettingsDebounced();
+          refreshLyricsOverlay();
+        });
+      }
+
+      const resetPositionBtn = section.querySelector(
+        "#ti_lyrics_reset_position",
+      );
+      if (resetPositionBtn) {
+        resetPositionBtn.addEventListener("click", () => {
+          const settings = getSettings();
+          settings.lyricsPosition.x = 50;
+          settings.lyricsPosition.y = 10;
+          settings.lyricsPosition.locked = false;
+
+          const lockedCb = section.querySelector("#ti_lyrics_locked");
+          if (lockedCb) lockedCb.checked = false;
+
+          saveSettingsDebounced();
+          refreshLyricsOverlay();
+          toastr.success(t`Lyrics position reset.`);
+        });
+      }
+
+      const testBtn = section.querySelector("#ti_lyrics_test");
+      let testInterval = null;
+
+      if (testBtn) {
+        testBtn.addEventListener("click", () => {
+          const settings = getSettings();
+
+          if (testInterval) {
+            clearInterval(testInterval);
+            testInterval = null;
+            if (savedTestLyrics !== null) {
+              currentLyrics = savedTestLyrics;
+              currentLyricIndex = savedTestLyricIndex;
+              savedTestLyrics = null;
+              savedTestLyricIndex = -1;
+            }
+            if (currentLyrics.length === 0 || !wasLyricsPlaying) {
+              hideLyricsOverlay();
+            } else {
+              lastLyricsProgress = -1;
+              showLyricsOverlay();
+            }
+
+            wasLyricsPlaying = false;
+            testBtn.classList.remove("fa-eye-slash");
+            testBtn.classList.add("fa-eye");
+            testBtn.title = t`Preview Lyrics`;
+            return;
+          }
+
+          if (!settings.lyricsEnabled) {
+            settings.lyricsEnabled = true;
             const lyricsEnabledCheckbox =
-                section.querySelector("#ti_lyrics_enabled");
+              section.querySelector("#ti_lyrics_enabled");
+            if (lyricsEnabledCheckbox) lyricsEnabledCheckbox.checked = true;
             const lyricsControls = section.querySelector("#ti_lyrics_controls");
+            if (lyricsControls) lyricsControls.style.display = "block";
+            saveSettingsDebounced();
+          }
+          savedTestLyrics = currentLyrics.length > 0 ? [...currentLyrics] : [];
+          savedTestLyricIndex = currentLyricIndex;
+          wasLyricsPlaying = currentLyrics.length > 0 && currentLyricIndex >= 0;
+          currentLyrics = [
+            {
+              time: 0,
+              text: t`This is the first test lyric line`,
+              translated: t`Test translation 1`,
+            },
+            {
+              time: 3,
+              text: t`This is the second test lyric line`,
+              translated: t`Test translation 2`,
+            },
+            {
+              time: 6,
+              text: t`Lyrics scroll with time`,
+              translated: t`Scroll demo`,
+            },
+            {
+              time: 9,
+              text: t`Color gradient effect test`,
+              translated: t`Gradient demo`,
+            },
+          ];
 
-            if (!lyricsEnabledCheckbox) return;
-            let colorUpdateTimeout = null;
-            const debouncedRefreshLyrics = () => {
-                clearTimeout(colorUpdateTimeout);
-                colorUpdateTimeout = setTimeout(() => {
-                    refreshLyricsOverlay();
-                }, 150);
-            };
+          currentLyricIndex = -1;
+          lastLyricsProgress = -1;
+          showLyricsOverlay();
 
-            lyricsEnabledCheckbox.addEventListener("change", (e) => {
-                const settings = getSettings();
-                settings.lyricsEnabled = e.target.checked;
-                lyricsControls.style.display = e.target.checked
-                    ? "block"
-                    : "none";
-                saveSettingsDebounced();
+          testBtn.classList.remove("fa-eye");
+          testBtn.classList.add("fa-eye-slash");
+          testBtn.title = t`Stop Preview`;
 
-                if (e.target.checked) {
-                    if (currentPlayerTrack) {
-                        loadLyricsForTrack(currentPlayerTrack);
-                    }
-                } else {
-                    removeLyricsOverlay();
-                }
-            });
-
-            const sungColorInput = section.querySelector(
-                "#ti_lyrics_sung_color",
-            );
-            if (sungColorInput) {
-                sungColorInput.addEventListener("input", (e) => {
-                    const settings = getSettings();
-                    settings.lyricsSungColor = e.target.value;
-                    saveSettingsDebounced();
-                    debouncedRefreshLyrics();
-                });
+          let testTime = 0;
+          testInterval = setInterval(() => {
+            testTime += 0.1;
+            updateLyricsDisplay(testTime);
+            if (testTime >= 12) {
+              testTime = 0;
+              currentLyricIndex = -1;
+              lastLyricsProgress = -1;
             }
+          }, 100);
+        });
+      }
+    }
 
-            const unsungColorInput = section.querySelector(
-                "#ti_lyrics_unsung_color",
-            );
-            if (unsungColorInput) {
-                unsungColorInput.addEventListener("input", (e) => {
-                    const settings = getSettings();
-                    settings.lyricsUnsungColor = e.target.value;
-                    saveSettingsDebounced();
-                    debouncedRefreshLyrics();
-                });
-            }
+    function setupListeningStatsUI() {
+      function updateStatsDisplay() {
+        const statsDiv = section.querySelector("#ti_listening_stats");
+        if (!statsDiv) return;
 
-            const backgroundInput = section.querySelector(
-                "#ti_lyrics_background",
-            );
-            if (backgroundInput) {
-                backgroundInput.addEventListener("change", (e) => {
-                    const settings = getSettings();
-                    settings.lyricsBackground = e.target.value;
-                    saveSettingsDebounced();
-                    refreshLyricsOverlay();
-                });
-            }
+        const charStats = getCurrentCharStats();
 
-            const fontSizeInput = section.querySelector("#ti_lyrics_font_size");
-            if (fontSizeInput) {
-                fontSizeInput.addEventListener("change", (e) => {
-                    const settings = getSettings();
-                    settings.lyricsFontSize = parseInt(e.target.value) || 18;
-                    saveSettingsDebounced();
-                    refreshLyricsOverlay();
-                });
-            }
-
-            const showNextCheckbox = section.querySelector(
-                "#ti_lyrics_show_next",
-            );
-            if (showNextCheckbox) {
-                showNextCheckbox.addEventListener("change", (e) => {
-                    const settings = getSettings();
-                    settings.lyricsShowNextLine = e.target.checked;
-                    saveSettingsDebounced();
-                    refreshLyricsOverlay();
-                });
-            }
-
-            const lockedCheckbox = section.querySelector("#ti_lyrics_locked");
-            if (lockedCheckbox) {
-                lockedCheckbox.addEventListener("change", (e) => {
-                    const settings = getSettings();
-                    settings.lyricsPosition.locked = e.target.checked;
-                    saveSettingsDebounced();
-                    refreshLyricsOverlay();
-                });
-            }
-
-            const resetPositionBtn = section.querySelector(
-                "#ti_lyrics_reset_position",
-            );
-            if (resetPositionBtn) {
-                resetPositionBtn.addEventListener("click", () => {
-                    const settings = getSettings();
-                    settings.lyricsPosition.x = 50;
-                    settings.lyricsPosition.y = 10;
-                    settings.lyricsPosition.locked = false;
-
-                    const lockedCb = section.querySelector("#ti_lyrics_locked");
-                    if (lockedCb) lockedCb.checked = false;
-
-                    saveSettingsDebounced();
-                    refreshLyricsOverlay();
-                    toastr.success(t`Lyrics position reset.`);
-                });
-            }
-
-            const testBtn = section.querySelector("#ti_lyrics_test");
-            let testInterval = null;
-
-            if (testBtn) {
-                testBtn.addEventListener("click", () => {
-                    const settings = getSettings();
-
-                    if (testInterval) {
-                        clearInterval(testInterval);
-                        testInterval = null;
-                        if (savedTestLyrics !== null) {
-                            currentLyrics = savedTestLyrics;
-                            currentLyricIndex = savedTestLyricIndex;
-                            savedTestLyrics = null;
-                            savedTestLyricIndex = -1;
-                        }
-                        if (currentLyrics.length === 0 || !wasLyricsPlaying) {
-                            hideLyricsOverlay();
-                        } else {
-                            lastLyricsProgress = -1;
-                            showLyricsOverlay();
-                        }
-
-                        wasLyricsPlaying = false;
-                        testBtn.classList.remove("fa-eye-slash");
-                        testBtn.classList.add("fa-eye");
-                        testBtn.title = t`Preview Lyrics`;
-                        return;
-                    }
-
-                    if (!settings.lyricsEnabled) {
-                        settings.lyricsEnabled = true;
-                        const lyricsEnabledCheckbox =
-                            section.querySelector("#ti_lyrics_enabled");
-                        if (lyricsEnabledCheckbox)
-                            lyricsEnabledCheckbox.checked = true;
-                        const lyricsControls = section.querySelector(
-                            "#ti_lyrics_controls",
-                        );
-                        if (lyricsControls)
-                            lyricsControls.style.display = "block";
-                        saveSettingsDebounced();
-                    }
-                    savedTestLyrics =
-                        currentLyrics.length > 0 ? [...currentLyrics] : [];
-                    savedTestLyricIndex = currentLyricIndex;
-                    wasLyricsPlaying =
-                        currentLyrics.length > 0 && currentLyricIndex >= 0;
-                    currentLyrics = [
-                        {
-                            time: 0,
-                            text: t`This is the first test lyric line`,
-                            translated: t`Test translation 1`,
-                        },
-                        {
-                            time: 3,
-                            text: t`This is the second test lyric line`,
-                            translated: t`Test translation 2`,
-                        },
-                        {
-                            time: 6,
-                            text: t`Lyrics scroll with time`,
-                            translated: t`Scroll demo`,
-                        },
-                        {
-                            time: 9,
-                            text: t`Color gradient effect test`,
-                            translated: t`Gradient demo`,
-                        },
-                    ];
-
-                    currentLyricIndex = -1;
-                    lastLyricsProgress = -1;
-                    showLyricsOverlay();
-
-                    testBtn.classList.remove("fa-eye");
-                    testBtn.classList.add("fa-eye-slash");
-                    testBtn.title = t`Stop Preview`;
-
-                    let testTime = 0;
-                    testInterval = setInterval(() => {
-                        testTime += 0.1;
-                        updateLyricsDisplay(testTime);
-                        if (testTime >= 12) {
-                            testTime = 0;
-                            currentLyricIndex = -1;
-                            lastLyricsProgress = -1;
-                        }
-                    }, 100);
-                });
-            }
-        }
-
-        function setupListeningStatsUI() {
-            function updateStatsDisplay() {
-                const statsDiv = section.querySelector("#ti_listening_stats");
-                if (!statsDiv) return;
-
-                const charStats = getCurrentCharStats();
-
-                if (!charStats || !charStats.charName) {
-                    statsDiv.innerHTML = `
+        if (!charStats || !charStats.charName) {
+          statsDiv.innerHTML = `
                 <div style="text-align: center; color: var(--SmartThemeBodyColor); opacity: 0.6;">
                     ${t`Select a character to view stats`}
                 </div>
             `;
-                    return;
-                }
+          return;
+        }
 
-                let currentSessionTime = 0;
-                if (
-                    listeningSession.isPlaying &&
-                    listeningSession.startTime &&
-                    listeningSession.charAvatar === charStats.charAvatar
-                ) {
-                    currentSessionTime =
-                        Date.now() - listeningSession.startTime;
-                }
+        let currentSessionTime = 0;
+        if (
+          listeningSession.isPlaying &&
+          listeningSession.startTime &&
+          listeningSession.charAvatar === charStats.charAvatar
+        ) {
+          currentSessionTime = Date.now() - listeningSession.startTime;
+        }
 
-                const totalTimeWithCurrent =
-                    charStats.totalTime + currentSessionTime;
-                const isCurrentlyPlaying = currentSessionTime > 0;
+        const totalTimeWithCurrent = charStats.totalTime + currentSessionTime;
+        const isCurrentlyPlaying = currentSessionTime > 0;
 
-                const avatarUrl = getThumbnailUrl(
-                    "avatar",
-                    charStats.charAvatar,
-                );
+        const avatarUrl = getThumbnailUrl("avatar", charStats.charAvatar);
 
-                statsDiv.innerHTML = `
+        statsDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
                 <img src="${avatarUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid ${isCurrentlyPlaying ? "#889095ff" : "var(--SmartThemeBorderColor)"};">
                 <div style="flex: 1;">
@@ -5791,79 +5712,73 @@ function addExtensionSettings() {
                 </div>
             </div>
         `;
-            }
+      }
 
-            updateStatsDisplay();
-            listeningStatsUpdateCallback = updateStatsDisplay;
-        }
+      updateStatsDisplay();
+      listeningStatsUpdateCallback = updateStatsDisplay;
     }
+  }
 
-    function initializeToolsSettings() {
-        const settings = getSettings();
-        const fpsMonitorCheckbox = section.querySelector("#ti_fps_monitor");
-        if (fpsMonitorCheckbox) {
-            fpsMonitorCheckbox.addEventListener("change", (e) => {
-                settings.showFpsMonitor = e.target.checked;
-                saveSettingsDebounced();
-                if (e.target.checked) {
-                    FPSMonitor.start();
-                    toastr.info(t`FPS Monitor enabled`, "", { timeOut: 1500 });
-                } else {
-                    FPSMonitor.stop();
-                    toastr.info(t`FPS Monitor disabled`, "", { timeOut: 1500 });
-                }
-            });
+  function initializeToolsSettings() {
+    const settings = getSettings();
+    const fpsMonitorCheckbox = section.querySelector("#ti_fps_monitor");
+    if (fpsMonitorCheckbox) {
+      fpsMonitorCheckbox.addEventListener("change", (e) => {
+        settings.showFpsMonitor = e.target.checked;
+        saveSettingsDebounced();
+        if (e.target.checked) {
+          FPSMonitor.start();
+          toastr.info(t`FPS Monitor enabled`, "", { timeOut: 1500 });
+        } else {
+          FPSMonitor.stop();
+          toastr.info(t`FPS Monitor disabled`, "", { timeOut: 1500 });
         }
-        section
-            .querySelector("#ti_usage_guide_btn")
-            .addEventListener("click", async () => {
-                try {
-                    const scriptUrl = new URL(import.meta.url);
-                    const extensionPath = scriptUrl.pathname.substring(
-                        0,
-                        scriptUrl.pathname.lastIndexOf("/") + 1,
-                    );
-                    const detectLanguage = () => {
-                        if (power_user && power_user.language) {
-                            return power_user.language;
-                        }
-                        return navigator.language || "en";
-                    };
+      });
+    }
+    section
+      .querySelector("#ti_usage_guide_btn")
+      .addEventListener("click", async () => {
+        try {
+          const scriptUrl = new URL(import.meta.url);
+          const extensionPath = scriptUrl.pathname.substring(
+            0,
+            scriptUrl.pathname.lastIndexOf("/") + 1,
+          );
+          const detectLanguage = () => {
+            if (power_user && power_user.language) {
+              return power_user.language;
+            }
+            return navigator.language || "en";
+          };
 
-                    let currentLang = detectLanguage()
-                        .toLowerCase()
-                        .startsWith("zh")
-                        ? "zh"
-                        : "en";
-                    const loadGuideContent = async (lang) => {
-                        const fileName =
-                            lang === "zh"
-                                ? "usage_guide_zh.md"
-                                : "usage_guide_en.md";
-                        const guideFilePath = `${extensionPath}${fileName}`;
-                        const response = await fetch(guideFilePath);
-                        if (!response.ok) {
-                            throw new Error(
-                                `文件未找到 (状态码: ${response.status})`,
-                            );
-                        }
-                        return await response.text();
-                    };
-                    const renderMarkdown = (markdownContent) => {
-                        const converter = new showdown.Converter({
-                            tables: true,
-                            strikethrough: true,
-                            tasklists: true,
-                            ghCodeBlocks: true,
-                            smoothLivePreview: true,
-                            simpleLineBreaks: true,
-                        });
-                        return converter.makeHtml(markdownContent);
-                    };
-                    let markdownContent = await loadGuideContent(currentLang);
-                    let htmlContent = renderMarkdown(markdownContent);
+          let currentLang = detectLanguage().toLowerCase().startsWith("zh")
+            ? "zh"
+            : "en";
+          const loadGuideContent = async (lang) => {
+            const fileName =
+              lang === "zh" ? "usage_guide_zh.md" : "usage_guide_en.md";
+            const guideFilePath = `${extensionPath}${fileName}`;
+            const response = await fetch(guideFilePath);
+            if (!response.ok) {
+              throw new Error(`文件未找到 (状态码: ${response.status})`);
+            }
+            return await response.text();
+          };
+          const renderMarkdown = (markdownContent) => {
+            const converter = new showdown.Converter({
+              tables: true,
+              strikethrough: true,
+              tasklists: true,
+              ghCodeBlocks: true,
+              smoothLivePreview: true,
+              simpleLineBreaks: true,
+            });
+            return converter.makeHtml(markdownContent);
+          };
+          let markdownContent = await loadGuideContent(currentLang);
+          let htmlContent = renderMarkdown(markdownContent);
 
-                    const popupHtml = `
+          const popupHtml = `
                 <div id="ti_usage_guide_popup" style="
                     position: fixed;
                     top: 0;
@@ -5949,3117 +5864,2895 @@ function addExtensionSettings() {
                 </div>
             `;
 
-                    document.body.insertAdjacentHTML("beforeend", popupHtml);
-                    function centerDialog(element) {
-                        if (!element) return;
-                        const winWidth = window.innerWidth;
-                        const winHeight = window.innerHeight;
-                        const elWidth = element.offsetWidth;
-                        const elHeight = element.offsetHeight;
-                        element.style.left = `${Math.max(0, (winWidth - elWidth) / 2)}px`;
-                        element.style.top = `${Math.max(0, (winHeight - elHeight) / 2)}px`;
-                    }
+          document.body.insertAdjacentHTML("beforeend", popupHtml);
+          function centerDialog(element) {
+            if (!element) return;
+            const winWidth = window.innerWidth;
+            const winHeight = window.innerHeight;
+            const elWidth = element.offsetWidth;
+            const elHeight = element.offsetHeight;
+            element.style.left = `${Math.max(0, (winWidth - elWidth) / 2)}px`;
+            element.style.top = `${Math.max(0, (winHeight - elHeight) / 2)}px`;
+          }
 
-                    const popup = document.getElementById(
-                        "ti_usage_guide_popup",
-                    );
-                    const dialog = document.getElementById(
-                        "ti_usage_guide_dialog",
-                    );
-                    const closeBtn = document.getElementById(
-                        "ti_close_usage_guide",
-                    );
-                    const contentDiv = document.getElementById(
-                        "ti_usage_guide_content",
-                    );
-                    const langZhBtn = document.getElementById("ti_lang_zh");
-                    const langEnBtn = document.getElementById("ti_lang_en");
-                    const titleEl = dialog.querySelector("h3");
+          const popup = document.getElementById("ti_usage_guide_popup");
+          const dialog = document.getElementById("ti_usage_guide_dialog");
+          const closeBtn = document.getElementById("ti_close_usage_guide");
+          const contentDiv = document.getElementById("ti_usage_guide_content");
+          const langZhBtn = document.getElementById("ti_lang_zh");
+          const langEnBtn = document.getElementById("ti_lang_en");
+          const titleEl = dialog.querySelector("h3");
 
-                    centerDialog(dialog);
-                    const switchLanguage = async (lang) => {
-                        if (lang === currentLang) return;
+          centerDialog(dialog);
+          const switchLanguage = async (lang) => {
+            if (lang === currentLang) return;
 
-                        try {
-                            contentDiv.style.opacity = "0.5";
+            try {
+              contentDiv.style.opacity = "0.5";
 
-                            const newContent = await loadGuideContent(lang);
-                            const newHtml = renderMarkdown(newContent);
-                            contentDiv.innerHTML = newHtml;
-                            contentDiv.style.opacity = "1";
-                            currentLang = lang;
-                            langZhBtn.style.background =
-                                lang === "zh"
-                                    ? "var(--SmartThemeQuoteColor, #88c0d0)"
-                                    : "transparent";
-                            langZhBtn.style.color =
-                                lang === "zh"
-                                    ? "#000"
-                                    : "var(--SmartThemeBodyColor, #fff)";
-                            langEnBtn.style.background =
-                                lang === "en"
-                                    ? "var(--SmartThemeQuoteColor, #88c0d0)"
-                                    : "transparent";
-                            langEnBtn.style.color =
-                                lang === "en"
-                                    ? "#000"
-                                    : "var(--SmartThemeBodyColor, #fff)";
-                            titleEl.textContent =
-                                lang === "zh"
-                                    ? "📖 使用说明"
-                                    : "📖 Usage Guide";
-                            contentDiv.scrollTop = 0;
-                        } catch (error) {
-                            console.error("切换语言失败:", error);
-                            toastr.error(
-                                lang === "zh"
-                                    ? "加载中文版本失败"
-                                    : "Failed to load English version",
-                            );
-                            contentDiv.style.opacity = "1";
-                        }
-                    };
-
-                    langZhBtn.addEventListener("click", () =>
-                        switchLanguage("zh"),
-                    );
-                    langEnBtn.addEventListener("click", () =>
-                        switchLanguage("en"),
-                    );
-                    const closePopup = () => {
-                        popup.style.opacity = "0";
-                        popup.style.transition = "opacity 0.2s";
-                        setTimeout(() => popup.remove(), 200);
-                    };
-
-                    closeBtn.addEventListener("click", closePopup);
-                    popup.addEventListener("click", (e) => {
-                        if (e.target === popup) closePopup();
-                    });
-                    document.addEventListener(
-                        "keydown",
-                        function escHandler(e) {
-                            if (e.key === "Escape") {
-                                closePopup();
-                                document.removeEventListener(
-                                    "keydown",
-                                    escHandler,
-                                );
-                            }
-                        },
-                    );
-
-                    window.addEventListener("resize", () =>
-                        centerDialog(dialog),
-                    );
-                } catch (error) {
-                    console.error("加载使用说明失败:", error);
-                    toastr.error(t`Failed to load usage guide.`);
-                }
-            });
-
-        section
-            .querySelector("#ti_dev_mode")
-            .addEventListener("change", (e) => {
-                settings.devMode = e.target.checked;
-                saveSettingsDebounced();
-                if (e.target.checked) {
-                    toastr.info(
-                        t`Theme performance logging is enabled. Please check the console in your browser's developer tools (F12).`,
-                        t`Developer Mode`,
-                        { timeOut: 3000 },
-                    );
-                }
-            });
-
-        section
-            .querySelector("#ti_debug_logs")
-            .addEventListener("change", (e) => {
-                settings.debugLogs = e.target.checked;
-                saveSettingsDebounced();
-                updateLogFunctions();
-                if (e.target.checked) {
-                    toastr.info(
-                        t`Debug logging is enabled. Detailed information will be shown in the console.`,
-                        t`Debug Mode`,
-                        { timeOut: 3000 },
-                    );
-                } else {
-                    toastr.info(
-                        t`Debug logging is disabled. Console will be cleaner.`,
-                        t`Debug Mode`,
-                        { timeOut: 3000 },
-                    );
-                }
-            });
-
-        section
-            .querySelector("#ti_download_guide_btn")
-            .addEventListener("click", async () => {
-                try {
-                    const scriptUrl = new URL(import.meta.url);
-                    const extensionPath = scriptUrl.pathname.substring(
-                        0,
-                        scriptUrl.pathname.lastIndexOf("/") + 1,
-                    );
-                    const guideFilePath = `${extensionPath}theme_guide.md`;
-                    const response = await fetch(guideFilePath);
-                    if (!response.ok) {
-                        throw new Error(
-                            `文件未找到 (状态码: ${response.status})`,
-                        );
-                    }
-                    const markdownContent = await response.text();
-                    const blob = new Blob([markdownContent], {
-                        type: "text/markdown;charset=utf-8",
-                    });
-                    const url = URL.createObjectURL(blob);
-                    const downloader = document.createElement("a");
-                    downloader.style.display = "none";
-                    downloader.href = url;
-                    downloader.download = "指示器美化主题创作指南.md";
-                    document.body.appendChild(downloader);
-                    downloader.click();
-                    window.URL.revokeObjectURL(url);
-                    downloader.remove();
-                } catch (error) {
-                    console.error("下载创作指南失败:", error);
-                    toastr.error(
-                        t`Failed to download the creation guide. Please ensure the 'theme_guide.md' file is in the extension's root directory.`,
-                    );
-                }
-            });
-
-        section
-            .querySelector("#ti_restore_defaults_btn")
-            .addEventListener("click", () => {
-                if (
-                    confirm(
-                        t`Are you sure you want to restore all built-in presets and themes? This will overwrite any changes you've made to them, but your custom-created items will not be deleted.`,
-                    )
-                ) {
-                    const settings = getSettings();
-                    const userCreatedPresets = settings.textPresets.filter(
-                        (p) => !p.isBuiltIn,
-                    );
-                    const userCreatedThemes = settings.themes.filter(
-                        (t) => !t.isBuiltIn,
-                    );
-                    settings.textPresets = [
-                        ...userCreatedPresets,
-                        ...structuredClone(defaultPresets),
-                    ];
-                    settings.themes = [
-                        ...userCreatedThemes,
-                        ...structuredClone(defaultThemes),
-                    ];
-                    const userCreatedBubbles = settings.bubbleStyles.filter(
-                        (s) => !s.isBuiltIn,
-                    );
-                    settings.bubbleStyles = [
-                        ...userCreatedBubbles,
-                        ...structuredClone(defaultBubbleStyles),
-                    ];
-                    if (
-                        !settings.textPresets.some(
-                            (p) => p.id === settings.selectedTextPresetId,
-                        )
-                    ) {
-                        settings.selectedTextPresetId = "cat_default";
-                    }
-                    if (
-                        !settings.themes.some(
-                            (t) => t.id === settings.selectedThemeId,
-                        )
-                    ) {
-                        settings.selectedThemeId = "default";
-                    }
-                    if (
-                        !settings.bubbleStyles.some(
-                            (s) => s.id === settings.selectedBubbleStyleId,
-                        )
-                    ) {
-                        settings.selectedBubbleStyleId = "bubble_default";
-                    }
-                    saveSettingsDebounced();
-                    iframeCache.clear();
-
-                    if (typeof populatePresets === "function")
-                        populatePresets();
-                    if (typeof populateThemes === "function") populateThemes();
-                    if (typeof populatePlayerThemes === "function")
-                        populatePlayerThemes();
-
-                    applyTheme(settings.selectedThemeId);
-                    if (settings.playerEnabled) {
-                        reloadPlayer();
-                    }
-                    if (settings.persistentMode) {
-                        const indicator =
-                            document.getElementById("typing_indicator");
-                        if (indicator) {
-                            replaceIndicator("restore_defaults");
-                        }
-                    }
-
-                    toastr.success(
-                        t`Built-in items have been restored to their default settings.`,
-                    );
-                }
-            });
-
-        section
-            .querySelector("#ti_import_worldbook_btn")
-            .addEventListener("click", async () => {
-                try {
-                    const scriptUrl = new URL(import.meta.url);
-                    const extensionPath = scriptUrl.pathname.substring(
-                        0,
-                        scriptUrl.pathname.lastIndexOf("/") + 1,
-                    );
-                    const worldBookPath = `${extensionPath}indicator.json`;
-                    const response = await fetch(worldBookPath);
-                    if (!response.ok) {
-                        throw new Error(
-                            t`World book file not found (status: ${response.status})`,
-                        );
-                    }
-
-                    const worldBookContent = await response.text();
-                    const worldBookData = JSON.parse(worldBookContent);
-                    const detectLanguage = () => {
-                        if (power_user && power_user.language) {
-                            return power_user.language;
-                        }
-                        if (document.documentElement.lang) {
-                            return document.documentElement.lang;
-                        }
-                        return navigator.language || "en";
-                    };
-
-                    const currentLang = detectLanguage();
-                    const isChinese = currentLang
-                        .toLowerCase()
-                        .startsWith("zh");
-                    worldBookData.name = isChinese ? "指示器" : "Indicator";
-
-                    console.log(
-                        `[TypingIndicator] 检测到语言: ${currentLang}, 使用名称: ${worldBookData.name}`,
-                    );
-
-                    const formData = new FormData();
-                    const blob = new Blob([JSON.stringify(worldBookData)], {
-                        type: "application/json",
-                    });
-                    const file = new File(
-                        [blob],
-                        `${worldBookData.name}.json`,
-                        {
-                            type: "application/json",
-                        },
-                    );
-                    formData.append("avatar", file);
-
-                    const headers = getRequestHeaders();
-                    delete headers["Content-Type"];
-
-                    const importResponse = await fetch(
-                        "/api/worldinfo/import",
-                        {
-                            method: "POST",
-                            headers: headers,
-                            body: formData,
-                        },
-                    );
-
-                    if (!importResponse.ok) {
-                        const errorText = await importResponse.text();
-                        throw new Error(errorText || t`Import failed`);
-                    }
-
-                    const result = await importResponse.json();
-                    const displayName = result.name || worldBookData.name;
-
-                    try {
-                        await updateWorldInfoList();
-                        console.log("[TypingIndicator] 世界书列表刷新成功");
-                    } catch (e) {
-                        console.warn(
-                            "[TypingIndicator] updateWorldInfoList 调用失败，尝试备用方案:",
-                            e,
-                        );
-
-                        try {
-                            const listResponse = await fetch(
-                                "/api/worldinfo/list",
-                                {
-                                    method: "POST",
-                                    headers: getRequestHeaders(),
-                                },
-                            );
-
-                            if (listResponse.ok) {
-                                const worldList = await listResponse.json();
-                                const selectors = [
-                                    "#world_info",
-                                    "#world_editor_select",
-                                    'select[name="world_info"]',
-                                ];
-
-                                selectors.forEach((selector) => {
-                                    const $select = $(selector);
-                                    if ($select.length > 0) {
-                                        const currentValue = $select.val();
-                                        const firstOption = $select
-                                            .find("option:first")
-                                            .clone();
-                                        $select.empty().append(firstOption);
-
-                                        worldList.forEach((world) => {
-                                            $select.append(
-                                                `<option value="${world}">${world}</option>`,
-                                            );
-                                        });
-
-                                        if (
-                                            currentValue &&
-                                            worldList.includes(currentValue)
-                                        ) {
-                                            $select.val(currentValue);
-                                        }
-                                    }
-                                });
-
-                                console.log(
-                                    "[TypingIndicator] 世界书选择器已手动刷新",
-                                );
-                            }
-                        } catch (refreshError) {
-                            console.error(
-                                "[TypingIndicator] 备用刷新方案也失败了:",
-                                refreshError,
-                            );
-                            toastr.warning(
-                                t`World book imported but list may need manual refresh.`,
-                                t`Note`,
-                                { timeOut: 3000 },
-                            );
-                        }
-                    }
-
-                    toastr.success(
-                        t`World book "${displayName}" imported successfully!`,
-                        t`Import Complete`,
-                        { timeOut: 3000 },
-                    );
-                } catch (error) {
-                    console.error("导入世界书失败:", error);
-                    toastr.error(
-                        t`Failed to import world book: ${error.message}`,
-                        t`Import Failed`,
-                        { timeOut: 5000 },
-                    );
-                }
-            });
-
-        section
-            .querySelector("#ti_reset_all_btn")
-            .addEventListener("click", () => {
-                if (
-                    !confirm(
-                        t`This will refresh all indicator displays. Music playback will pause but playlist will reload. Your settings and cache are preserved. Continue?`,
-                    )
-                ) {
-                    return;
-                }
-                const indicator = document.getElementById("typing_indicator");
-                if (indicator) {
-                    cleanupUnifiedIframe(indicator);
-                    indicator.remove();
-                }
-                const player = document.getElementById("music_player");
-                if (player) {
-                    cleanupUnifiedIframe(player);
-                    player.remove();
-                }
-                removeLyricsOverlay();
-                if (iframePoolContainer) {
-                    iframePoolContainer.innerHTML = "";
-                }
-                iframeCache.clear();
-                isIndicatorPersisted = false;
-                isPlayerInitialized = false;
-                isPlaylistReady = false;
-                isPlaylistBuilding = false;
-                isStatefulThemeLocked = false;
-                currentDynamicThemeId = null;
-                currentDynamicPresetId = null;
-                currentPlayerTrack = null;
-                currentLyrics = [];
-                currentLyricIndex = -1;
-                isTestIndicatorActive = false;
-                settleListeningTime("manual_reset");
-                listeningSession.isPlaying = false;
-                const settings = getSettings();
-
-                if (settings.persistentMode) {
-                    isIndicatorPersisted = true;
-                    setTimeout(() => showTypingIndicator("manual-reset"), 100);
-                }
-
-                if (settings.playerEnabled) {
-                    setTimeout(async () => {
-                        showPlayer();
-                        await new Promise((resolve) => {
-                            const check = setInterval(() => {
-                                if (isPlayerInitialized) {
-                                    clearInterval(check);
-                                    resolve();
-                                }
-                            }, 50);
-                            setTimeout(() => {
-                                clearInterval(check);
-                                resolve();
-                            }, 3000);
-                        });
-                        await buildAndSetInitialPlaylist();
-                    }, 200);
-                }
-
-                toastr.success(t`All indicators have been reset.`, "", {
-                    timeOut: 2000,
-                });
-            });
-    }
-
-    // 辅助函数
-    function updatePositionOptions() {
-        const settings = getSettings();
-        const currentTheme = settings.themes.find(
-            (t) => t.id === settings.selectedThemeId,
-        );
-        const positionSelect = section.querySelector("#ti_position");
-        if (!positionSelect) return;
-
-        const allOptions = [
-            { value: "floating_bottom", text: t`Bottom of Chat (Floating)` },
-            { value: "bottom", text: t`Bottom of Chat (Compact)` },
-            { value: "above_input", text: t`Above Input Bar (Compact)` },
-            {
-                value: "full_width_banner",
-                text: t`Above Input Bar (Full-Width Banner)`,
-            },
-            { value: "chat_center", text: t`Chat Area Center` },
-            { value: "draggable", text: t`Custom Draggable Position` },
-        ];
-
-        const defaultIframePositions = [
-            "floating_bottom",
-            "chat_center",
-            "draggable",
-        ];
-        let availableOptions = allOptions;
-
-        if (currentTheme && currentTheme.useIframe) {
-            const supportedPositions = currentTheme.sizes
-                ? Object.keys(currentTheme.sizes)
-                : defaultIframePositions;
-            availableOptions = allOptions.filter((opt) =>
-                supportedPositions.includes(opt.value),
-            );
-            if (
-                !supportedPositions.includes(settings.position) &&
-                supportedPositions.length > 0
-            ) {
-                settings.position = supportedPositions[0];
-                saveSettingsDebounced();
+              const newContent = await loadGuideContent(lang);
+              const newHtml = renderMarkdown(newContent);
+              contentDiv.innerHTML = newHtml;
+              contentDiv.style.opacity = "1";
+              currentLang = lang;
+              langZhBtn.style.background =
+                lang === "zh"
+                  ? "var(--SmartThemeQuoteColor, #88c0d0)"
+                  : "transparent";
+              langZhBtn.style.color =
+                lang === "zh" ? "#000" : "var(--SmartThemeBodyColor, #fff)";
+              langEnBtn.style.background =
+                lang === "en"
+                  ? "var(--SmartThemeQuoteColor, #88c0d0)"
+                  : "transparent";
+              langEnBtn.style.color =
+                lang === "en" ? "#000" : "var(--SmartThemeBodyColor, #fff)";
+              titleEl.textContent =
+                lang === "zh" ? "📖 使用说明" : "📖 Usage Guide";
+              contentDiv.scrollTop = 0;
+            } catch (error) {
+              console.error("切换语言失败:", error);
+              toastr.error(
+                lang === "zh"
+                  ? "加载中文版本失败"
+                  : "Failed to load English version",
+              );
+              contentDiv.style.opacity = "1";
             }
-        }
+          };
 
-        positionSelect.innerHTML = availableOptions
-            .map(
-                (opt) =>
-                    `<option value="${opt.value}" ${
-                        settings.position === opt.value ? "selected" : ""
-                    }>${opt.text}</option>`,
+          langZhBtn.addEventListener("click", () => switchLanguage("zh"));
+          langEnBtn.addEventListener("click", () => switchLanguage("en"));
+          const closePopup = () => {
+            popup.style.opacity = "0";
+            popup.style.transition = "opacity 0.2s";
+            setTimeout(() => popup.remove(), 200);
+          };
+
+          closeBtn.addEventListener("click", closePopup);
+          popup.addEventListener("click", (e) => {
+            if (e.target === popup) closePopup();
+          });
+          document.addEventListener("keydown", function escHandler(e) {
+            if (e.key === "Escape") {
+              closePopup();
+              document.removeEventListener("keydown", escHandler);
+            }
+          });
+
+          window.addEventListener("resize", () => centerDialog(dialog));
+        } catch (error) {
+          console.error("加载使用说明失败:", error);
+          toastr.error(t`Failed to load usage guide.`);
+        }
+      });
+
+    section.querySelector("#ti_dev_mode").addEventListener("change", (e) => {
+      settings.devMode = e.target.checked;
+      saveSettingsDebounced();
+      if (e.target.checked) {
+        toastr.info(
+          t`Theme performance logging is enabled. Please check the console in your browser's developer tools (F12).`,
+          t`Developer Mode`,
+          { timeOut: 3000 },
+        );
+      }
+    });
+
+    section.querySelector("#ti_debug_logs").addEventListener("change", (e) => {
+      settings.debugLogs = e.target.checked;
+      saveSettingsDebounced();
+      updateLogFunctions();
+      if (e.target.checked) {
+        toastr.info(
+          t`Debug logging is enabled. Detailed information will be shown in the console.`,
+          t`Debug Mode`,
+          { timeOut: 3000 },
+        );
+      } else {
+        toastr.info(
+          t`Debug logging is disabled. Console will be cleaner.`,
+          t`Debug Mode`,
+          { timeOut: 3000 },
+        );
+      }
+    });
+
+    section
+      .querySelector("#ti_download_guide_btn")
+      .addEventListener("click", async () => {
+        try {
+          const scriptUrl = new URL(import.meta.url);
+          const extensionPath = scriptUrl.pathname.substring(
+            0,
+            scriptUrl.pathname.lastIndexOf("/") + 1,
+          );
+          const guideFilePath = `${extensionPath}theme_guide.md`;
+          const response = await fetch(guideFilePath);
+          if (!response.ok) {
+            throw new Error(`文件未找到 (状态码: ${response.status})`);
+          }
+          const markdownContent = await response.text();
+          const blob = new Blob([markdownContent], {
+            type: "text/markdown;charset=utf-8",
+          });
+          const url = URL.createObjectURL(blob);
+          const downloader = document.createElement("a");
+          downloader.style.display = "none";
+          downloader.href = url;
+          downloader.download = "指示器美化主题创作指南.md";
+          document.body.appendChild(downloader);
+          downloader.click();
+          window.URL.revokeObjectURL(url);
+          downloader.remove();
+        } catch (error) {
+          console.error("下载创作指南失败:", error);
+          toastr.error(
+            t`Failed to download the creation guide. Please ensure the 'theme_guide.md' file is in the extension's root directory.`,
+          );
+        }
+      });
+
+    section
+      .querySelector("#ti_restore_defaults_btn")
+      .addEventListener("click", () => {
+        if (
+          confirm(
+            t`Are you sure you want to restore all built-in presets and themes? This will overwrite any changes you've made to them, but your custom-created items will not be deleted.`,
+          )
+        ) {
+          const settings = getSettings();
+          const userCreatedPresets = settings.textPresets.filter(
+            (p) => !p.isBuiltIn,
+          );
+          const userCreatedThemes = settings.themes.filter((t) => !t.isBuiltIn);
+          settings.textPresets = [
+            ...userCreatedPresets,
+            ...structuredClone(defaultPresets),
+          ];
+          settings.themes = [
+            ...userCreatedThemes,
+            ...structuredClone(defaultThemes),
+          ];
+          const userCreatedBubbles = settings.bubbleStyles.filter(
+            (s) => !s.isBuiltIn,
+          );
+          settings.bubbleStyles = [
+            ...userCreatedBubbles,
+            ...structuredClone(defaultBubbleStyles),
+          ];
+          if (
+            !settings.textPresets.some(
+              (p) => p.id === settings.selectedTextPresetId,
             )
-            .join("");
-    }
+          ) {
+            settings.selectedTextPresetId = "cat_default";
+          }
+          if (!settings.themes.some((t) => t.id === settings.selectedThemeId)) {
+            settings.selectedThemeId = "default";
+          }
+          if (
+            !settings.bubbleStyles.some(
+              (s) => s.id === settings.selectedBubbleStyleId,
+            )
+          ) {
+            settings.selectedBubbleStyleId = "bubble_default";
+          }
+          saveSettingsDebounced();
+          iframeCache.clear();
 
-    function updateCharSpecificUI() {
-        const charSettingsSection = section.querySelector(
-            "#ti_char_specific_settings",
-        );
-        if (!charSettingsSection) return;
+          if (typeof populatePresets === "function") populatePresets();
+          if (typeof populateThemes === "function") populateThemes();
+          if (typeof populatePlayerThemes === "function")
+            populatePlayerThemes();
 
-        const { themeId: activeThemeId, presetId: activePresetId } =
-            getActiveThemeConfig();
-
-        console.log(
-            `[TypingIndicator] updateCharSpecificUI called. Active theme: ${activeThemeId}, preset: ${activePresetId}`,
-        );
-
-        loadThemeIntoMainEditor(activeThemeId);
-        loadPresetIntoMainEditor(activePresetId);
-
-        const isCharChat =
-            this_chid !== undefined && characters[this_chid] && !selected_group;
-        if (isCharChat) {
-            charSettingsSection.style.display = "block";
-            const overrideCheckbox = section.querySelector(
-                "#ti_char_override_enabled",
-            );
-            const optionsContainer = section.querySelector(
-                "#ti_char_options_container",
-            );
-            const themeSelect = section.querySelector("#ti_char_theme_select");
-            const presetSelect = section.querySelector(
-                "#ti_char_preset_select",
-            );
-            const presetRow = section.querySelector("#ti_char_preset_row");
-            const charAvatar = characters[this_chid].avatar;
-            const charConfig =
-                getSettings().characterThemes?.[charAvatar] || {};
-            const { themeId = "", presetId = "" } = charConfig;
-            const isOverrideEnabled = !!(themeId || presetId);
-            overrideCheckbox.checked = isOverrideEnabled;
-            optionsContainer.style.display = isOverrideEnabled
-                ? "block"
-                : "none";
-            themeSelect.value = themeId;
-            presetSelect.value = presetId;
-            const effectiveThemeIdForPresetRow = themeId || activeThemeId;
-            const effectiveTheme = getSettings().themes.find(
-                (t) => t.id === effectiveThemeIdForPresetRow,
-            );
-            const isIframe = effectiveTheme && effectiveTheme.useIframe;
-            presetRow.style.display = isIframe ? "none" : "contents";
-            setupCharacterSpecificEventListeners();
-        } else {
-            charSettingsSection.style.display = "none";
-        }
-    }
-
-    let charSettingsController = null;
-
-    function setupCharacterSpecificEventListeners() {
-        if (charSettingsController) {
-            charSettingsController.abort();
-        }
-        charSettingsController = new AbortController();
-        const { signal } = charSettingsController;
-
-        const overrideCheckbox = section.querySelector(
-            "#ti_char_override_enabled",
-        );
-        const charThemeSelect = section.querySelector("#ti_char_theme_select");
-        const charPresetSelect = section.querySelector(
-            "#ti_char_preset_select",
-        );
-
-        if (overrideCheckbox) {
-            overrideCheckbox.addEventListener("change", (e) => {
-                const isChecked = e.target.checked;
-                const optionsContainer = section.querySelector(
-                    "#ti_char_options_container",
-                );
-                optionsContainer.style.display = isChecked ? "block" : "none";
-
-                if (!isChecked) {
-                    if (this_chid !== undefined && characters[this_chid]) {
-                        const charAvatar = characters[this_chid].avatar;
-                        const settings = getSettings();
-                        if (settings.characterThemes?.[charAvatar]) {
-                            delete settings.characterThemes[charAvatar];
-                            saveSettingsDebounced();
-                            setTimeout(() => {
-                                updateAndApplyTheme(
-                                    "char_override_disabled_delayed",
-                                );
-                                updateCharSpecificUI();
-                                const currentSettings = getSettings();
-
-                                const revertMessage =
-                                    currentSettings.autoFollowTheme
-                                        ? t`Now following the main UI theme.`
-                                        : t`Reverted to global settings.`;
-
-                                const finalToastMessage = `${t`Character-specific theme disabled.`} ${revertMessage}`;
-
-                                toastr.info(finalToastMessage, "", {
-                                    timeOut: 2000,
-                                });
-                            }, 50);
-                        }
-                    }
-                }
-            });
-        }
-
-        const saveAndApplyCharSettings = () => {
-            manualOverrideActive = false;
-            if (this_chid === undefined || !characters[this_chid]) return;
-            const charAvatar = characters[this_chid].avatar;
-            const settings = getSettings();
-
-            const themeId = charThemeSelect.value;
-            const presetId = charPresetSelect.value;
-
-            if (!settings.characterThemes) settings.characterThemes = {};
-
-            if (!themeId && !presetId) {
-                delete settings.characterThemes[charAvatar];
-            } else {
-                const selectedTheme = settings.themes.find(
-                    (t) => t.id === themeId,
-                );
-                const isIframe = selectedTheme && selectedTheme.useIframe;
-
-                settings.characterThemes[charAvatar] = {
-                    themeId: themeId,
-                    presetId: isIframe ? null : presetId,
-                };
+          applyTheme(settings.selectedThemeId);
+          if (settings.playerEnabled) {
+            reloadPlayer();
+          }
+          if (settings.persistentMode) {
+            const indicator = document.getElementById("typing_indicator");
+            if (indicator) {
+              replaceIndicator("restore_defaults");
             }
+          }
 
-            saveSettingsDebounced();
+          toastr.success(
+            t`Built-in items have been restored to their default settings.`,
+          );
+        }
+      });
 
-            setTimeout(() => {
-                updateAndApplyTheme("char_settings_changed_delayed");
-                updateCharSpecificUI();
+    section
+      .querySelector("#ti_import_worldbook_btn")
+      .addEventListener("click", async () => {
+        try {
+          const scriptUrl = new URL(import.meta.url);
+          const extensionPath = scriptUrl.pathname.substring(
+            0,
+            scriptUrl.pathname.lastIndexOf("/") + 1,
+          );
+          const worldBookPath = `${extensionPath}indicator.json`;
+          const response = await fetch(worldBookPath);
+          if (!response.ok) {
+            throw new Error(
+              t`World book file not found (status: ${response.status})`,
+            );
+          }
+
+          const worldBookContent = await response.text();
+          const worldBookData = JSON.parse(worldBookContent);
+          const detectLanguage = () => {
+            if (power_user && power_user.language) {
+              return power_user.language;
+            }
+            if (document.documentElement.lang) {
+              return document.documentElement.lang;
+            }
+            return navigator.language || "en";
+          };
+
+          const currentLang = detectLanguage();
+          const isChinese = currentLang.toLowerCase().startsWith("zh");
+          worldBookData.name = isChinese ? "指示器" : "Indicator";
+
+          console.log(
+            `[TypingIndicator] 检测到语言: ${currentLang}, 使用名称: ${worldBookData.name}`,
+          );
+
+          const formData = new FormData();
+          const blob = new Blob([JSON.stringify(worldBookData)], {
+            type: "application/json",
+          });
+          const file = new File([blob], `${worldBookData.name}.json`, {
+            type: "application/json",
+          });
+          formData.append("avatar", file);
+
+          const headers = getRequestHeaders();
+          delete headers["Content-Type"];
+
+          const importResponse = await fetch("/api/worldinfo/import", {
+            method: "POST",
+            headers: headers,
+            body: formData,
+          });
+
+          if (!importResponse.ok) {
+            const errorText = await importResponse.text();
+            throw new Error(errorText || t`Import failed`);
+          }
+
+          const result = await importResponse.json();
+          const displayName = result.name || worldBookData.name;
+
+          try {
+            await updateWorldInfoList();
+            console.log("[TypingIndicator] 世界书列表刷新成功");
+          } catch (e) {
+            console.warn(
+              "[TypingIndicator] updateWorldInfoList 调用失败，尝试备用方案:",
+              e,
+            );
+
+            try {
+              const listResponse = await fetch("/api/worldinfo/list", {
+                method: "POST",
+                headers: getRequestHeaders(),
+              });
+
+              if (listResponse.ok) {
+                const worldList = await listResponse.json();
+                const selectors = [
+                  "#world_info",
+                  "#world_editor_select",
+                  'select[name="world_info"]',
+                ];
+
+                selectors.forEach((selector) => {
+                  const $select = $(selector);
+                  if ($select.length > 0) {
+                    const currentValue = $select.val();
+                    const firstOption = $select.find("option:first").clone();
+                    $select.empty().append(firstOption);
+
+                    worldList.forEach((world) => {
+                      $select.append(
+                        `<option value="${world}">${world}</option>`,
+                      );
+                    });
+
+                    if (currentValue && worldList.includes(currentValue)) {
+                      $select.val(currentValue);
+                    }
+                  }
+                });
+
+                console.log("[TypingIndicator] 世界书选择器已手动刷新");
+              }
+            } catch (refreshError) {
+              console.error(
+                "[TypingIndicator] 备用刷新方案也失败了:",
+                refreshError,
+              );
+              toastr.warning(
+                t`World book imported but list may need manual refresh.`,
+                t`Note`,
+                { timeOut: 3000 },
+              );
+            }
+          }
+
+          toastr.success(
+            t`World book "${displayName}" imported successfully!`,
+            t`Import Complete`,
+            { timeOut: 3000 },
+          );
+        } catch (error) {
+          console.error("导入世界书失败:", error);
+          toastr.error(
+            t`Failed to import world book: ${error.message}`,
+            t`Import Failed`,
+            { timeOut: 5000 },
+          );
+        }
+      });
+
+    section.querySelector("#ti_reset_all_btn").addEventListener("click", () => {
+      if (
+        !confirm(
+          t`This will refresh all indicator displays. Music playback will pause but playlist will reload. Your settings and cache are preserved. Continue?`,
+        )
+      ) {
+        return;
+      }
+      const indicator = document.getElementById("typing_indicator");
+      if (indicator) {
+        cleanupUnifiedIframe(indicator);
+        indicator.remove();
+      }
+      const player = document.getElementById("music_player");
+      if (player) {
+        cleanupUnifiedIframe(player);
+        player.remove();
+      }
+      removeLyricsOverlay();
+      if (iframePoolContainer) {
+        iframePoolContainer.innerHTML = "";
+      }
+      iframeCache.clear();
+      isIndicatorPersisted = false;
+      isPlayerInitialized = false;
+      isPlaylistReady = false;
+      isPlaylistBuilding = false;
+      isStatefulThemeLocked = false;
+      currentDynamicThemeId = null;
+      currentDynamicPresetId = null;
+      currentPlayerTrack = null;
+      currentLyrics = [];
+      currentLyricIndex = -1;
+      isTestIndicatorActive = false;
+      settleListeningTime("manual_reset");
+      listeningSession.isPlaying = false;
+      const settings = getSettings();
+
+      if (settings.persistentMode) {
+        isIndicatorPersisted = true;
+        setTimeout(() => showTypingIndicator("manual-reset"), 100);
+      }
+
+      if (settings.playerEnabled) {
+        setTimeout(async () => {
+          showPlayer();
+          await new Promise((resolve) => {
+            const check = setInterval(() => {
+              if (isPlayerInitialized) {
+                clearInterval(check);
+                resolve();
+              }
             }, 50);
-        };
+            setTimeout(() => {
+              clearInterval(check);
+              resolve();
+            }, 3000);
+          });
+          await buildAndSetInitialPlaylist();
+        }, 200);
+      }
 
-        charThemeSelect.addEventListener("change", () => {
-            saveAndApplyCharSettings();
-            const themeId = charThemeSelect.value;
-            const presetId = charPresetSelect.value;
+      toastr.success(t`All indicators have been reset.`, "", {
+        timeOut: 2000,
+      });
+    });
+  }
+
+  // 辅助函数
+  function updatePositionOptions() {
+    const settings = getSettings();
+    const currentTheme = settings.themes.find(
+      (t) => t.id === settings.selectedThemeId,
+    );
+    const positionSelect = section.querySelector("#ti_position");
+    if (!positionSelect) return;
+
+    const allOptions = [
+      { value: "floating_bottom", text: t`Bottom of Chat (Floating)` },
+      { value: "bottom", text: t`Bottom of Chat (Compact)` },
+      { value: "above_input", text: t`Above Input Bar (Compact)` },
+      {
+        value: "full_width_banner",
+        text: t`Above Input Bar (Full-Width Banner)`,
+      },
+      { value: "chat_center", text: t`Chat Area Center` },
+      { value: "draggable", text: t`Custom Draggable Position` },
+    ];
+
+    const defaultIframePositions = [
+      "floating_bottom",
+      "chat_center",
+      "draggable",
+    ];
+    let availableOptions = allOptions;
+
+    if (currentTheme && currentTheme.useIframe) {
+      const supportedPositions = currentTheme.sizes
+        ? Object.keys(currentTheme.sizes)
+        : defaultIframePositions;
+      availableOptions = allOptions.filter((opt) =>
+        supportedPositions.includes(opt.value),
+      );
+      if (
+        !supportedPositions.includes(settings.position) &&
+        supportedPositions.length > 0
+      ) {
+        settings.position = supportedPositions[0];
+        saveSettingsDebounced();
+      }
+    }
+
+    positionSelect.innerHTML = availableOptions
+      .map(
+        (opt) =>
+          `<option value="${opt.value}" ${
+            settings.position === opt.value ? "selected" : ""
+          }>${opt.text}</option>`,
+      )
+      .join("");
+  }
+
+  function updateCharSpecificUI() {
+    const charSettingsSection = section.querySelector(
+      "#ti_char_specific_settings",
+    );
+    if (!charSettingsSection) return;
+
+    const { themeId: activeThemeId, presetId: activePresetId } =
+      getActiveThemeConfig();
+
+    console.log(
+      `[TypingIndicator] updateCharSpecificUI called. Active theme: ${activeThemeId}, preset: ${activePresetId}`,
+    );
+
+    loadThemeIntoMainEditor(activeThemeId);
+    loadPresetIntoMainEditor(activePresetId);
+
+    const isCharChat =
+      this_chid !== undefined && characters[this_chid] && !selected_group;
+    if (isCharChat) {
+      charSettingsSection.style.display = "block";
+      const overrideCheckbox = section.querySelector(
+        "#ti_char_override_enabled",
+      );
+      const optionsContainer = section.querySelector(
+        "#ti_char_options_container",
+      );
+      const themeSelect = section.querySelector("#ti_char_theme_select");
+      const presetSelect = section.querySelector("#ti_char_preset_select");
+      const presetRow = section.querySelector("#ti_char_preset_row");
+      const charAvatar = characters[this_chid].avatar;
+      const charConfig = getSettings().characterThemes?.[charAvatar] || {};
+      const { themeId = "", presetId = "" } = charConfig;
+      const isOverrideEnabled = !!(themeId || presetId);
+      overrideCheckbox.checked = isOverrideEnabled;
+      optionsContainer.style.display = isOverrideEnabled ? "block" : "none";
+      themeSelect.value = themeId;
+      presetSelect.value = presetId;
+      const effectiveThemeIdForPresetRow = themeId || activeThemeId;
+      const effectiveTheme = getSettings().themes.find(
+        (t) => t.id === effectiveThemeIdForPresetRow,
+      );
+      const isIframe = effectiveTheme && effectiveTheme.useIframe;
+      presetRow.style.display = isIframe ? "none" : "contents";
+      setupCharacterSpecificEventListeners();
+    } else {
+      charSettingsSection.style.display = "none";
+    }
+  }
+
+  let charSettingsController = null;
+
+  function setupCharacterSpecificEventListeners() {
+    if (charSettingsController) {
+      charSettingsController.abort();
+    }
+    charSettingsController = new AbortController();
+    const { signal } = charSettingsController;
+
+    const overrideCheckbox = section.querySelector("#ti_char_override_enabled");
+    const charThemeSelect = section.querySelector("#ti_char_theme_select");
+    const charPresetSelect = section.querySelector("#ti_char_preset_select");
+
+    if (overrideCheckbox) {
+      overrideCheckbox.addEventListener("change", (e) => {
+        const isChecked = e.target.checked;
+        const optionsContainer = section.querySelector(
+          "#ti_char_options_container",
+        );
+        optionsContainer.style.display = isChecked ? "block" : "none";
+
+        if (!isChecked) {
+          if (this_chid !== undefined && characters[this_chid]) {
+            const charAvatar = characters[this_chid].avatar;
             const settings = getSettings();
-            const theme = settings.themes.find((t) => t.id === themeId);
+            if (settings.characterThemes?.[charAvatar]) {
+              delete settings.characterThemes[charAvatar];
+              saveSettingsDebounced();
+              setTimeout(() => {
+                updateAndApplyTheme("char_override_disabled_delayed");
+                updateCharSpecificUI();
+                const currentSettings = getSettings();
 
-            if (themeId) {
-                loadThemeIntoMainEditor(themeId);
-            }
+                const revertMessage = currentSettings.autoFollowTheme
+                  ? t`Now following the main UI theme.`
+                  : t`Reverted to global settings.`;
 
-            if (theme && !theme.useIframe) {
-                const themeNameBase = theme.name
-                    .replace(
-                        /(-美化|-Style| Style|主题| Theme| \[CSS\]| \[iframe\])/g,
-                        "",
-                    )
-                    .trim();
-                const recommendedPreset = settings.textPresets.find(
-                    (p) => p.name === themeNameBase,
-                );
+                const finalToastMessage = `${t`Character-specific theme disabled.`} ${revertMessage}`;
 
-                if (recommendedPreset && recommendedPreset.id !== presetId) {
-                    if (
-                        confirm(
-                            t`A matching text preset "${recommendedPreset.name}" was detected. Apply it now?`,
-                        )
-                    ) {
-                        charPresetSelect.value = recommendedPreset.id;
-                        saveAndApplyCharSettings();
-                    }
-                }
-            }
-        });
-
-        charPresetSelect.addEventListener("change", () => {
-            saveAndApplyCharSettings();
-            const presetId = charPresetSelect.value;
-            const themeId = charThemeSelect.value;
-            const settings = getSettings();
-            const preset = settings.textPresets.find((p) => p.id === presetId);
-
-            if (presetId) {
-                loadPresetIntoMainEditor(presetId);
-            }
-
-            if (preset) {
-                const presetNameBase = preset.name;
-                const recommendedTheme = settings.themes.find((theme) => {
-                    if (theme.useIframe) return false;
-                    const themeNameClean = theme.name
-                        .replace(
-                            /(-美化|-Style| Style|主题| Theme| \[CSS\]| \[iframe\])/g,
-                            "",
-                        )
-                        .trim();
-                    return themeNameClean === presetNameBase;
+                toastr.info(finalToastMessage, "", {
+                  timeOut: 2000,
                 });
-
-                if (recommendedTheme && recommendedTheme.id !== themeId) {
-                    if (
-                        confirm(
-                            t`A matching style theme "${recommendedTheme.name}" was detected. Apply it now?`,
-                        )
-                    ) {
-                        charThemeSelect.value = recommendedTheme.id;
-                        saveAndApplyCharSettings();
-                    }
-                }
+              }, 50);
             }
+          }
+        }
+      });
+    }
+
+    const saveAndApplyCharSettings = () => {
+      manualOverrideActive = false;
+      if (this_chid === undefined || !characters[this_chid]) return;
+      const charAvatar = characters[this_chid].avatar;
+      const settings = getSettings();
+
+      const themeId = charThemeSelect.value;
+      const presetId = charPresetSelect.value;
+
+      if (!settings.characterThemes) settings.characterThemes = {};
+
+      if (!themeId && !presetId) {
+        delete settings.characterThemes[charAvatar];
+      } else {
+        const selectedTheme = settings.themes.find((t) => t.id === themeId);
+        const isIframe = selectedTheme && selectedTheme.useIframe;
+
+        settings.characterThemes[charAvatar] = {
+          themeId: themeId,
+          presetId: isIframe ? null : presetId,
+        };
+      }
+
+      saveSettingsDebounced();
+
+      setTimeout(() => {
+        updateAndApplyTheme("char_settings_changed_delayed");
+        updateCharSpecificUI();
+      }, 50);
+    };
+
+    charThemeSelect.addEventListener("change", () => {
+      saveAndApplyCharSettings();
+      const themeId = charThemeSelect.value;
+      const presetId = charPresetSelect.value;
+      const settings = getSettings();
+      const theme = settings.themes.find((t) => t.id === themeId);
+
+      if (themeId) {
+        loadThemeIntoMainEditor(themeId);
+      }
+
+      if (theme && !theme.useIframe) {
+        const themeNameBase = theme.name
+          .replace(
+            /(-美化|-Style| Style|主题| Theme| \[CSS\]| \[iframe\])/g,
+            "",
+          )
+          .trim();
+        const recommendedPreset = settings.textPresets.find(
+          (p) => p.name === themeNameBase,
+        );
+
+        if (recommendedPreset && recommendedPreset.id !== presetId) {
+          if (
+            confirm(
+              t`A matching text preset "${recommendedPreset.name}" was detected. Apply it now?`,
+            )
+          ) {
+            charPresetSelect.value = recommendedPreset.id;
+            saveAndApplyCharSettings();
+          }
+        }
+      }
+    });
+
+    charPresetSelect.addEventListener("change", () => {
+      saveAndApplyCharSettings();
+      const presetId = charPresetSelect.value;
+      const themeId = charThemeSelect.value;
+      const settings = getSettings();
+      const preset = settings.textPresets.find((p) => p.id === presetId);
+
+      if (presetId) {
+        loadPresetIntoMainEditor(presetId);
+      }
+
+      if (preset) {
+        const presetNameBase = preset.name;
+        const recommendedTheme = settings.themes.find((theme) => {
+          if (theme.useIframe) return false;
+          const themeNameClean = theme.name
+            .replace(
+              /(-美化|-Style| Style|主题| Theme| \[CSS\]| \[iframe\])/g,
+              "",
+            )
+            .trim();
+          return themeNameClean === presetNameBase;
         });
+
+        if (recommendedTheme && recommendedTheme.id !== themeId) {
+          if (
+            confirm(
+              t`A matching style theme "${recommendedTheme.name}" was detected. Apply it now?`,
+            )
+          ) {
+            charThemeSelect.value = recommendedTheme.id;
+            saveAndApplyCharSettings();
+          }
+        }
+      }
+    });
+  }
+
+  function loadThemeIntoMainEditor(themeId) {
+    const globalThemeSelect = section.querySelector("#ti_theme_select");
+    const themeToLoad = themeId || getSettings().selectedThemeId;
+
+    if (globalThemeSelect && globalThemeSelect.value !== themeToLoad) {
+      globalThemeSelect.value = themeToLoad;
     }
 
-    function loadThemeIntoMainEditor(themeId) {
-        const globalThemeSelect = section.querySelector("#ti_theme_select");
-        const themeToLoad = themeId || getSettings().selectedThemeId;
+    const theme = getSettings().themes.find((t) => t.id === themeToLoad);
+    if (!theme) {
+      debugWarn(`[TypingIndicator] Theme ${themeToLoad} not found`);
+      return;
+    }
 
-        if (globalThemeSelect && globalThemeSelect.value !== themeToLoad) {
-            globalThemeSelect.value = themeToLoad;
-        }
+    debugLog(
+      `[TypingIndicator] Loading theme into editor: ${theme.name}, useIframe: ${theme.useIframe}`,
+    );
 
-        const theme = getSettings().themes.find((t) => t.id === themeToLoad);
-        if (!theme) {
-            debugWarn(`[TypingIndicator] Theme ${themeToLoad} not found`);
-            return;
-        }
+    requestAnimationFrame(() => {
+      updateEditorMode(theme);
+      applyTheme(themeToLoad);
+    });
+  }
 
-        debugLog(
-            `[TypingIndicator] Loading theme into editor: ${theme.name}, useIframe: ${theme.useIframe}`,
+  function loadPresetIntoMainEditor(presetId) {
+    const globalPresetSelect = section.querySelector("#ti_preset_select");
+    const presetTextarea = section.querySelector("#ti_preset_text");
+
+    const presetToLoadId = presetId || getSettings().selectedTextPresetId;
+    const presetToLoad =
+      getSettings().textPresets.find((p) => p.id === presetToLoadId) ||
+      getSettings().textPresets[0];
+
+    debugLog(
+      `[TypingIndicator] Loading preset into editor: ${presetToLoad.name}`,
+    );
+
+    if (globalPresetSelect && globalPresetSelect.value !== presetToLoadId) {
+      globalPresetSelect.value = presetToLoadId;
+    }
+
+    if (presetTextarea && presetTextarea.value !== presetToLoad.text) {
+      presetTextarea.value = presetToLoad.text;
+      debugLog(`[TypingIndicator] Preset text updated in textarea`);
+    }
+  }
+
+  function populatePresets() {
+    const settings = getSettings();
+    const currentId = settings.selectedTextPresetId;
+    const tiPresetSelect = section.querySelector("#ti_preset_select");
+    const tiPresetText = section.querySelector("#ti_preset_text");
+
+    if (!tiPresetSelect || !tiPresetText) return;
+
+    tiPresetSelect.innerHTML = settings.textPresets
+      .map(
+        (p) =>
+          `<option value="${p.id}" data-is-builtin="${
+            p.isBuiltIn || false
+          }" ${p.id === currentId ? "selected" : ""}>${p.name}</option>`,
+      )
+      .join("");
+
+    const selectedPreset =
+      settings.textPresets.find((p) => p.id === currentId) ||
+      settings.textPresets[0];
+    tiPresetText.value = selectedPreset.text;
+
+    if (settings.selectedTextPresetId !== selectedPreset.id) {
+      settings.selectedTextPresetId = selectedPreset.id;
+    }
+  }
+
+  function populateThemes() {
+    const settings = getSettings();
+    const tiThemeSelect = section.querySelector("#ti_theme_select");
+    const currentId = settings.selectedThemeId;
+
+    if (!tiThemeSelect) return;
+
+    tiThemeSelect.innerHTML = settings.themes
+      .filter(
+        (theme) =>
+          !theme.name.startsWith("播放器") && !theme.name.startsWith("Player"),
+      )
+      .map((theme) => {
+        const modeIndicator = theme.useIframe ? " [iframe]" : " [CSS]";
+        return `<option value="${theme.id}" data-is-builtin="${
+          theme.isBuiltIn || false
+        }" ${theme.id === currentId ? "selected" : ""}>${
+          theme.name
+        }${modeIndicator}</option>`;
+      })
+      .join("");
+
+    const selectedTheme =
+      settings.themes.find((theme) => theme.id === currentId) ||
+      settings.themes[0];
+    requestAnimationFrame(() => updateEditorMode(selectedTheme));
+  }
+
+  function populatePlayerThemes() {
+    const settings = getSettings();
+    const playerThemeSelect = section.querySelector("#ti_player_theme_select");
+
+    if (!playerThemeSelect) return;
+
+    const playerThemes = settings.themes.filter(
+      (t) => t.name.startsWith("播放器") || t.name.startsWith("Player"),
+    );
+    const currentId = settings.selectedPlayerThemeId;
+
+    playerThemeSelect.innerHTML = playerThemes
+      .map(
+        (theme) =>
+          `<option value="${theme.id}" ${
+            theme.id === currentId ? "selected" : ""
+          }>${theme.name}</option>`,
+      )
+      .join("");
+
+    const selectedTheme =
+      playerThemes.find((theme) => theme.id === currentId) || playerThemes[0];
+    if (selectedTheme) {
+      updatePlayerEditorMode(selectedTheme);
+    }
+  }
+
+  function updateEditorMode(theme) {
+    const cssContainer = section.querySelector("#css_editor_container");
+    const iframeContainer = section.querySelector("#iframe_editor_container");
+    const cssRadio = section.querySelector("#theme_mode_css");
+    const iframeRadio = section.querySelector("#theme_mode_iframe");
+    const cssTextarea = section.querySelector("#ti_theme_css");
+    const htmlTextarea = section.querySelector("#ti_theme_html");
+    const iframeCssTextarea = section.querySelector("#ti_theme_iframe_css");
+    const iframeJsTextarea = section.querySelector("#ti_theme_iframe_js");
+    const presetSection = section.querySelector("#ti_preset_section");
+    const sizesContainer = section.querySelector("#ti_sizes_container");
+    const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
+
+    if (!cssContainer || !iframeContainer) return;
+
+    if (theme.useIframe) {
+      iframeRadio.checked = true;
+      cssContainer.style.display = "none";
+      iframeContainer.style.display = "block";
+      sizesContainer.style.display = "block";
+      presetSection.style.display = "none";
+
+      htmlTextarea.value = theme.html || "";
+      iframeCssTextarea.value = theme.iframeCSS || "";
+      iframeJsTextarea.value = theme.iframeJS || "";
+
+      if (theme.sizes) {
+        sizesTextarea.value = JSON.stringify(theme.sizes, null, 2);
+      } else {
+        sizesTextarea.value = "";
+      }
+
+      validateSizesJson();
+    } else {
+      cssRadio.checked = true;
+      cssContainer.style.display = "block";
+      iframeContainer.style.display = "none";
+      sizesContainer.style.display = "none";
+      presetSection.style.display = "block";
+      cssTextarea.value = (theme.css || "").trim();
+    }
+  }
+
+  function updatePlayerEditorMode(theme) {
+    const htmlTextarea = section.querySelector("#ti_player_theme_html");
+    const iframeCssTextarea = section.querySelector(
+      "#ti_player_theme_iframe_css",
+    );
+    const iframeJsTextarea = section.querySelector(
+      "#ti_player_theme_iframe_js",
+    );
+    const sizesTextarea = section.querySelector(
+      "#ti_player_theme_iframe_sizes",
+    );
+
+    if (
+      !htmlTextarea ||
+      !iframeCssTextarea ||
+      !iframeJsTextarea ||
+      !sizesTextarea
+    )
+      return;
+
+    htmlTextarea.value = theme.html || "";
+    iframeCssTextarea.value = theme.iframeCSS || "";
+    iframeJsTextarea.value = theme.iframeJS || "";
+
+    if (theme.sizes) {
+      sizesTextarea.value = JSON.stringify(theme.sizes, null, 2);
+    } else {
+      sizesTextarea.value = "";
+    }
+
+    validatePlayerSizesJson();
+  }
+
+  function validateSizesJson() {
+    const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
+    const sizesErrorDiv = section.querySelector("#ti_theme_iframe_sizes_error");
+
+    if (!sizesTextarea || !sizesErrorDiv) return true;
+
+    const text = sizesTextarea.value.trim();
+    if (!text) {
+      sizesErrorDiv.textContent = "";
+      sizesErrorDiv.style.display = "none";
+      return true;
+    }
+    try {
+      JSON.parse(text);
+      sizesErrorDiv.textContent = "";
+      sizesErrorDiv.style.display = "none";
+      return true;
+    } catch (e) {
+      sizesErrorDiv.textContent = `JSON格式错误: ${e.message}`;
+      sizesErrorDiv.style.display = "block";
+      return false;
+    }
+  }
+
+  function validatePlayerSizesJson() {
+    const sizesTextarea = section.querySelector(
+      "#ti_player_theme_iframe_sizes",
+    );
+    const sizesErrorDiv = section.querySelector(
+      "#ti_player_theme_iframe_sizes_error",
+    );
+
+    if (!sizesTextarea || !sizesErrorDiv) return true;
+
+    const text = sizesTextarea.value.trim();
+    if (!text) {
+      sizesErrorDiv.textContent = "";
+      sizesErrorDiv.style.display = "none";
+      return true;
+    }
+    try {
+      JSON.parse(text);
+      sizesErrorDiv.textContent = "";
+      sizesErrorDiv.style.display = "none";
+      return true;
+    } catch (e) {
+      sizesErrorDiv.textContent = `JSON格式错误: ${e.message}`;
+      sizesErrorDiv.style.display = "block";
+      return false;
+    }
+  }
+
+  function setupPresetEventListeners() {
+    const tiPresetSelect = section.querySelector("#ti_preset_select");
+    const tiPresetText = section.querySelector("#ti_preset_text");
+
+    if (!tiPresetSelect || !tiPresetText) return;
+
+    tiPresetSelect.addEventListener("change", () => {
+      manualOverrideActive = true;
+      const settings = getSettings();
+      settings.selectedTextPresetId = tiPresetSelect.value;
+      populatePresets();
+      saveSettingsDebounced();
+
+      $("#suggestion-container-theme").remove();
+
+      const selectedPreset = settings.textPresets.find(
+        (p) => p.id === settings.selectedTextPresetId,
+      );
+      if (!selectedPreset) return;
+
+      const presetName = selectedPreset.name;
+      const recommendedTheme = settings.themes.find((theme) => {
+        const cleanThemeName = theme.name
+          .replace(/ \[CSS\]$/, "")
+          .replace(/ \[iframe\]$/, "")
+          .trim();
+        return (
+          cleanThemeName === `${presetName}-美化` ||
+          cleanThemeName === `${presetName} Style` ||
+          cleanThemeName === `${presetName}-Style` ||
+          cleanThemeName === presetName
+        );
+      });
+
+      if (
+        recommendedTheme &&
+        settings.selectedThemeId !== recommendedTheme.id
+      ) {
+        const suggestionContainer = $(
+          `<div id="suggestion-container-theme" style="padding: 8px; margin-top: 5px; background: var(--background-color-tertiary); border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 0.9em;"></div>`,
+        );
+        const message = `💡 ${t`Found a matching theme`}: "<b>${
+          recommendedTheme.name
+        }</b>". `;
+        const applyLink = $(
+          `<a href="#" style="margin-left: 8px; font-weight: bold;">[${t`Apply`}]</a>`,
         );
 
-        requestAnimationFrame(() => {
-            updateEditorMode(theme);
-            applyTheme(themeToLoad);
+        applyLink.on("click", (e) => {
+          e.preventDefault();
+          settings.selectedThemeId = recommendedTheme.id;
+          const tiThemeSelect = section.querySelector("#ti_theme_select");
+          if (tiThemeSelect) {
+            tiThemeSelect.value = recommendedTheme.id;
+          }
+          populateThemes();
+          applyTheme(recommendedTheme.id);
+          saveSettingsDebounced();
+          suggestionContainer.remove();
         });
-    }
 
-    function loadPresetIntoMainEditor(presetId) {
-        const globalPresetSelect = section.querySelector("#ti_preset_select");
-        const presetTextarea = section.querySelector("#ti_preset_text");
+        suggestionContainer.html(message).append(applyLink);
+        $(section.querySelector("#ti_theme_select"))
+          .parent()
+          .after(suggestionContainer);
+      }
 
-        const presetToLoadId = presetId || getSettings().selectedTextPresetId;
-        const presetToLoad =
-            getSettings().textPresets.find((p) => p.id === presetToLoadId) ||
-            getSettings().textPresets[0];
+      refreshLiveIndicators("preset_select_change");
+      section.querySelector("#preview_theme").click();
+    });
 
-        debugLog(
-            `[TypingIndicator] Loading preset into editor: ${presetToLoad.name}`,
+    section.querySelector("#ti_preset_save").addEventListener("click", () => {
+      const settings = getSettings();
+      const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
+      if (p) {
+        p.text = tiPresetText.value;
+        saveSettingsDebounced();
+        toastr.success(t`Preset "${p.name}" saved.`);
+        refreshLiveIndicators("preset_save");
+      }
+    });
+
+    section.querySelector("#ti_preset_add").addEventListener("click", () => {
+      const settings = getSettings();
+      const n = prompt(t`Preset Name`);
+      if (n) {
+        const p = {
+          id: Date.now().toString(),
+          name: n,
+          text: `...回复中...`,
+        };
+        settings.textPresets.push(p);
+        settings.selectedTextPresetId = p.id;
+        populatePresets();
+        saveSettingsDebounced();
+      }
+    });
+
+    section.querySelector("#ti_preset_rename").addEventListener("click", () => {
+      const settings = getSettings();
+      const preset = settings.textPresets.find(
+        (p) => p.id === settings.selectedTextPresetId,
+      );
+      if (!preset) return;
+
+      const newName = prompt(t`Enter new name for preset:`, preset.name);
+      if (newName && newName.trim() !== "") {
+        preset.name = newName.trim();
+        populatePresets();
+        saveSettingsDebounced();
+        toastr.success(t`Preset renamed successfully!`);
+      }
+    });
+
+    section.querySelector("#ti_preset_del").addEventListener("click", () => {
+      const settings = getSettings();
+      if (settings.textPresets.length <= 1) {
+        toastr.warning(t`Cannot delete the last preset.`);
+        return;
+      }
+      const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
+      if (
+        confirm(t`Are you sure you want to delete the preset "${p?.name}"?`)
+      ) {
+        settings.textPresets = settings.textPresets.filter(
+          (pr) => pr.id !== p.id,
         );
+        settings.selectedTextPresetId = settings.textPresets[0].id;
+        populatePresets();
+        saveSettingsDebounced();
+      }
+    });
 
-        if (globalPresetSelect && globalPresetSelect.value !== presetToLoadId) {
-            globalPresetSelect.value = presetToLoadId;
+    // 导入导出
+    section.querySelector("#ti_preset_import").addEventListener("click", () =>
+      createImportHandler(
+        "preset",
+        getSettings().textPresets,
+        populatePresets,
+        (id) => {
+          getSettings().selectedTextPresetId = id;
+        },
+      ),
+    );
+    section
+      .querySelector("#ti_preset_export")
+      .addEventListener("click", () =>
+        createExportHandler(
+          "preset",
+          getSettings().textPresets,
+          getSettings().selectedTextPresetId,
+        ),
+      );
+  }
+
+  function setupThemeEventListeners() {
+    const tiThemeSelect = section.querySelector("#ti_theme_select");
+
+    if (!tiThemeSelect) return;
+
+    tiThemeSelect.addEventListener("change", () => {
+      manualOverrideActive = true;
+      const settings = getSettings();
+      settings.selectedThemeId = tiThemeSelect.value;
+
+      const selectedTheme = settings.themes.find(
+        (t) => t.id === settings.selectedThemeId,
+      );
+      if (selectedTheme) {
+        updateGlobalDefs(selectedTheme);
+      }
+
+      updatePositionOptions();
+      populateThemes();
+      applyTheme(settings.selectedThemeId);
+      saveSettingsDebounced();
+
+      if (getSettings().persistentMode) {
+        $("#typing_indicator").fadeOut(50, function () {
+          $(this).remove();
+          showTypingIndicator("persistent-retheme");
+        });
+      }
+
+      $("#suggestion-container-preset").remove();
+
+      if (selectedTheme && !selectedTheme.useIframe) {
+        let themeNameClean = selectedTheme.name.replace(/ \[CSS\]$/, "").trim();
+        let baseName = themeNameClean;
+        const styleSuffixes = ["-美化", "-Style", " Style", "主题", " Theme"];
+        for (const suffix of styleSuffixes) {
+          if (themeNameClean.endsWith(suffix)) {
+            baseName = themeNameClean
+              .substring(0, themeNameClean.length - suffix.length)
+              .trim();
+            break;
+          }
         }
 
-        if (presetTextarea && presetTextarea.value !== presetToLoad.text) {
-            presetTextarea.value = presetToLoad.text;
-            debugLog(`[TypingIndicator] Preset text updated in textarea`);
-        }
-    }
-
-    function populatePresets() {
-        const settings = getSettings();
-        const currentId = settings.selectedTextPresetId;
-        const tiPresetSelect = section.querySelector("#ti_preset_select");
-        const tiPresetText = section.querySelector("#ti_preset_text");
-
-        if (!tiPresetSelect || !tiPresetText) return;
-
-        tiPresetSelect.innerHTML = settings.textPresets
-            .map(
-                (p) =>
-                    `<option value="${p.id}" data-is-builtin="${
-                        p.isBuiltIn || false
-                    }" ${p.id === currentId ? "selected" : ""}>${
-                        p.name
-                    }</option>`,
-            )
-            .join("");
-
-        const selectedPreset =
-            settings.textPresets.find((p) => p.id === currentId) ||
-            settings.textPresets[0];
-        tiPresetText.value = selectedPreset.text;
-
-        if (settings.selectedTextPresetId !== selectedPreset.id) {
-            settings.selectedTextPresetId = selectedPreset.id;
-        }
-    }
-
-    function populateThemes() {
-        const settings = getSettings();
-        const tiThemeSelect = section.querySelector("#ti_theme_select");
-        const currentId = settings.selectedThemeId;
-
-        if (!tiThemeSelect) return;
-
-        tiThemeSelect.innerHTML = settings.themes
-            .filter(
-                (theme) =>
-                    !theme.name.startsWith("播放器") &&
-                    !theme.name.startsWith("Player"),
-            )
-            .map((theme) => {
-                const modeIndicator = theme.useIframe ? " [iframe]" : " [CSS]";
-                return `<option value="${theme.id}" data-is-builtin="${
-                    theme.isBuiltIn || false
-                }" ${theme.id === currentId ? "selected" : ""}>${
-                    theme.name
-                }${modeIndicator}</option>`;
-            })
-            .join("");
-
-        const selectedTheme =
-            settings.themes.find((theme) => theme.id === currentId) ||
-            settings.themes[0];
-        requestAnimationFrame(() => updateEditorMode(selectedTheme));
-    }
-
-    function populatePlayerThemes() {
-        const settings = getSettings();
-        const playerThemeSelect = section.querySelector(
-            "#ti_player_theme_select",
-        );
-
-        if (!playerThemeSelect) return;
-
-        const playerThemes = settings.themes.filter(
-            (t) => t.name.startsWith("播放器") || t.name.startsWith("Player"),
-        );
-        const currentId = settings.selectedPlayerThemeId;
-
-        playerThemeSelect.innerHTML = playerThemes
-            .map(
-                (theme) =>
-                    `<option value="${theme.id}" ${
-                        theme.id === currentId ? "selected" : ""
-                    }>${theme.name}</option>`,
-            )
-            .join("");
-
-        const selectedTheme =
-            playerThemes.find((theme) => theme.id === currentId) ||
-            playerThemes[0];
-        if (selectedTheme) {
-            updatePlayerEditorMode(selectedTheme);
-        }
-    }
-
-    function updateEditorMode(theme) {
-        const cssContainer = section.querySelector("#css_editor_container");
-        const iframeContainer = section.querySelector(
-            "#iframe_editor_container",
-        );
-        const cssRadio = section.querySelector("#theme_mode_css");
-        const iframeRadio = section.querySelector("#theme_mode_iframe");
-        const cssTextarea = section.querySelector("#ti_theme_css");
-        const htmlTextarea = section.querySelector("#ti_theme_html");
-        const iframeCssTextarea = section.querySelector("#ti_theme_iframe_css");
-        const iframeJsTextarea = section.querySelector("#ti_theme_iframe_js");
-        const presetSection = section.querySelector("#ti_preset_section");
-        const sizesContainer = section.querySelector("#ti_sizes_container");
-        const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
-
-        if (!cssContainer || !iframeContainer) return;
-
-        if (theme.useIframe) {
-            iframeRadio.checked = true;
-            cssContainer.style.display = "none";
-            iframeContainer.style.display = "block";
-            sizesContainer.style.display = "block";
-            presetSection.style.display = "none";
-
-            htmlTextarea.value = theme.html || "";
-            iframeCssTextarea.value = theme.iframeCSS || "";
-            iframeJsTextarea.value = theme.iframeJS || "";
-
-            if (theme.sizes) {
-                sizesTextarea.value = JSON.stringify(theme.sizes, null, 2);
-            } else {
-                sizesTextarea.value = "";
-            }
-
-            validateSizesJson();
-        } else {
-            cssRadio.checked = true;
-            cssContainer.style.display = "block";
-            iframeContainer.style.display = "none";
-            sizesContainer.style.display = "none";
-            presetSection.style.display = "block";
-            cssTextarea.value = (theme.css || "").trim();
-        }
-    }
-
-    function updatePlayerEditorMode(theme) {
-        const htmlTextarea = section.querySelector("#ti_player_theme_html");
-        const iframeCssTextarea = section.querySelector(
-            "#ti_player_theme_iframe_css",
-        );
-        const iframeJsTextarea = section.querySelector(
-            "#ti_player_theme_iframe_js",
-        );
-        const sizesTextarea = section.querySelector(
-            "#ti_player_theme_iframe_sizes",
+        const recommendedPreset = settings.textPresets.find(
+          (p) => p.name === baseName,
         );
 
         if (
-            !htmlTextarea ||
-            !iframeCssTextarea ||
-            !iframeJsTextarea ||
-            !sizesTextarea
-        )
-            return;
+          recommendedPreset &&
+          settings.selectedTextPresetId !== recommendedPreset.id
+        ) {
+          const suggestionContainer = $(
+            `<div id="suggestion-container-preset" style="padding: 8px; margin-top: 5px; background: var(--background-color-tertiary); border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 0.9em;"></div>`,
+          );
+          const message = `💡 ${t`Found a matching preset`}: "<b>${
+            recommendedPreset.name
+          }</b>".`;
+          const applyLink = $(
+            `<a href="#" style="margin-left: 8px; font-weight: bold;">[${t`Apply`}]</a>`,
+          );
 
-        htmlTextarea.value = theme.html || "";
-        iframeCssTextarea.value = theme.iframeCSS || "";
-        iframeJsTextarea.value = theme.iframeJS || "";
-
-        if (theme.sizes) {
-            sizesTextarea.value = JSON.stringify(theme.sizes, null, 2);
-        } else {
-            sizesTextarea.value = "";
-        }
-
-        validatePlayerSizesJson();
-    }
-
-    function validateSizesJson() {
-        const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
-        const sizesErrorDiv = section.querySelector(
-            "#ti_theme_iframe_sizes_error",
-        );
-
-        if (!sizesTextarea || !sizesErrorDiv) return true;
-
-        const text = sizesTextarea.value.trim();
-        if (!text) {
-            sizesErrorDiv.textContent = "";
-            sizesErrorDiv.style.display = "none";
-            return true;
-        }
-        try {
-            JSON.parse(text);
-            sizesErrorDiv.textContent = "";
-            sizesErrorDiv.style.display = "none";
-            return true;
-        } catch (e) {
-            sizesErrorDiv.textContent = `JSON格式错误: ${e.message}`;
-            sizesErrorDiv.style.display = "block";
-            return false;
-        }
-    }
-
-    function validatePlayerSizesJson() {
-        const sizesTextarea = section.querySelector(
-            "#ti_player_theme_iframe_sizes",
-        );
-        const sizesErrorDiv = section.querySelector(
-            "#ti_player_theme_iframe_sizes_error",
-        );
-
-        if (!sizesTextarea || !sizesErrorDiv) return true;
-
-        const text = sizesTextarea.value.trim();
-        if (!text) {
-            sizesErrorDiv.textContent = "";
-            sizesErrorDiv.style.display = "none";
-            return true;
-        }
-        try {
-            JSON.parse(text);
-            sizesErrorDiv.textContent = "";
-            sizesErrorDiv.style.display = "none";
-            return true;
-        } catch (e) {
-            sizesErrorDiv.textContent = `JSON格式错误: ${e.message}`;
-            sizesErrorDiv.style.display = "block";
-            return false;
-        }
-    }
-
-    function setupPresetEventListeners() {
-        const tiPresetSelect = section.querySelector("#ti_preset_select");
-        const tiPresetText = section.querySelector("#ti_preset_text");
-
-        if (!tiPresetSelect || !tiPresetText) return;
-
-        tiPresetSelect.addEventListener("change", () => {
-            manualOverrideActive = true;
-            const settings = getSettings();
-            settings.selectedTextPresetId = tiPresetSelect.value;
+          applyLink.on("click", (e) => {
+            e.preventDefault();
+            settings.selectedTextPresetId = recommendedPreset.id;
+            const tiPresetSelect = section.querySelector("#ti_preset_select");
+            if (tiPresetSelect) {
+              tiPresetSelect.value = recommendedPreset.id;
+            }
             populatePresets();
             saveSettingsDebounced();
+            suggestionContainer.remove();
+            refreshLiveIndicators("theme_suggestion_applied");
+          });
 
-            $("#suggestion-container-theme").remove();
+          suggestionContainer.html(message).append(applyLink);
+          $(section.querySelector("#ti_preset_select"))
+            .parent()
+            .after(suggestionContainer);
+        }
+      }
 
-            const selectedPreset = settings.textPresets.find(
-                (p) => p.id === settings.selectedTextPresetId,
-            );
-            if (!selectedPreset) return;
+      refreshLiveIndicators("theme_select_change");
+      setTimeout(() => {
+        section.querySelector("#preview_theme").click();
+      }, 50);
+      if (isTestIndicatorActive) {
+        const testIndicator = document.getElementById("typing_indicator");
+        if (testIndicator) {
+          refreshIndicatorContent(testIndicator);
+        }
+      }
+    });
 
-            const presetName = selectedPreset.name;
-            const recommendedTheme = settings.themes.find((theme) => {
-                const cleanThemeName = theme.name
-                    .replace(/ \[CSS\]$/, "")
-                    .replace(/ \[iframe\]$/, "")
-                    .trim();
-                return (
-                    cleanThemeName === `${presetName}-美化` ||
-                    cleanThemeName === `${presetName} Style` ||
-                    cleanThemeName === `${presetName}-Style` ||
-                    cleanThemeName === presetName
-                );
-            });
+    const cssRadio = section.querySelector("#theme_mode_css");
+    const iframeRadio = section.querySelector("#theme_mode_iframe");
 
-            if (
-                recommendedTheme &&
-                settings.selectedThemeId !== recommendedTheme.id
-            ) {
-                const suggestionContainer = $(
-                    `<div id="suggestion-container-theme" style="padding: 8px; margin-top: 5px; background: var(--background-color-tertiary); border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 0.9em;"></div>`,
-                );
-                const message = `💡 ${t`Found a matching theme`}: "<b>${
-                    recommendedTheme.name
-                }</b>". `;
-                const applyLink = $(
-                    `<a href="#" style="margin-left: 8px; font-weight: bold;">[${t`Apply`}]</a>`,
-                );
-
-                applyLink.on("click", (e) => {
-                    e.preventDefault();
-                    settings.selectedThemeId = recommendedTheme.id;
-                    const tiThemeSelect =
-                        section.querySelector("#ti_theme_select");
-                    if (tiThemeSelect) {
-                        tiThemeSelect.value = recommendedTheme.id;
-                    }
-                    populateThemes();
-                    applyTheme(recommendedTheme.id);
-                    saveSettingsDebounced();
-                    suggestionContainer.remove();
-                });
-
-                suggestionContainer.html(message).append(applyLink);
-                $(section.querySelector("#ti_theme_select"))
-                    .parent()
-                    .after(suggestionContainer);
-            }
-
-            refreshLiveIndicators("preset_select_change");
-            section.querySelector("#preview_theme").click();
-        });
-
-        section
-            .querySelector("#ti_preset_save")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const p = settings.textPresets.find(
-                    (p) => p.id === tiPresetSelect.value,
-                );
-                if (p) {
-                    p.text = tiPresetText.value;
-                    saveSettingsDebounced();
-                    toastr.success(t`Preset "${p.name}" saved.`);
-                    refreshLiveIndicators("preset_save");
-                }
-            });
-
-        section
-            .querySelector("#ti_preset_add")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const n = prompt(t`Preset Name`);
-                if (n) {
-                    const p = {
-                        id: Date.now().toString(),
-                        name: n,
-                        text: `...回复中...`,
-                    };
-                    settings.textPresets.push(p);
-                    settings.selectedTextPresetId = p.id;
-                    populatePresets();
-                    saveSettingsDebounced();
-                }
-            });
-
-        section
-            .querySelector("#ti_preset_rename")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const preset = settings.textPresets.find(
-                    (p) => p.id === settings.selectedTextPresetId,
-                );
-                if (!preset) return;
-
-                const newName = prompt(
-                    t`Enter new name for preset:`,
-                    preset.name,
-                );
-                if (newName && newName.trim() !== "") {
-                    preset.name = newName.trim();
-                    populatePresets();
-                    saveSettingsDebounced();
-                    toastr.success(t`Preset renamed successfully!`);
-                }
-            });
-
-        section
-            .querySelector("#ti_preset_del")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                if (settings.textPresets.length <= 1) {
-                    toastr.warning(t`Cannot delete the last preset.`);
-                    return;
-                }
-                const p = settings.textPresets.find(
-                    (p) => p.id === tiPresetSelect.value,
-                );
-                if (
-                    confirm(
-                        t`Are you sure you want to delete the preset "${p?.name}"?`,
-                    )
-                ) {
-                    settings.textPresets = settings.textPresets.filter(
-                        (pr) => pr.id !== p.id,
-                    );
-                    settings.selectedTextPresetId = settings.textPresets[0].id;
-                    populatePresets();
-                    saveSettingsDebounced();
-                }
-            });
-
-        // 导入导出
-        section
-            .querySelector("#ti_preset_import")
-            .addEventListener("click", () =>
-                createImportHandler(
-                    "preset",
-                    getSettings().textPresets,
-                    populatePresets,
-                    (id) => {
-                        getSettings().selectedTextPresetId = id;
-                    },
-                ),
-            );
-        section
-            .querySelector("#ti_preset_export")
-            .addEventListener("click", () =>
-                createExportHandler(
-                    "preset",
-                    getSettings().textPresets,
-                    getSettings().selectedTextPresetId,
-                ),
-            );
+    function handleModeChange() {
+      const settings = getSettings();
+      const currentTheme = settings.themes.find(
+        (t) => t.id === settings.selectedThemeId,
+      );
+      if (!currentTheme) return;
+      currentTheme.useIframe = iframeRadio.checked;
+      updateEditorMode(currentTheme);
+      populateThemes();
+      updatePositionOptions();
     }
 
-    function setupThemeEventListeners() {
-        const tiThemeSelect = section.querySelector("#ti_theme_select");
+    cssRadio.addEventListener("change", handleModeChange);
+    iframeRadio.addEventListener("change", handleModeChange);
 
-        if (!tiThemeSelect) return;
+    section
+      .querySelector("#ti_theme_save")
+      .addEventListener("click", async () => {
+        const settings = getSettings();
+        const themeToSave = settings.themes.find(
+          (theme) => theme.id === tiThemeSelect.value,
+        );
+        if (!themeToSave) return;
 
-        tiThemeSelect.addEventListener("change", () => {
-            manualOverrideActive = true;
-            const settings = getSettings();
-            settings.selectedThemeId = tiThemeSelect.value;
+        const isModeIframe =
+          section.querySelector("#theme_mode_iframe").checked;
+        themeToSave.useIframe = isModeIframe;
 
-            const selectedTheme = settings.themes.find(
-                (t) => t.id === settings.selectedThemeId,
+        if (isModeIframe) {
+          const jsCodeToValidate = section.querySelector(
+            "#ti_theme_iframe_js",
+          ).value;
+          const validationResult =
+            await validateJavaScriptSyntax(jsCodeToValidate);
+
+          if (!validationResult.isValid) {
+            const err = validationResult.error;
+            toastr.error(
+              t`JavaScript syntax error!<br><b>Error:</b> ${err.message}<br><b>Location:</b> Line ${err.line}, Column ${err.column}`,
+              t`Save Failed`,
+              { timeOut: 10000, escapeHtml: false },
             );
-            if (selectedTheme) {
-                updateGlobalDefs(selectedTheme);
-            }
-
-            updatePositionOptions();
-            populateThemes();
-            applyTheme(settings.selectedThemeId);
-            saveSettingsDebounced();
-
-            if (getSettings().persistentMode) {
-                $("#typing_indicator").fadeOut(50, function () {
-                    $(this).remove();
-                    showTypingIndicator("persistent-retheme");
-                });
-            }
-
-            $("#suggestion-container-preset").remove();
-
-            if (selectedTheme && !selectedTheme.useIframe) {
-                let themeNameClean = selectedTheme.name
-                    .replace(/ \[CSS\]$/, "")
-                    .trim();
-                let baseName = themeNameClean;
-                const styleSuffixes = [
-                    "-美化",
-                    "-Style",
-                    " Style",
-                    "主题",
-                    " Theme",
-                ];
-                for (const suffix of styleSuffixes) {
-                    if (themeNameClean.endsWith(suffix)) {
-                        baseName = themeNameClean
-                            .substring(0, themeNameClean.length - suffix.length)
-                            .trim();
-                        break;
-                    }
-                }
-
-                const recommendedPreset = settings.textPresets.find(
-                    (p) => p.name === baseName,
-                );
-
-                if (
-                    recommendedPreset &&
-                    settings.selectedTextPresetId !== recommendedPreset.id
-                ) {
-                    const suggestionContainer = $(
-                        `<div id="suggestion-container-preset" style="padding: 8px; margin-top: 5px; background: var(--background-color-tertiary); border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 0.9em;"></div>`,
-                    );
-                    const message = `💡 ${t`Found a matching preset`}: "<b>${
-                        recommendedPreset.name
-                    }</b>".`;
-                    const applyLink = $(
-                        `<a href="#" style="margin-left: 8px; font-weight: bold;">[${t`Apply`}]</a>`,
-                    );
-
-                    applyLink.on("click", (e) => {
-                        e.preventDefault();
-                        settings.selectedTextPresetId = recommendedPreset.id;
-                        const tiPresetSelect =
-                            section.querySelector("#ti_preset_select");
-                        if (tiPresetSelect) {
-                            tiPresetSelect.value = recommendedPreset.id;
-                        }
-                        populatePresets();
-                        saveSettingsDebounced();
-                        suggestionContainer.remove();
-                        refreshLiveIndicators("theme_suggestion_applied");
-                    });
-
-                    suggestionContainer.html(message).append(applyLink);
-                    $(section.querySelector("#ti_preset_select"))
-                        .parent()
-                        .after(suggestionContainer);
-                }
-            }
-
-            refreshLiveIndicators("theme_select_change");
-            setTimeout(() => {
-                section.querySelector("#preview_theme").click();
-            }, 50);
-            if (isTestIndicatorActive) {
-                const testIndicator =
-                    document.getElementById("typing_indicator");
-                if (testIndicator) {
-                    refreshIndicatorContent(testIndicator);
-                }
-            }
-        });
-
-        const cssRadio = section.querySelector("#theme_mode_css");
-        const iframeRadio = section.querySelector("#theme_mode_iframe");
-
-        function handleModeChange() {
-            const settings = getSettings();
-            const currentTheme = settings.themes.find(
-                (t) => t.id === settings.selectedThemeId,
+            return;
+          }
+          if (!validateSizesJson()) {
+            toastr.error(
+              t`The JSON format for Sizes configuration is incorrect, please fix it!`,
+              t`Save Failed`,
             );
-            if (!currentTheme) return;
-            currentTheme.useIframe = iframeRadio.checked;
-            updateEditorMode(currentTheme);
-            populateThemes();
-            updatePositionOptions();
+            return;
+          }
+          themeToSave.html = section.querySelector("#ti_theme_html").value;
+          themeToSave.iframeCSS = section.querySelector(
+            "#ti_theme_iframe_css",
+          ).value;
+          themeToSave.iframeJS = section.querySelector(
+            "#ti_theme_iframe_js",
+          ).value;
+
+          const sizesText = section
+            .querySelector("#ti_theme_iframe_sizes")
+            .value.trim();
+          if (sizesText) {
+            try {
+              themeToSave.sizes = JSON.parse(sizesText);
+            } catch (e) {
+              toastr.error(
+                t`Could not parse Sizes configuration, please check the format.`,
+                t`Save Failed`,
+              );
+              return;
+            }
+          } else {
+            delete themeToSave.sizes;
+          }
+          themeToSave.css = "";
+        } else {
+          themeToSave.css = section.querySelector("#ti_theme_css").value;
+          delete themeToSave.html;
+          delete themeToSave.iframeCSS;
+          delete themeToSave.iframeJS;
+          delete themeToSave.sizes;
         }
 
-        cssRadio.addEventListener("change", handleModeChange);
-        iframeRadio.addEventListener("change", handleModeChange);
+        iframeCache.delete(themeToSave.id);
+        updateGlobalDefs(themeToSave);
+        applyTheme(themeToSave.id);
+        saveSettingsDebounced();
+        populateThemes();
+        toastr.success(t`Theme "${themeToSave.name}" saved.`);
+        refreshLiveIndicators("theme_save");
+        setTimeout(() => {
+          section.querySelector("#preview_theme").click();
+        }, 50);
+        if (isTestIndicatorActive) {
+          const testIndicator = document.getElementById("typing_indicator");
+          if (testIndicator) {
+            refreshIndicatorContent(testIndicator);
+          }
+        }
+      });
 
-        section
-            .querySelector("#ti_theme_save")
-            .addEventListener("click", async () => {
-                const settings = getSettings();
-                const themeToSave = settings.themes.find(
-                    (theme) => theme.id === tiThemeSelect.value,
-                );
-                if (!themeToSave) return;
+    section.querySelector("#ti_theme_add").addEventListener("click", () => {
+      const settings = getSettings();
+      const n = prompt(t`Theme Name`);
+      if (!n) return;
+      const currentTheme = settings.themes.find(
+        (theme) => theme.id === settings.selectedThemeId,
+      );
+      const isNewThemeIframe = currentTheme ? currentTheme.useIframe : false;
+      const newTheme = {
+        id: Date.now().toString(),
+        name: n,
+        useIframe: isNewThemeIframe,
+      };
 
-                const isModeIframe =
-                    section.querySelector("#theme_mode_iframe").checked;
-                themeToSave.useIframe = isModeIframe;
+      if (isNewThemeIframe) {
+        newTheme.html = "";
+        newTheme.iframeCSS = "";
+        newTheme.iframeJS = "";
+      } else {
+        newTheme.css = "";
+      }
+      settings.themes.push(newTheme);
+      settings.selectedThemeId = newTheme.id;
+      populateThemes();
+      applyTheme(newTheme.id);
+      saveSettingsDebounced();
+    });
 
-                if (isModeIframe) {
-                    const jsCodeToValidate = section.querySelector(
-                        "#ti_theme_iframe_js",
-                    ).value;
-                    const validationResult =
-                        await validateJavaScriptSyntax(jsCodeToValidate);
+    section.querySelector("#ti_theme_rename").addEventListener("click", () => {
+      const settings = getSettings();
+      const theme = settings.themes.find(
+        (t) => t.id === settings.selectedThemeId,
+      );
+      if (!theme) return;
 
-                    if (!validationResult.isValid) {
-                        const err = validationResult.error;
-                        toastr.error(
-                            t`JavaScript syntax error!<br><b>Error:</b> ${err.message}<br><b>Location:</b> Line ${err.line}, Column ${err.column}`,
-                            t`Save Failed`,
-                            { timeOut: 10000, escapeHtml: false },
-                        );
-                        return;
-                    }
-                    if (!validateSizesJson()) {
-                        toastr.error(
-                            t`The JSON format for Sizes configuration is incorrect, please fix it!`,
-                            t`Save Failed`,
-                        );
-                        return;
-                    }
-                    themeToSave.html =
-                        section.querySelector("#ti_theme_html").value;
-                    themeToSave.iframeCSS = section.querySelector(
-                        "#ti_theme_iframe_css",
-                    ).value;
-                    themeToSave.iframeJS = section.querySelector(
-                        "#ti_theme_iframe_js",
-                    ).value;
+      const newName = prompt(t`Enter new name for theme:`, theme.name);
+      if (newName && newName.trim() !== "") {
+        theme.name = newName.trim();
+        populateThemes();
+        saveSettingsDebounced();
+        toastr.success(t`Theme renamed successfully!`);
+      }
+    });
 
-                    const sizesText = section
-                        .querySelector("#ti_theme_iframe_sizes")
-                        .value.trim();
-                    if (sizesText) {
-                        try {
-                            themeToSave.sizes = JSON.parse(sizesText);
-                        } catch (e) {
-                            toastr.error(
-                                t`Could not parse Sizes configuration, please check the format.`,
-                                t`Save Failed`,
-                            );
-                            return;
-                        }
-                    } else {
-                        delete themeToSave.sizes;
-                    }
-                    themeToSave.css = "";
-                } else {
-                    themeToSave.css =
-                        section.querySelector("#ti_theme_css").value;
-                    delete themeToSave.html;
-                    delete themeToSave.iframeCSS;
-                    delete themeToSave.iframeJS;
-                    delete themeToSave.sizes;
-                }
+    section.querySelector("#ti_theme_del").addEventListener("click", () => {
+      const settings = getSettings();
+      if (tiThemeSelect.value === "default") {
+        toastr.error(t`The default theme cannot be deleted.`);
+        return;
+      }
+      const themeToDelete = settings.themes.find(
+        (theme) => theme.id === tiThemeSelect.value,
+      );
+      if (
+        confirm(
+          t`Are you sure you want to delete the theme "${themeToDelete?.name}"?`,
+        )
+      ) {
+        settings.themes = settings.themes.filter(
+          (th) => th.id !== themeToDelete.id,
+        );
+        settings.selectedThemeId = "default";
+        populateThemes();
+        applyTheme("default");
+        saveSettingsDebounced();
+      }
+    });
 
-                iframeCache.delete(themeToSave.id);
-                updateGlobalDefs(themeToSave);
-                applyTheme(themeToSave.id);
-                saveSettingsDebounced();
-                populateThemes();
-                toastr.success(t`Theme "${themeToSave.name}" saved.`);
-                refreshLiveIndicators("theme_save");
-                setTimeout(() => {
-                    section.querySelector("#preview_theme").click();
-                }, 50);
-                if (isTestIndicatorActive) {
-                    const testIndicator =
-                        document.getElementById("typing_indicator");
-                    if (testIndicator) {
-                        refreshIndicatorContent(testIndicator);
-                    }
-                }
-            });
+    section
+      .querySelector("#preview_theme")
+      .addEventListener("click", async () => {
+        const previewArea = document.getElementById("theme_preview_area");
+        const settings = getSettings();
+        const currentThemeId = tiThemeSelect.value;
 
-        section.querySelector("#ti_theme_add").addEventListener("click", () => {
-            const settings = getSettings();
-            const n = prompt(t`Theme Name`);
-            if (!n) return;
-            const currentTheme = settings.themes.find(
-                (theme) => theme.id === settings.selectedThemeId,
-            );
-            const isNewThemeIframe = currentTheme
-                ? currentTheme.useIframe
-                : false;
-            const newTheme = {
-                id: Date.now().toString(),
-                name: n,
-                useIframe: isNewThemeIframe,
-            };
+        const previewTheme = {
+          id: `preview-${currentThemeId}`,
+          name: "Preview Theme",
+          useIframe: document.getElementById("theme_mode_iframe").checked,
+        };
 
-            if (isNewThemeIframe) {
-                newTheme.html = "";
-                newTheme.iframeCSS = "";
-                newTheme.iframeJS = "";
-            } else {
-                newTheme.css = "";
-            }
-            settings.themes.push(newTheme);
-            settings.selectedThemeId = newTheme.id;
-            populateThemes();
-            applyTheme(newTheme.id);
-            saveSettingsDebounced();
-        });
+        if (previewTheme.useIframe) {
+          const jsCodeToValidate =
+            document.getElementById("ti_theme_iframe_js").value;
+          const validationResult =
+            await validateJavaScriptSyntax(jsCodeToValidate);
 
-        section
-            .querySelector("#ti_theme_rename")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const theme = settings.themes.find(
-                    (t) => t.id === settings.selectedThemeId,
-                );
-                if (!theme) return;
-
-                const newName = prompt(
-                    t`Enter new name for theme:`,
-                    theme.name,
-                );
-                if (newName && newName.trim() !== "") {
-                    theme.name = newName.trim();
-                    populateThemes();
-                    saveSettingsDebounced();
-                    toastr.success(t`Theme renamed successfully!`);
-                }
-            });
-
-        section.querySelector("#ti_theme_del").addEventListener("click", () => {
-            const settings = getSettings();
-            if (tiThemeSelect.value === "default") {
-                toastr.error(t`The default theme cannot be deleted.`);
-                return;
-            }
-            const themeToDelete = settings.themes.find(
-                (theme) => theme.id === tiThemeSelect.value,
-            );
-            if (
-                confirm(
-                    t`Are you sure you want to delete the theme "${themeToDelete?.name}"?`,
-                )
-            ) {
-                settings.themes = settings.themes.filter(
-                    (th) => th.id !== themeToDelete.id,
-                );
-                settings.selectedThemeId = "default";
-                populateThemes();
-                applyTheme("default");
-                saveSettingsDebounced();
-            }
-        });
-
-        section
-            .querySelector("#preview_theme")
-            .addEventListener("click", async () => {
-                const previewArea =
-                    document.getElementById("theme_preview_area");
-                const settings = getSettings();
-                const currentThemeId = tiThemeSelect.value;
-
-                const previewTheme = {
-                    id: `preview-${currentThemeId}`,
-                    name: "Preview Theme",
-                    useIframe:
-                        document.getElementById("theme_mode_iframe").checked,
-                };
-
-                if (previewTheme.useIframe) {
-                    const jsCodeToValidate =
-                        document.getElementById("ti_theme_iframe_js").value;
-                    const validationResult =
-                        await validateJavaScriptSyntax(jsCodeToValidate);
-
-                    if (!validationResult.isValid) {
-                        const err = validationResult.error;
-                        previewArea.innerHTML = `
+          if (!validationResult.isValid) {
+            const err = validationResult.error;
+            previewArea.innerHTML = `
         <div style="color: var(--error-color); padding: 20px; text-align: left; font-family: monospace;">
             <h4>${t`JavaScript preview failed`}</h4>
             <p><b>${t`Error:`}</b> ${err.message}</p>
             <p><b>${t`Location:`}</b> ${t`Line`} ${err.line}, ${t`Column`} ${
-                err.column
+              err.column
             }</p>
         </div>`;
-                        return;
-                    }
-                    previewTheme.html =
-                        document.getElementById("ti_theme_html").value;
-                    previewTheme.iframeCSS = document.getElementById(
-                        "ti_theme_iframe_css",
-                    ).value;
-                    previewTheme.iframeJS = jsCodeToValidate;
-                    const sizesText = document
-                        .getElementById("ti_theme_iframe_sizes")
-                        .value.trim();
-                    if (sizesText) {
-                        try {
-                            previewTheme.sizes = JSON.parse(sizesText);
-                        } catch (e) {
-                            console.warn(
-                                "Preview sizes JSON is invalid, using defaults.",
-                            );
-                            toastr.error(
-                                t`Preview sizes JSON format is invalid!`,
-                            );
-                        }
-                    }
-                } else {
-                    previewTheme.css =
-                        document.getElementById("ti_theme_css").value;
-                }
-
-                previewArea.innerHTML = "";
-                const oldPreviewStyle =
-                    document.getElementById("temp_preview_style");
-                if (oldPreviewStyle) oldPreviewStyle.remove();
-
-                const previewIndicator = document.createElement("div");
-                previewIndicator.className = "typing_indicator";
-                previewIndicator.style.position = "relative";
-
-                const previewCharName = getCurrentCharName();
-                const previewUserName = getCurrentUserName();
-                const previewAvatarUrls = getAvatarUrls();
-
-                if (previewTheme.useIframe) {
-                    previewIndicator.classList.add("iframe-theme");
-
-                    const defaultIframeSizes = {
-                        floating_bottom: { width: "320px", height: "110px" },
-                        chat_center: { width: "350px", height: "120px" },
-                        draggable: { width: "320px", height: "110px" },
-                    };
-                    const themeSizes = previewTheme.sizes || defaultIframeSizes;
-                    const size = themeSizes.draggable ||
-                        themeSizes.floating_bottom ||
-                        themeSizes.chat_center || {
-                            width: "320px",
-                            height: "110px",
-                        };
-
-                    previewIndicator.style.width = size.width || "auto";
-                    previewIndicator.style.height = size.height || "auto";
-                    if (size.maxWidth)
-                        previewIndicator.style.maxWidth = size.maxWidth;
-                    if (size.maxHeight)
-                        previewIndicator.style.maxHeight = size.maxHeight;
-                    previewIndicator.style.resize = "none";
-                    previewIndicator.style.overflow = "hidden";
-
-                    const wrapper = document.createElement("div");
-                    wrapper.style.cssText =
-                        "display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;";
-
-                    wrapper.appendChild(previewIndicator);
-                    previewArea.appendChild(wrapper);
-
-                    setTimeout(() => {
-                        const previewAreaWidth = previewArea.clientWidth;
-                        const previewAreaHeight = previewArea.clientHeight;
-                        const themeWidth = previewIndicator.offsetWidth;
-                        const themeHeight = previewIndicator.offsetHeight;
-
-                        if (themeWidth > 0 && themeHeight > 0) {
-                            const scaleX = previewAreaWidth / themeWidth;
-                            const scaleY = previewAreaHeight / themeHeight;
-                            const scale = Math.min(scaleX, scaleY, 1);
-
-                            if (scale < 1) {
-                                previewIndicator.style.transform = `scale(${scale})`;
-                                previewIndicator.style.transformOrigin =
-                                    "center center";
-                            }
-                        }
-                    }, 0);
-
-                    createUnifiedIframeOriginal(
-                        previewTheme,
-                        previewIndicator,
-                        previewCharName,
-                    );
-                } else {
-                    previewArea.appendChild(previewIndicator);
-                    previewIndicator.style.margin = "0 auto";
-
-                    const textPreset =
-                        settings.textPresets.find(
-                            (p) =>
-                                p.id ===
-                                section.querySelector("#ti_preset_select")
-                                    .value,
-                        ) || settings.textPresets[0];
-
-                    let htmlContent = (textPreset.text || "正在输入...")
-                        .replace(/\$\{name2\}/g, previewCharName)
-                        .replace(/\{\{char\}\}/g, previewCharName)
-                        .replace(/\{\{user\}\}/g, previewUserName)
-                        .replace(
-                            /\{\{char_avatar_url\}\}/g,
-                            previewAvatarUrls.char,
-                        )
-                        .replace(
-                            /\{\{user_avatar_url\}\}/g,
-                            previewAvatarUrls.user,
-                        )
-                        .replace(
-                            /\{\{char_avatar\}\}/g,
-                            `<img class="typing-indicator-avatar" src="${previewAvatarUrls.char}">`,
-                        )
-                        .replace(
-                            /\{\{user_avatar\}\}/g,
-                            `<img class="typing-indicator-avatar" src="${previewAvatarUrls.user}">`,
-                        );
-
-                    const defsRegex = /<defs>([\s\S]*?)<\/defs>/i;
-                    const match = htmlContent.match(defsRegex);
-                    if (match && match[0]) {
-                        updateGlobalDefs({
-                            name: "preview-theme",
-                            text: match[0],
-                        });
-                        htmlContent = htmlContent.replace(match[0], "");
-                    }
-
-                    previewIndicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
-
-                    const previewStyle = document.createElement("style");
-                    previewStyle.id = "temp_preview_style";
-                    let scopedCss = (previewTheme.css || "").replace(
-                        /\.typing_indicator/g,
-                        "#theme_preview_area .typing_indicator",
-                    );
-                    previewStyle.innerHTML = scopedCss;
-                    document.head.appendChild(previewStyle);
-                }
-            });
-
-        section
-            .querySelector("#ti_theme_import")
-            .addEventListener("click", () =>
-                createImportHandler(
-                    "theme",
-                    getSettings().themes,
-                    populateThemes,
-                    (id) => {
-                        getSettings().selectedThemeId = id;
-                        applyTheme(id);
-                    },
-                ),
-            );
-        section
-            .querySelector("#ti_theme_export")
-            .addEventListener("click", () =>
-                createExportHandler(
-                    "theme",
-                    getSettings().themes,
-                    getSettings().selectedThemeId,
-                ),
-            );
-
-        const formatSizesButton = section.querySelector(
-            "#ti_format_iframe_sizes",
-        );
-        const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
-
-        if (formatSizesButton && sizesTextarea) {
-            formatSizesButton.addEventListener("click", () => {
-                const text = sizesTextarea.value.trim();
-                const defaultSizesJsonString = JSON.stringify(
-                    {
-                        floating_bottom: {
-                            width: "90vw",
-                            height: "110px",
-                            maxWidth: "320px",
-                        },
-                        chat_center: {
-                            width: "90vw",
-                            height: "120px",
-                            maxWidth: "350px",
-                        },
-                        draggable: {
-                            width: "90vw",
-                            height: "110px",
-                            maxWidth: "320px",
-                        },
-                    },
-                    null,
-                    2,
-                );
-
-                if (!text) {
-                    sizesTextarea.value = defaultSizesJsonString;
-                    validateSizesJson();
-                    toastr.success(
-                        t`Default size examples have been filled in.`,
-                        "",
-                        { timeOut: 1000 },
-                    );
-                    return;
-                }
-
-                try {
-                    const parsed = JSON.parse(text);
-                    sizesTextarea.value = JSON.stringify(parsed, null, 2);
-                    validateSizesJson();
-                    toastr.success(t`JSON has been formatted.`, "", {
-                        timeOut: 1000,
-                    });
-                } catch (e) {
-                    validateSizesJson();
-                    toastr.error(
-                        t`JSON format is incorrect, cannot format!`,
-                        "",
-                        { timeOut: 2000 },
-                    );
-                }
-            });
-
-            sizesTextarea.addEventListener("input", validateSizesJson);
-        }
-    }
-
-    function setupPlayerThemeEventListeners() {
-        const playerThemeSelect = section.querySelector(
-            "#ti_player_theme_select",
-        );
-
-        if (!playerThemeSelect) return;
-
-        playerThemeSelect.addEventListener("change", () => {
-            const settings = getSettings();
-            settings.selectedPlayerThemeId = playerThemeSelect.value;
-            saveSettingsDebounced();
-
-            const selectedTheme = settings.themes.find(
-                (t) => t.id === settings.selectedPlayerThemeId,
-            );
-            if (selectedTheme) {
-                requestAnimationFrame(() =>
-                    updatePlayerEditorMode(selectedTheme),
-                );
+            return;
+          }
+          previewTheme.html = document.getElementById("ti_theme_html").value;
+          previewTheme.iframeCSS = document.getElementById(
+            "ti_theme_iframe_css",
+          ).value;
+          previewTheme.iframeJS = jsCodeToValidate;
+          const sizesText = document
+            .getElementById("ti_theme_iframe_sizes")
+            .value.trim();
+          if (sizesText) {
+            try {
+              previewTheme.sizes = JSON.parse(sizesText);
+            } catch (e) {
+              console.warn("Preview sizes JSON is invalid, using defaults.");
+              toastr.error(t`Preview sizes JSON format is invalid!`);
             }
-
-            if (settings.playerEnabled) {
-                reloadPlayer();
-            }
-        });
-
-        section
-            .querySelector("#ti_player_theme_save")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const themeToSave = settings.themes.find(
-                    (theme) => theme.id === playerThemeSelect.value,
-                );
-                if (!themeToSave) return;
-
-                if (!validatePlayerSizesJson()) {
-                    toastr.error(
-                        t`The JSON format for Sizes configuration is incorrect, please fix it!`,
-                        t`Save Failed`,
-                    );
-                    return;
-                }
-
-                themeToSave.useIframe = true;
-                themeToSave.html = section.querySelector(
-                    "#ti_player_theme_html",
-                ).value;
-                themeToSave.iframeCSS = section.querySelector(
-                    "#ti_player_theme_iframe_css",
-                ).value;
-                themeToSave.iframeJS = section.querySelector(
-                    "#ti_player_theme_iframe_js",
-                ).value;
-
-                const sizesText = section
-                    .querySelector("#ti_player_theme_iframe_sizes")
-                    .value.trim();
-                if (sizesText) {
-                    try {
-                        themeToSave.sizes = JSON.parse(sizesText);
-                    } catch (e) {
-                        toastr.error(
-                            t`Could not parse Sizes configuration, please check the format.`,
-                            t`Save Failed`,
-                        );
-                        return;
-                    }
-                } else {
-                    delete themeToSave.sizes;
-                }
-
-                iframeCache.delete(themeToSave.id);
-                saveSettingsDebounced();
-                populatePlayerThemes();
-                populateThemes();
-                toastr.success(t`Theme "${themeToSave.name}" saved.`);
-
-                if (settings.playerEnabled) {
-                    reloadPlayer();
-                }
-            });
-
-        section
-            .querySelector("#ti_player_theme_add")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const n = prompt(t`Theme Name`);
-                if (n) {
-                    const newTheme = {
-                        id: Date.now().toString(),
-                        name:
-                            n.startsWith(t`Player`) || n.startsWith("Player")
-                                ? n
-                                : `${t`Player`}-${n}`,
-                        useIframe: true,
-                        html: `<div>${t`Player Theme`}</div>`,
-                        iframeCSS: "",
-                        iframeJS: "",
-                    };
-                    settings.themes.push(newTheme);
-                    settings.selectedPlayerThemeId = newTheme.id;
-                    populatePlayerThemes();
-                    populateThemes();
-                    saveSettingsDebounced();
-                }
-            });
-
-        section
-            .querySelector("#ti_player_theme_rename")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const theme = settings.themes.find(
-                    (t) => t.id === settings.selectedPlayerThemeId,
-                );
-                if (!theme) return;
-
-                const newName = prompt(
-                    t`Enter new name for theme:`,
-                    theme.name,
-                );
-                if (newName && newName.trim() !== "") {
-                    theme.name = newName.trim();
-                    populatePlayerThemes();
-                    populateThemes();
-                    saveSettingsDebounced();
-                    toastr.success(t`Theme renamed successfully!`);
-                }
-            });
-
-        section
-            .querySelector("#ti_player_theme_del")
-            .addEventListener("click", () => {
-                const settings = getSettings();
-                const themeToDelete = settings.themes.find(
-                    (theme) => theme.id === playerThemeSelect.value,
-                );
-                if (
-                    confirm(
-                        t`Are you sure you want to delete the player theme "${themeToDelete?.name}"?`,
-                    )
-                ) {
-                    settings.themes = settings.themes.filter(
-                        (th) => th.id !== themeToDelete.id,
-                    );
-                    const remainingPlayerThemes = settings.themes.filter(
-                        (t) =>
-                            t.name.startsWith("播放器") ||
-                            t.name.startsWith("Player"),
-                    );
-                    settings.selectedPlayerThemeId =
-                        remainingPlayerThemes.length > 0
-                            ? remainingPlayerThemes[0].id
-                            : null;
-                    populatePlayerThemes();
-                    populateThemes();
-                    saveSettingsDebounced();
-                    if (
-                        settings.playerEnabled &&
-                        remainingPlayerThemes.length === 0
-                    ) {
-                        settings.playerEnabled = false;
-                        section.querySelector("#ti_player_enabled").checked =
-                            false;
-                        section.querySelector(
-                            "#ti_player_controls",
-                        ).style.display = "none";
-                        hidePlayer();
-                        toastr.warning(
-                            t`No player themes available, the player has been disabled.`,
-                        );
-                    }
-                }
-            });
-
-        section
-            .querySelector("#ti_player_theme_import")
-            .addEventListener("click", () =>
-                createImportHandler(
-                    "theme",
-                    getSettings().themes,
-                    () => {
-                        populatePlayerThemes();
-                        populateThemes();
-                    },
-                    (id) => {
-                        getSettings().selectedPlayerThemeId = id;
-                    },
-                ),
-            );
-        section
-            .querySelector("#ti_player_theme_export")
-            .addEventListener("click", () =>
-                createExportHandler(
-                    "theme",
-                    getSettings().themes,
-                    getSettings().selectedPlayerThemeId,
-                ),
-            );
-
-        const formatSizesButton = section.querySelector(
-            "#ti_player_format_iframe_sizes",
-        );
-        const sizesTextarea = section.querySelector(
-            "#ti_player_theme_iframe_sizes",
-        );
-
-        if (formatSizesButton && sizesTextarea) {
-            formatSizesButton.addEventListener("click", () => {
-                const text = sizesTextarea.value.trim();
-                const defaultSizesJsonString = JSON.stringify(
-                    {
-                        draggable: {
-                            width: "90vw",
-                            height: "110px",
-                            maxWidth: "320px",
-                        },
-                    },
-                    null,
-                    2,
-                );
-
-                if (!text) {
-                    sizesTextarea.value = defaultSizesJsonString;
-                    validatePlayerSizesJson();
-                    toastr.success(
-                        t`Default size examples have been filled in.`,
-                        "",
-                        {
-                            timeOut: 1000,
-                        },
-                    );
-                    return;
-                }
-
-                try {
-                    const parsed = JSON.parse(text);
-                    sizesTextarea.value = JSON.stringify(parsed, null, 2);
-                    validatePlayerSizesJson();
-                    toastr.success(t`JSON has been formatted.`, "", {
-                        timeOut: 1000,
-                    });
-                } catch (e) {
-                    validatePlayerSizesJson();
-                    toastr.error(
-                        t`JSON format is incorrect, cannot format!`,
-                        "",
-                        {
-                            timeOut: 2000,
-                        },
-                    );
-                }
-            });
-
-            sizesTextarea.addEventListener("input", validatePlayerSizesJson);
+          }
+        } else {
+          previewTheme.css = document.getElementById("ti_theme_css").value;
         }
-    }
 
-    // 导入导出处理器
-    function createImportHandler(type, list, populateFn, onImported) {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "application/json,.json";
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                try {
-                    const imported = JSON.parse(event.target.result);
-                    let validation = false;
-                    if (type === "theme") {
-                        validation =
-                            imported.name &&
-                            ((!imported.useIframe && imported.css) ||
-                                (imported.useIframe && imported.html));
-                    } else {
-                        validation = imported.name && imported.text;
-                    }
-                    if (!validation)
-                        throw new Error(t`Invalid ${type} format.`);
+        previewArea.innerHTML = "";
+        const oldPreviewStyle = document.getElementById("temp_preview_style");
+        if (oldPreviewStyle) oldPreviewStyle.remove();
 
-                    const newItem = {
-                        id: imported.id || Date.now().toString(),
-                        name: imported.name,
-                    };
+        const previewIndicator = document.createElement("div");
+        previewIndicator.className = "typing_indicator";
+        previewIndicator.style.position = "relative";
 
-                    if (type === "theme") {
-                        newItem.useIframe = imported.useIframe || false;
-                        if (newItem.useIframe) {
-                            newItem.html = imported.html || "";
-                            newItem.iframeCSS = imported.iframeCSS || "";
-                            newItem.iframeJS = imported.iframeJS || "";
-                            if (
-                                imported.sizes &&
-                                typeof imported.sizes === "object" &&
-                                !Array.isArray(imported.sizes)
-                            ) {
-                                newItem.sizes = imported.sizes;
-                            }
-                        } else {
-                            newItem.css = imported.css || "";
-                        }
-                    } else {
-                        newItem.text = imported.text;
-                    }
+        const previewCharName = getCurrentCharName();
+        const previewUserName = getCurrentUserName();
+        const previewAvatarUrls = getAvatarUrls();
 
-                    const existingIndex = list.findIndex(
-                        (item) => item.id === newItem.id,
-                    );
-                    if (existingIndex !== -1) {
-                        list[existingIndex] = newItem;
-                    } else {
-                        list.push(newItem);
-                    }
+        if (previewTheme.useIframe) {
+          previewIndicator.classList.add("iframe-theme");
 
-                    if (type === "theme") {
-                        updateGlobalDefs(newItem);
-                    }
-
-                    onImported(newItem.id);
-                    populateFn();
-                    saveSettingsDebounced();
-                    toastr.success(
-                        type === "theme"
-                            ? t`Theme "${newItem.name}" imported.`
-                            : t`Preset "${newItem.name}" imported.`,
-                    );
-                } catch (error) {
-                    toastr.error(
-                        type === "theme"
-                            ? t`Failed to import theme: ${error.message}`
-                            : t`Failed to import preset: ${error.message}`,
-                    );
-                }
+          const defaultIframeSizes = {
+            floating_bottom: { width: "320px", height: "110px" },
+            chat_center: { width: "350px", height: "120px" },
+            draggable: { width: "320px", height: "110px" },
+          };
+          const themeSizes = previewTheme.sizes || defaultIframeSizes;
+          const size = themeSizes.draggable ||
+            themeSizes.floating_bottom ||
+            themeSizes.chat_center || {
+              width: "320px",
+              height: "110px",
             };
-            reader.readAsText(file);
-        };
-        input.click();
-    }
 
-    function createExportHandler(type, list, selectedId) {
-        const item = list.find((i) => i.id === selectedId);
-        if (!item) return;
-        const exportItem = { ...item };
-        exportItem._metadata = {
-            exportedAt: new Date().toISOString(),
-            exportedBy: "SillyTavern Typing Indicator Themes Extension",
-        };
-        const blob = new Blob([JSON.stringify(exportItem, null, 2)], {
-            type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
+          previewIndicator.style.width = size.width || "auto";
+          previewIndicator.style.height = size.height || "auto";
+          if (size.maxWidth) previewIndicator.style.maxWidth = size.maxWidth;
+          if (size.maxHeight) previewIndicator.style.maxHeight = size.maxHeight;
+          previewIndicator.style.resize = "none";
+          previewIndicator.style.overflow = "hidden";
 
-        let fileName = item.name.replace(/[\\/*?:"<>|]/g, "_");
-        let suffix = "";
+          const wrapper = document.createElement("div");
+          wrapper.style.cssText =
+            "display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;";
 
-        if (type === "theme") {
-            suffix = item.useIframe ? " [iframe]" : " [CSS]";
-        } else if (type === "preset") {
-            suffix = " [Preset]";
+          wrapper.appendChild(previewIndicator);
+          previewArea.appendChild(wrapper);
+
+          setTimeout(() => {
+            const previewAreaWidth = previewArea.clientWidth;
+            const previewAreaHeight = previewArea.clientHeight;
+            const themeWidth = previewIndicator.offsetWidth;
+            const themeHeight = previewIndicator.offsetHeight;
+
+            if (themeWidth > 0 && themeHeight > 0) {
+              const scaleX = previewAreaWidth / themeWidth;
+              const scaleY = previewAreaHeight / themeHeight;
+              const scale = Math.min(scaleX, scaleY, 1);
+
+              if (scale < 1) {
+                previewIndicator.style.transform = `scale(${scale})`;
+                previewIndicator.style.transformOrigin = "center center";
+              }
+            }
+          }, 0);
+
+          createUnifiedIframeOriginal(
+            previewTheme,
+            previewIndicator,
+            previewCharName,
+          );
+        } else {
+          previewArea.appendChild(previewIndicator);
+          previewIndicator.style.margin = "0 auto";
+
+          const textPreset =
+            settings.textPresets.find(
+              (p) => p.id === section.querySelector("#ti_preset_select").value,
+            ) || settings.textPresets[0];
+
+          let htmlContent = (textPreset.text || "正在输入...")
+            .replace(/\$\{name2\}/g, previewCharName)
+            .replace(/\{\{char\}\}/g, previewCharName)
+            .replace(/\{\{user\}\}/g, previewUserName)
+            .replace(/\{\{char_avatar_url\}\}/g, previewAvatarUrls.char)
+            .replace(/\{\{user_avatar_url\}\}/g, previewAvatarUrls.user)
+            .replace(
+              /\{\{char_avatar\}\}/g,
+              `<img class="typing-indicator-avatar" src="${previewAvatarUrls.char}">`,
+            )
+            .replace(
+              /\{\{user_avatar\}\}/g,
+              `<img class="typing-indicator-avatar" src="${previewAvatarUrls.user}">`,
+            );
+
+          const defsRegex = /<defs>([\s\S]*?)<\/defs>/i;
+          const match = htmlContent.match(defsRegex);
+          if (match && match[0]) {
+            updateGlobalDefs({
+              name: "preview-theme",
+              text: match[0],
+            });
+            htmlContent = htmlContent.replace(match[0], "");
+          }
+
+          previewIndicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
+
+          const previewStyle = document.createElement("style");
+          previewStyle.id = "temp_preview_style";
+          let scopedCss = (previewTheme.css || "").replace(
+            /\.typing_indicator/g,
+            "#theme_preview_area .typing_indicator",
+          );
+          previewStyle.innerHTML = scopedCss;
+          document.head.appendChild(previewStyle);
+        }
+      });
+
+    section.querySelector("#ti_theme_import").addEventListener("click", () =>
+      createImportHandler(
+        "theme",
+        getSettings().themes,
+        populateThemes,
+        (id) => {
+          getSettings().selectedThemeId = id;
+          applyTheme(id);
+        },
+      ),
+    );
+    section
+      .querySelector("#ti_theme_export")
+      .addEventListener("click", () =>
+        createExportHandler(
+          "theme",
+          getSettings().themes,
+          getSettings().selectedThemeId,
+        ),
+      );
+
+    const formatSizesButton = section.querySelector("#ti_format_iframe_sizes");
+    const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
+
+    if (formatSizesButton && sizesTextarea) {
+      formatSizesButton.addEventListener("click", () => {
+        const text = sizesTextarea.value.trim();
+        const defaultSizesJsonString = JSON.stringify(
+          {
+            floating_bottom: {
+              width: "90vw",
+              height: "110px",
+              maxWidth: "320px",
+            },
+            chat_center: {
+              width: "90vw",
+              height: "120px",
+              maxWidth: "350px",
+            },
+            draggable: {
+              width: "90vw",
+              height: "110px",
+              maxWidth: "320px",
+            },
+          },
+          null,
+          2,
+        );
+
+        if (!text) {
+          sizesTextarea.value = defaultSizesJsonString;
+          validateSizesJson();
+          toastr.success(t`Default size examples have been filled in.`, "", {
+            timeOut: 1000,
+          });
+          return;
         }
 
-        fileName += suffix;
-        a.download = `${fileName}.json`;
+        try {
+          const parsed = JSON.parse(text);
+          sizesTextarea.value = JSON.stringify(parsed, null, 2);
+          validateSizesJson();
+          toastr.success(t`JSON has been formatted.`, "", {
+            timeOut: 1000,
+          });
+        } catch (e) {
+          validateSizesJson();
+          toastr.error(t`JSON format is incorrect, cannot format!`, "", {
+            timeOut: 2000,
+          });
+        }
+      });
 
-        a.click();
-        URL.revokeObjectURL(url);
-        a.remove();
+      sizesTextarea.addEventListener("input", validateSizesJson);
+    }
+  }
+
+  function setupPlayerThemeEventListeners() {
+    const playerThemeSelect = section.querySelector("#ti_player_theme_select");
+
+    if (!playerThemeSelect) return;
+
+    playerThemeSelect.addEventListener("change", () => {
+      const settings = getSettings();
+      settings.selectedPlayerThemeId = playerThemeSelect.value;
+      saveSettingsDebounced();
+
+      const selectedTheme = settings.themes.find(
+        (t) => t.id === settings.selectedPlayerThemeId,
+      );
+      if (selectedTheme) {
+        requestAnimationFrame(() => updatePlayerEditorMode(selectedTheme));
+      }
+
+      if (settings.playerEnabled) {
+        reloadPlayer();
+      }
+    });
+
+    section
+      .querySelector("#ti_player_theme_save")
+      .addEventListener("click", () => {
+        const settings = getSettings();
+        const themeToSave = settings.themes.find(
+          (theme) => theme.id === playerThemeSelect.value,
+        );
+        if (!themeToSave) return;
+
+        if (!validatePlayerSizesJson()) {
+          toastr.error(
+            t`The JSON format for Sizes configuration is incorrect, please fix it!`,
+            t`Save Failed`,
+          );
+          return;
+        }
+
+        themeToSave.useIframe = true;
+        themeToSave.html = section.querySelector("#ti_player_theme_html").value;
+        themeToSave.iframeCSS = section.querySelector(
+          "#ti_player_theme_iframe_css",
+        ).value;
+        themeToSave.iframeJS = section.querySelector(
+          "#ti_player_theme_iframe_js",
+        ).value;
+
+        const sizesText = section
+          .querySelector("#ti_player_theme_iframe_sizes")
+          .value.trim();
+        if (sizesText) {
+          try {
+            themeToSave.sizes = JSON.parse(sizesText);
+          } catch (e) {
+            toastr.error(
+              t`Could not parse Sizes configuration, please check the format.`,
+              t`Save Failed`,
+            );
+            return;
+          }
+        } else {
+          delete themeToSave.sizes;
+        }
+
+        iframeCache.delete(themeToSave.id);
+        saveSettingsDebounced();
+        populatePlayerThemes();
+        populateThemes();
+        toastr.success(t`Theme "${themeToSave.name}" saved.`);
+
+        if (settings.playerEnabled) {
+          reloadPlayer();
+        }
+      });
+
+    section
+      .querySelector("#ti_player_theme_add")
+      .addEventListener("click", () => {
+        const settings = getSettings();
+        const n = prompt(t`Theme Name`);
+        if (n) {
+          const newTheme = {
+            id: Date.now().toString(),
+            name:
+              n.startsWith(t`Player`) || n.startsWith("Player")
+                ? n
+                : `${t`Player`}-${n}`,
+            useIframe: true,
+            html: `<div>${t`Player Theme`}</div>`,
+            iframeCSS: "",
+            iframeJS: "",
+          };
+          settings.themes.push(newTheme);
+          settings.selectedPlayerThemeId = newTheme.id;
+          populatePlayerThemes();
+          populateThemes();
+          saveSettingsDebounced();
+        }
+      });
+
+    section
+      .querySelector("#ti_player_theme_rename")
+      .addEventListener("click", () => {
+        const settings = getSettings();
+        const theme = settings.themes.find(
+          (t) => t.id === settings.selectedPlayerThemeId,
+        );
+        if (!theme) return;
+
+        const newName = prompt(t`Enter new name for theme:`, theme.name);
+        if (newName && newName.trim() !== "") {
+          theme.name = newName.trim();
+          populatePlayerThemes();
+          populateThemes();
+          saveSettingsDebounced();
+          toastr.success(t`Theme renamed successfully!`);
+        }
+      });
+
+    section
+      .querySelector("#ti_player_theme_del")
+      .addEventListener("click", () => {
+        const settings = getSettings();
+        const themeToDelete = settings.themes.find(
+          (theme) => theme.id === playerThemeSelect.value,
+        );
+        if (
+          confirm(
+            t`Are you sure you want to delete the player theme "${themeToDelete?.name}"?`,
+          )
+        ) {
+          settings.themes = settings.themes.filter(
+            (th) => th.id !== themeToDelete.id,
+          );
+          const remainingPlayerThemes = settings.themes.filter(
+            (t) => t.name.startsWith("播放器") || t.name.startsWith("Player"),
+          );
+          settings.selectedPlayerThemeId =
+            remainingPlayerThemes.length > 0
+              ? remainingPlayerThemes[0].id
+              : null;
+          populatePlayerThemes();
+          populateThemes();
+          saveSettingsDebounced();
+          if (settings.playerEnabled && remainingPlayerThemes.length === 0) {
+            settings.playerEnabled = false;
+            section.querySelector("#ti_player_enabled").checked = false;
+            section.querySelector("#ti_player_controls").style.display = "none";
+            hidePlayer();
+            toastr.warning(
+              t`No player themes available, the player has been disabled.`,
+            );
+          }
+        }
+      });
+
+    section
+      .querySelector("#ti_player_theme_import")
+      .addEventListener("click", () =>
+        createImportHandler(
+          "theme",
+          getSettings().themes,
+          () => {
+            populatePlayerThemes();
+            populateThemes();
+          },
+          (id) => {
+            getSettings().selectedPlayerThemeId = id;
+          },
+        ),
+      );
+    section
+      .querySelector("#ti_player_theme_export")
+      .addEventListener("click", () =>
+        createExportHandler(
+          "theme",
+          getSettings().themes,
+          getSettings().selectedPlayerThemeId,
+        ),
+      );
+
+    const formatSizesButton = section.querySelector(
+      "#ti_player_format_iframe_sizes",
+    );
+    const sizesTextarea = section.querySelector(
+      "#ti_player_theme_iframe_sizes",
+    );
+
+    if (formatSizesButton && sizesTextarea) {
+      formatSizesButton.addEventListener("click", () => {
+        const text = sizesTextarea.value.trim();
+        const defaultSizesJsonString = JSON.stringify(
+          {
+            draggable: {
+              width: "90vw",
+              height: "110px",
+              maxWidth: "320px",
+            },
+          },
+          null,
+          2,
+        );
+
+        if (!text) {
+          sizesTextarea.value = defaultSizesJsonString;
+          validatePlayerSizesJson();
+          toastr.success(t`Default size examples have been filled in.`, "", {
+            timeOut: 1000,
+          });
+          return;
+        }
+
+        try {
+          const parsed = JSON.parse(text);
+          sizesTextarea.value = JSON.stringify(parsed, null, 2);
+          validatePlayerSizesJson();
+          toastr.success(t`JSON has been formatted.`, "", {
+            timeOut: 1000,
+          });
+        } catch (e) {
+          validatePlayerSizesJson();
+          toastr.error(t`JSON format is incorrect, cannot format!`, "", {
+            timeOut: 2000,
+          });
+        }
+      });
+
+      sizesTextarea.addEventListener("input", validatePlayerSizesJson);
+    }
+  }
+
+  // 导入导出处理器
+  function createImportHandler(type, list, populateFn, onImported) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json,.json";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          let validation = false;
+          if (type === "theme") {
+            validation =
+              imported.name &&
+              ((!imported.useIframe && imported.css) ||
+                (imported.useIframe && imported.html));
+          } else {
+            validation = imported.name && imported.text;
+          }
+          if (!validation) throw new Error(t`Invalid ${type} format.`);
+
+          const newItem = {
+            id: imported.id || Date.now().toString(),
+            name: imported.name,
+          };
+
+          if (type === "theme") {
+            newItem.useIframe = imported.useIframe || false;
+            if (newItem.useIframe) {
+              newItem.html = imported.html || "";
+              newItem.iframeCSS = imported.iframeCSS || "";
+              newItem.iframeJS = imported.iframeJS || "";
+              if (
+                imported.sizes &&
+                typeof imported.sizes === "object" &&
+                !Array.isArray(imported.sizes)
+              ) {
+                newItem.sizes = imported.sizes;
+              }
+            } else {
+              newItem.css = imported.css || "";
+            }
+          } else {
+            newItem.text = imported.text;
+          }
+
+          const existingIndex = list.findIndex(
+            (item) => item.id === newItem.id,
+          );
+          if (existingIndex !== -1) {
+            list[existingIndex] = newItem;
+          } else {
+            list.push(newItem);
+          }
+
+          if (type === "theme") {
+            updateGlobalDefs(newItem);
+          }
+
+          onImported(newItem.id);
+          populateFn();
+          saveSettingsDebounced();
+          toastr.success(
+            type === "theme"
+              ? t`Theme "${newItem.name}" imported.`
+              : t`Preset "${newItem.name}" imported.`,
+          );
+        } catch (error) {
+          toastr.error(
+            type === "theme"
+              ? t`Failed to import theme: ${error.message}`
+              : t`Failed to import preset: ${error.message}`,
+          );
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  function createExportHandler(type, list, selectedId) {
+    const item = list.find((i) => i.id === selectedId);
+    if (!item) return;
+    const exportItem = { ...item };
+    exportItem._metadata = {
+      exportedAt: new Date().toISOString(),
+      exportedBy: "SillyTavern Typing Indicator Themes Extension",
+    };
+    const blob = new Blob([JSON.stringify(exportItem, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+
+    let fileName = item.name.replace(/[\\/*?:"<>|]/g, "_");
+    let suffix = "";
+
+    if (type === "theme") {
+      suffix = item.useIframe ? " [iframe]" : " [CSS]";
+    } else if (type === "preset") {
+      suffix = " [Preset]";
     }
 
-    render();
-    return render;
+    fileName += suffix;
+    a.download = `${fileName}.json`;
+
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+  }
+
+  render();
+  return render;
 }
 
 // ==================== 事件监听器设置 ====================
 
 (function () {
-    let isPageVisible = true;
+  let isPageVisible = true;
 
-    document.addEventListener("visibilitychange", () => {
-        isPageVisible = !document.hidden;
+  document.addEventListener("visibilitychange", () => {
+    isPageVisible = !document.hidden;
 
-        if (isPageVisible) {
-            debugLog("[Performance] 页面已显示。");
-        } else {
-            debugLog("[Performance] 页面已隐藏，更新操作暂停。");
-            if (bubbleRenderScheduled) {
-                bubbleRenderQueue.clear();
-                bubbleRenderScheduled = false;
-            }
-        }
-    });
-    document.addEventListener("click", function (event) {
-        const target = event.target.closest(".music-bubble-from-regex");
-        if (target) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            const bubbleTitle = target.dataset.title;
-            const bubbleArtist = target.dataset.artist;
-            const isCurrentTrack = fuzzyMatchTrack(
-                bubbleTitle,
-                bubbleArtist,
-                currentPlayerTrack,
-            );
-
-            if (isCurrentTrack) {
-                const playerIframe = document.querySelector(
-                    "#music_player .theme-iframe",
-                );
-                if (playerIframe && playerIframe.contentWindow) {
-                    playerIframe.contentWindow.postMessage(
-                        {
-                            source: "typing-indicator-host",
-                            type: "toggle-playback",
-                        },
-                        "*",
-                    );
-                }
-                return;
-            }
-            const songData = {
-                title: bubbleTitle,
-                artist: bubbleArtist,
-            };
-
-            console.log(
-                "[Typing Indicator Music] 音乐泡泡点击了，发送播放请求:",
-                songData,
-            );
-            handleSongPlayRequest(songData);
-        }
-    });
-
-    loadScript("https://cdn.jsdelivr.net/npm/acorn/dist/acorn.min.js");
-    const themeShutdownTimeouts = {};
-
-    async function appendNewSongs(messageId) {
-        const newSongs = await findSongsInMessage(messageId);
-        if (newSongs.length > 0) {
-            console.log(
-                `[Typing Indicator Music] Found ${newSongs.length} new songs in message ${messageId}.`,
-            );
-            const playerIframe = document.querySelector(
-                "#music_player .theme-iframe",
-            );
-            if (playerIframe && playerIframe.contentWindow) {
-                playerIframe.contentWindow.postMessage(
-                    {
-                        source: "typing-indicator-host",
-                        type: "append-songs-to-playlist",
-                        data: newSongs,
-                    },
-                    "*",
-                );
-            }
-        }
+    if (isPageVisible) {
+      debugLog("[Performance] 页面已显示。");
+    } else {
+      debugLog("[Performance] 页面已隐藏，更新操作暂停。");
+      if (bubbleRenderScheduled) {
+        bubbleRenderQueue.clear();
+        bubbleRenderScheduled = false;
+      }
     }
+  });
+  document.addEventListener("click", function (event) {
+    const target = event.target.closest(".music-bubble-from-regex");
+    if (target) {
+      event.preventDefault();
+      event.stopPropagation();
 
-    window.addEventListener("message", (event) => {
-        if (
-            event.data?.source !== "typing-indicator-host" &&
-            event.data?.source !== "typing-indicator-theme"
-        ) {
-            return;
-        }
+      const bubbleTitle = target.dataset.title;
+      const bubbleArtist = target.dataset.artist;
+      const isCurrentTrack = fuzzyMatchTrack(
+        bubbleTitle,
+        bubbleArtist,
+        currentPlayerTrack,
+      );
 
-        const { type, data, themeId, containerId } = event.data;
-        if (event.data.source === "typing-indicator-theme") {
-            if (type === "player-initialized") {
-                isPlayerInitialized = true;
-                debugLog("[TypingIndicator] ✓ 播放器已就绪");
-                return;
-            }
-            if (type === "cache-track-data") {
-                if (data) {
-                    const {
-                        title,
-                        artist,
-                        trackData,
-                        audioUrl,
-                        lyricsContent,
-                        tlyricContent,
-                        coverUrl,
-                    } = data;
-
-                    console.log("[缓存回写] 收到播放器数据:", {
-                        title,
-                        artist,
-                        id: trackData?.id,
-                    });
-                    if (title && artist && trackData) {
-                        MusicCache.setSearch(title, artist, trackData);
-                        console.log("[缓存回写] ✓ 写入搜索缓存");
-                    }
-                    if (trackData?.id && trackData?.source) {
-                        if (audioUrl) {
-                            MusicCache.setAudio(
-                                trackData.id,
-                                trackData.source,
-                                audioUrl,
-                            );
-                            console.log("[缓存回写] ✓ 写入音频缓存");
-                        }
-                        if (lyricsContent) {
-                            MusicCache.setLyrics(
-                                trackData.id,
-                                trackData.source,
-                                lyricsContent,
-                                tlyricContent || "",
-                            );
-                            console.log("[缓存回写] ✓ 写入歌词缓存");
-                        }
-                        if (coverUrl) {
-                            MusicCache.setCover(
-                                trackData.id,
-                                trackData.source,
-                                coverUrl,
-                            );
-                            console.log("[缓存回写] ✓ 写入封面缓存");
-                        }
-                    }
-                }
-                return;
-            }
-            if (type === "register-stateful-theme" && themeId) {
-                statefulThemes.add(themeId);
-                return;
-            }
-            if (type === "request-chat-scan") {
-                console.log("[Typing Indicator] 收到扫描聊天记录请求");
-                if (!containerId) {
-                    console.warn(
-                        "[TypingIndicator] request-chat-scan: containerId 缺失，跳过处理",
-                    );
-                    return;
-                }
-                scanChatForSongs()
-                    .then((songs) => {
-                        debugLog(
-                            `[Typing Indicator] 扫描完成，找到 ${songs.length} 首歌曲`,
-                            songs,
-                        );
-
-                        if (songs.length > 0) {
-                            const iframe = document.querySelector(
-                                `#${containerId} .theme-iframe`,
-                            );
-                            if (iframe && iframe.contentWindow) {
-                                queuePostMessage(
-                                    iframe.contentWindow,
-                                    {
-                                        source: "typing-indicator-host",
-                                        type: "append-songs-to-playlist",
-                                        data: songs,
-                                    },
-                                    "*",
-                                );
-                            }
-                        } else {
-                            toastr.info(
-                                t`No BGM tags found in chat history`,
-                                "",
-                                { timeOut: 2000 },
-                            );
-                        }
-                    })
-                    .catch((err) => {
-                        console.error("[Typing Indicator] 扫描失败:", err);
-                        toastr.error(t`Scan failed`, "", { timeOut: 2000 });
-                    });
-            }
-
-            if (type === "set-overlay-mode") {
-                isCurrentIndicatorOverlay = true;
-                const indicator = document.getElementById("typing_indicator");
-                if (indicator) {
-                    const settings = getSettings();
-                    const isDraggableAndUnlocked =
-                        settings.position === "draggable" &&
-                        !settings.customPosition.locked;
-                    const pointerEventsValue = isDraggableAndUnlocked
-                        ? "auto"
-                        : "none";
-                    indicator.style.pointerEvents = pointerEventsValue;
-                    const iframe = indicator.querySelector(".theme-iframe");
-                    if (iframe) iframe.style.pointerEvents = pointerEventsValue;
-                }
-                return;
-            }
-            if (type === "set-shutdown-timeout" && themeId) {
-                const duration = parseInt(data.duration, 10);
-                if (duration > 200 && duration <= 5000)
-                    themeShutdownTimeouts[themeId] = duration;
-                return;
-            }
-            if (!themeId || themeId === "preview") return;
-
-            if (!extension_settings[MODULE].themeData)
-                extension_settings[MODULE].themeData = {};
-            if (!extension_settings[MODULE].themeData[themeId])
-                extension_settings[MODULE].themeData[themeId] = {};
-
-            switch (type) {
-                case "request-data":
-                    const savedData =
-                        extension_settings[MODULE].themeData[themeId] || {};
-                    if (event.source) {
-                        event.source.postMessage(
-                            {
-                                source: "typing-indicator-host",
-                                type: "data-response",
-                                data: savedData,
-                            },
-                            event.origin,
-                        );
-                    }
-                    break;
-                case "save-data":
-                    extension_settings[MODULE].themeData[themeId] = data;
-                    saveSettingsDebounced();
-                    break;
-                case "resize-iframe":
-                    if (containerId) {
-                        const elementToResize =
-                            document.getElementById(containerId);
-                        if (
-                            elementToResize &&
-                            data &&
-                            data.width &&
-                            data.height
-                        ) {
-                            elementToResize.style.transition =
-                                "width 0.4s cubic-bezier(0.25, 1, 0.5, 1), height 0.4s cubic-bezier(0.25, 1, 0.5, 1)";
-                            elementToResize.style.width = data.width;
-                            elementToResize.style.height = data.height;
-                        }
-                    }
-                    break;
-                case "play-bgm-from-regex":
-                    if (data) {
-                        handleSongPlayRequest(data);
-                    }
-                    break;
-                case "playback-state-changed":
-                    if (data) {
-                        const { isPlaying, currentTrack, lyrics } = data;
-                        if (isPlaying && currentTrack) {
-                            startListeningSession();
-                            startStatsUpdateTimer();
-                        } else if (!isPlaying) {
-                            settleListeningTime("paused");
-                            listeningSession.isPlaying = false;
-                            stopStatsUpdateTimer();
-                            if (listeningStatsUpdateCallback) {
-                                listeningStatsUpdateCallback();
-                            }
-                        }
-                        const settings = getSettings();
-                        if (settings.lyricsEnabled) {
-                            if (isPlaying && currentTrack) {
-                                const isNewTrack =
-                                    !currentPlayerTrack ||
-                                    currentTrack.name !==
-                                        currentPlayerTrack?.name;
-
-                                if (isNewTrack) {
-                                    if (lyrics && lyrics.length > 0) {
-                                        currentLyrics = lyrics;
-                                        currentLyricIndex = -1;
-                                        showLyricsOverlay();
-                                        console.log(
-                                            `[Lyrics] ✓ 收到歌词: ${lyrics.length} 行`,
-                                        );
-                                    } else {
-                                        currentLyrics = [];
-                                        hideLyricsOverlay();
-                                        console.log(`[Lyrics] 该歌曲没有歌词`);
-                                    }
-                                }
-                            }
-                        }
-
-                        currentPlayerTrack = currentTrack;
-
-                        document
-                            .querySelectorAll(".music-bubble-from-regex")
-                            .forEach((el) => {
-                                const bubbleTitle = el.dataset.title;
-                                const bubbleArtist = el.dataset.artist;
-                                const matchesCurrent = fuzzyMatchTrack(
-                                    bubbleTitle,
-                                    bubbleArtist,
-                                    currentTrack,
-                                );
-
-                                if (matchesCurrent && isPlaying) {
-                                    el.classList.add("is-playing");
-                                } else {
-                                    el.classList.remove("is-playing");
-                                }
-                            });
-                    }
-                    break;
-
-                case "playback-progress":
-                    if (data) {
-                        const {
-                            currentTrack,
-                            progress,
-                            currentTime,
-                            duration,
-                            currentTimeRaw,
-                        } = data;
-
-                        document
-                            .querySelectorAll(
-                                ".music-bubble-from-regex.is-playing",
-                            )
-                            .forEach((el) => {
-                                const bubbleTitle = el.dataset.title;
-                                const bubbleArtist = el.dataset.artist;
-
-                                const matchesCurrent =
-                                    currentTrack &&
-                                    bubbleTitle === currentTrack.title &&
-                                    bubbleArtist === currentTrack.artist;
-
-                                if (matchesCurrent) {
-                                    const progressBar =
-                                        el.querySelector(".tp-progress-bar");
-                                    if (progressBar) {
-                                        progressBar.style.animation = "none";
-                                        progressBar.style.width = `${progress}%`;
-                                    }
-
-                                    const timeDisplay =
-                                        el.querySelector(".tp-time");
-                                    if (timeDisplay) {
-                                        timeDisplay.textContent = `${currentTime} / ${Math.round(
-                                            progress,
-                                        )}%`;
-                                    }
-                                }
-                            });
-
-                        if (typeof currentTimeRaw === "number") {
-                            updateLyricsDisplay(currentTimeRaw);
-                        }
-                    }
-                    break;
-
-                case "audio-playback-failed":
-                    if (data && data.id && data.source) {
-                        debugLog(
-                            "[TypingIndicator] 收到播放失败通知，重新获取音频URL...",
-                        );
-                        MusicCache.invalidateAudio(data.id, data.source);
-                        const sourceMap = {
-                            Netease: "netease",
-                            Tencent: "tencent",
-                            Kuwo: "kuwo",
-                        };
-                        const apiSource =
-                            sourceMap[data.source] || data.source.toLowerCase();
-
-                        fetch(
-                            `/api/plugins/g-player-proxy/song?id=${data.id}&source=${apiSource}`,
-                        )
-                            .then((res) => res.json())
-                            .then((songData) => {
-                                let newAudioUrl = "";
-
-                                if (songData.data) {
-                                    if (Array.isArray(songData.data)) {
-                                        newAudioUrl =
-                                            songData.data[0]?.url || "";
-                                    } else {
-                                        newAudioUrl = songData.data.url || "";
-                                    }
-                                }
-
-                                if (newAudioUrl) {
-                                    MusicCache.setAudio(
-                                        data.id,
-                                        data.source,
-                                        newAudioUrl,
-                                    );
-                                }
-                                const playerIframe = document.querySelector(
-                                    "#music_player .theme-iframe",
-                                );
-                                if (
-                                    playerIframe &&
-                                    playerIframe.contentWindow
-                                ) {
-                                    playerIframe.contentWindow.postMessage(
-                                        {
-                                            source: "typing-indicator-host",
-                                            type: "audio-url-refreshed",
-                                            data: {
-                                                audioUrl: newAudioUrl,
-                                                trackIndex: data.trackIndex,
-                                            },
-                                        },
-                                        "*",
-                                    );
-                                }
-                            })
-                            .catch((err) => {
-                                console.error(
-                                    "[TypingIndicator] 重新获取音频URL失败:",
-                                    err,
-                                );
-
-                                const playerIframe = document.querySelector(
-                                    "#music_player .theme-iframe",
-                                );
-                                if (
-                                    playerIframe &&
-                                    playerIframe.contentWindow
-                                ) {
-                                    playerIframe.contentWindow.postMessage(
-                                        {
-                                            source: "typing-indicator-host",
-                                            type: "audio-url-refreshed",
-                                            data: {
-                                                audioUrl: "",
-                                                trackIndex: data.trackIndex,
-                                            },
-                                        },
-                                        "*",
-                                    );
-                                }
-                            });
-                    }
-                    break;
-                case "player-expanding": {
-                    const player = document.getElementById("music_player");
-                    if (player) {
-                        const settings = getSettings();
-                        if (!playerOriginalPosition) {
-                            playerOriginalPosition = {
-                                x: settings.playerPosition.x,
-                                y: settings.playerPosition.y,
-                            };
-                        }
-                        player.style.transition =
-                            "left 0.3s ease, top 0.3s ease";
-                        player.style.left = `${window.innerWidth / 2}px`;
-                        player.style.top = `${window.innerHeight / 2}px`;
-                        player.style.transform = "translate(-50%, -50%)";
-
-                        setTimeout(() => {
-                            if (player) player.style.transition = "";
-                        }, 300);
-                    }
-                    break;
-                }
-
-                case "player-collapsing": {
-                    const player = document.getElementById("music_player");
-                    if (player && playerOriginalPosition) {
-                        player.style.transition =
-                            "left 0.3s ease, top 0.3s ease";
-                        player.style.left = `${(playerOriginalPosition.x / 100) * window.innerWidth}px`;
-                        player.style.top = `${(playerOriginalPosition.y / 100) * window.innerHeight}px`;
-                        player.style.transform = "translate(-50%, -50%)";
-
-                        setTimeout(() => {
-                            if (player) player.style.transition = "";
-                        }, 300);
-                        playerOriginalPosition = null;
-                    }
-                    break;
-                }
-                case "update-audio-cache":
-                    if (data && data.id && data.source && data.audioUrl) {
-                        console.log(
-                            "[缓存更新] 收到播放器的URL刷新通知:",
-                            data.id,
-                            data.source,
-                        );
-                        MusicCache.setAudio(
-                            data.id,
-                            data.source,
-                            data.audioUrl,
-                        );
-                        console.log("[缓存更新] ✓ 音频URL已更新");
-                    }
-                    break;
-            }
-        }
-    });
-
-    setupGlobalSvgDefs();
-    updateGlobalDefs();
-
-    window.ti_debug = {
-        eventSource: eventSource,
-        event_types: event_types,
-        triggerEnd: (msgId) => {
-            const finalId = typeof msgId === "number" ? msgId : chat.length - 1;
-            eventSource.emit(event_types.GENERATION_ENDED, finalId);
-        },
-    };
-
-    eventSource.on(
-        event_types.GENERATION_AFTER_COMMANDS,
-        (type, args, dryRun) => {
-            if (dryRun) return;
-            clearTimeout(dynamicThemeTimeoutId);
-            dynamicThemeTimeoutId = null;
-            accumulatedStreamedText = "";
-            if (currentDynamicThemeId) {
-                revertDynamicTheme("new_action_started");
-            }
-        },
-    );
-
-    eventSource.on(event_types.GENERATION_STARTED, (type, args, dryRun) => {
-        if (dryRun) return;
-        const settings = getSettings();
-        if (!settings.persistentMode) {
-            updateAndApplyTheme("generation_start_display");
-            showTypingIndicator(type, args, dryRun);
-        }
-    });
-
-    eventSource.on("stream_token_received", (token) => {
-        const settings = getSettings();
-        if (
-            settings.enabled &&
-            settings.enableDynamicThemes &&
-            isStreamingEnabled()
-        ) {
-            accumulatedStreamedText += token;
-            const themeName = parseThemeFromText(accumulatedStreamedText);
-            if (themeName) applyDynamicTheme(themeName);
-        }
-    });
-
-    eventSource.on(event_types.GENERATION_ENDED, (messageId) => {
-        const settings = getSettings();
-        if (settings.persistentMode) return;
-        const shouldHideDynamicThemeNow =
-            currentDynamicThemeId && settings.dynamicThemeDuration === 0;
-        if (
-            (!isStreamingEnabled() && !currentDynamicThemeId) ||
-            shouldHideDynamicThemeNow
-        ) {
-            if (shouldHideDynamicThemeNow) {
-                currentDynamicThemeId = null;
-                currentDynamicPresetId = null;
-            }
-            hideTypingIndicator();
-        }
-    });
-
-    eventSource.on(event_types.MESSAGE_RECEIVED, (messageId) => {
-        if (messageId === undefined || messageId === null || messageId === 0)
-            return;
-        appendNewSongs(messageId);
-    });
-
-    eventSource.on(event_types.MESSAGE_EDITED, (messageId) => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                const messageElement = document.querySelector(
-                    `#chat .mes[mesid="${messageId}"]`,
-                );
-                renderBgmBubblesDebounced(messageElement);
-            });
-        });
-    });
-
-    eventSource.on(event_types.MESSAGE_EDITED, async (messageId) => {
-        if (messageId === 0) {
-            buildAndSetInitialPlaylist();
-            return;
-        }
-        const updatedSongs = await findSongsInMessage(messageId);
+      if (isCurrentTrack) {
         const playerIframe = document.querySelector(
-            "#music_player .theme-iframe",
+          "#music_player .theme-iframe",
         );
         if (playerIframe && playerIframe.contentWindow) {
-            playerIframe.contentWindow.postMessage(
-                {
+          playerIframe.contentWindow.postMessage(
+            {
+              source: "typing-indicator-host",
+              type: "toggle-playback",
+            },
+            "*",
+          );
+        }
+        return;
+      }
+      const songData = {
+        title: bubbleTitle,
+        artist: bubbleArtist,
+      };
+
+      console.log(
+        "[Typing Indicator Music] 音乐泡泡点击了，发送播放请求:",
+        songData,
+      );
+      handleSongPlayRequest(songData);
+    }
+  });
+
+  loadScript("https://cdn.jsdelivr.net/npm/acorn/dist/acorn.min.js");
+  const themeShutdownTimeouts = {};
+
+  async function appendNewSongs(messageId) {
+    const newSongs = await findSongsInMessage(messageId);
+    if (newSongs.length > 0) {
+      console.log(
+        `[Typing Indicator Music] Found ${newSongs.length} new songs in message ${messageId}.`,
+      );
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (playerIframe && playerIframe.contentWindow) {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "append-songs-to-playlist",
+            data: newSongs,
+          },
+          "*",
+        );
+      }
+    }
+  }
+
+  window.addEventListener("message", (event) => {
+    if (
+      event.data?.source !== "typing-indicator-host" &&
+      event.data?.source !== "typing-indicator-theme"
+    ) {
+      return;
+    }
+
+    const { type, data, themeId, containerId } = event.data;
+    if (event.data.source === "typing-indicator-theme") {
+      if (type === "player-initialized") {
+        isPlayerInitialized = true;
+        debugLog("[TypingIndicator] ✓ 播放器已就绪");
+        return;
+      }
+      if (type === "cache-track-data") {
+        if (data) {
+          const {
+            title,
+            artist,
+            trackData,
+            audioUrl,
+            lyricsContent,
+            tlyricContent,
+            coverUrl,
+          } = data;
+
+          console.log("[缓存回写] 收到播放器数据:", {
+            title,
+            artist,
+            id: trackData?.id,
+          });
+          if (title && artist && trackData?.artist) {
+            const trackArtist = MusicCache._normalizeArtist(
+              trackData.artist,
+            ).toLowerCase();
+            const requestedArtist =
+              MusicCache._normalizeArtist(artist).toLowerCase();
+
+            const isMatch =
+              trackArtist.includes(requestedArtist) ||
+              requestedArtist.includes(trackArtist) ||
+              trackArtist === requestedArtist;
+
+            if (!isMatch) {
+              console.warn(
+                `[缓存回写] ⚠️ 歌手不匹配，拒绝缓存\n  期望: ${artist}\n  实际: ${trackData.artist}`,
+              );
+              return;
+            }
+          }
+          if (title && artist && trackData) {
+            MusicCache.setSearch(title, artist, trackData);
+            console.log("[缓存回写] ✓ 写入搜索缓存");
+          }
+          if (trackData?.id && trackData?.source) {
+            if (audioUrl) {
+              MusicCache.setAudio(trackData.id, trackData.source, audioUrl);
+              console.log("[缓存回写] ✓ 写入音频缓存");
+            }
+            if (lyricsContent) {
+              MusicCache.setLyrics(
+                trackData.id,
+                trackData.source,
+                lyricsContent,
+                tlyricContent || "",
+              );
+              console.log("[缓存回写] ✓ 写入歌词缓存");
+            }
+            if (coverUrl) {
+              MusicCache.setCover(trackData.id, trackData.source, coverUrl);
+              console.log("[缓存回写] ✓ 写入封面缓存");
+            }
+          }
+        }
+        return;
+      }
+      if (type === "register-stateful-theme" && themeId) {
+        statefulThemes.add(themeId);
+        return;
+      }
+      if (type === "request-chat-scan") {
+        console.log("[Typing Indicator] 收到扫描聊天记录请求");
+        if (!containerId) {
+          console.warn(
+            "[TypingIndicator] request-chat-scan: containerId 缺失，跳过处理",
+          );
+          return;
+        }
+        scanChatForSongs()
+          .then((songs) => {
+            debugLog(
+              `[Typing Indicator] 扫描完成，找到 ${songs.length} 首歌曲`,
+              songs,
+            );
+
+            if (songs.length > 0) {
+              const iframe = document.querySelector(
+                `#${containerId} .theme-iframe`,
+              );
+              if (iframe && iframe.contentWindow) {
+                queuePostMessage(
+                  iframe.contentWindow,
+                  {
                     source: "typing-indicator-host",
-                    type: "update-songs-from-message",
-                    data: { messageId, songs: updatedSongs },
-                },
-                "*",
-            );
-        }
-    });
-
-    eventSource.on(event_types.MESSAGE_UPDATED, (messageId) => {
-        requestAnimationFrame(() => {
-            const messageElement = document.querySelector(
-                `#chat .mes[mesid="${messageId}"]`,
-            );
-            renderBgmBubblesDebounced(messageElement);
-        });
-    });
-
-    eventSource.on(event_types.MESSAGE_SWIPED, (data) => {
-        const messageId = typeof data === "object" ? data.id : data;
-        requestAnimationFrame(() => {
-            const messageElement = document.querySelector(
-                `#chat .mes[mesid="${messageId}"]`,
-            );
-            renderBgmBubblesDebounced(messageElement);
-        });
-    });
-
-    let observerTimeout = null;
-    let lastObserverRun = 0;
-    const OBSERVER_THROTTLE = 250;
-
-    const chatObserver = new MutationObserver((mutations) => {
-        const settings = getSettings();
-        if (!settings.enableBubbleReplacement) return;
-        const now = Date.now();
-        if (now - lastObserverRun < OBSERVER_THROTTLE) {
-            return;
-        }
-
-        const messagesToProcess = new Set();
-
-        for (const mutation of mutations) {
-            if (mutation.type === "characterData") continue;
-
-            let targetMes = mutation.target.closest?.(".mes");
-            if (!targetMes && mutation.target.classList?.contains("mes")) {
-                targetMes = mutation.target;
+                    type: "append-songs-to-playlist",
+                    data: songs,
+                  },
+                  "*",
+                );
+              }
+            } else {
+              toastr.info(t`No BGM tags found in chat history`, "", {
+                timeOut: 2000,
+              });
             }
+          })
+          .catch((err) => {
+            console.error("[Typing Indicator] 扫描失败:", err);
+            toastr.error(t`Scan failed`, "", { timeOut: 2000 });
+          });
+      }
 
-            if (targetMes) {
-                const mesText = targetMes.querySelector(".mes_text");
-                if (
-                    mesText &&
-                    mesText.textContent.includes("[bgm]") &&
-                    mesText.textContent.includes("[/bgm]")
-                ) {
-                    messagesToProcess.add(targetMes);
+      if (type === "set-overlay-mode") {
+        isCurrentIndicatorOverlay = true;
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator) {
+          const settings = getSettings();
+          const isDraggableAndUnlocked =
+            settings.position === "draggable" &&
+            !settings.customPosition.locked;
+          const pointerEventsValue = isDraggableAndUnlocked ? "auto" : "none";
+          indicator.style.pointerEvents = pointerEventsValue;
+          const iframe = indicator.querySelector(".theme-iframe");
+          if (iframe) iframe.style.pointerEvents = pointerEventsValue;
+        }
+        return;
+      }
+      if (type === "set-shutdown-timeout" && themeId) {
+        const duration = parseInt(data.duration, 10);
+        if (duration > 200 && duration <= 5000)
+          themeShutdownTimeouts[themeId] = duration;
+        return;
+      }
+      if (!themeId || themeId === "preview") return;
+
+      if (!extension_settings[MODULE].themeData)
+        extension_settings[MODULE].themeData = {};
+      if (!extension_settings[MODULE].themeData[themeId])
+        extension_settings[MODULE].themeData[themeId] = {};
+
+      switch (type) {
+        case "request-data":
+          const savedData = extension_settings[MODULE].themeData[themeId] || {};
+          if (event.source) {
+            event.source.postMessage(
+              {
+                source: "typing-indicator-host",
+                type: "data-response",
+                data: savedData,
+              },
+              event.origin,
+            );
+          }
+          break;
+        case "save-data":
+          extension_settings[MODULE].themeData[themeId] = data;
+          saveSettingsDebounced();
+          break;
+        case "resize-iframe":
+          if (containerId) {
+            const elementToResize = document.getElementById(containerId);
+            if (elementToResize && data && data.width && data.height) {
+              elementToResize.style.transition =
+                "width 0.4s cubic-bezier(0.25, 1, 0.5, 1), height 0.4s cubic-bezier(0.25, 1, 0.5, 1)";
+              elementToResize.style.width = data.width;
+              elementToResize.style.height = data.height;
+            }
+          }
+          break;
+        case "play-bgm-from-regex":
+          if (data) {
+            handleSongPlayRequest(data);
+          }
+          break;
+        case "playback-state-changed":
+          if (data) {
+            const { isPlaying, currentTrack, lyrics } = data;
+            if (isPlaying && currentTrack) {
+              startListeningSession();
+              startStatsUpdateTimer();
+            } else if (!isPlaying) {
+              settleListeningTime("paused");
+              listeningSession.isPlaying = false;
+              stopStatsUpdateTimer();
+              if (listeningStatsUpdateCallback) {
+                listeningStatsUpdateCallback();
+              }
+            }
+            const settings = getSettings();
+            if (settings.lyricsEnabled) {
+              if (isPlaying && currentTrack) {
+                const isNewTrack =
+                  !currentPlayerTrack ||
+                  currentTrack.name !== currentPlayerTrack?.name;
+
+                if (isNewTrack) {
+                  if (lyrics && lyrics.length > 0) {
+                    currentLyrics = lyrics;
+                    currentLyricIndex = -1;
+                    showLyricsOverlay();
+                    console.log(`[Lyrics] ✓ 收到歌词: ${lyrics.length} 行`);
+                  } else {
+                    currentLyrics = [];
+                    hideLyricsOverlay();
+                    console.log(`[Lyrics] 该歌曲没有歌词`);
+                  }
                 }
+              }
             }
+
+            currentPlayerTrack = currentTrack;
+
+            document
+              .querySelectorAll(".music-bubble-from-regex")
+              .forEach((el) => {
+                const bubbleTitle = el.dataset.title;
+                const bubbleArtist = el.dataset.artist;
+                const matchesCurrent = fuzzyMatchTrack(
+                  bubbleTitle,
+                  bubbleArtist,
+                  currentTrack,
+                );
+
+                if (matchesCurrent && isPlaying) {
+                  el.classList.add("is-playing");
+                } else {
+                  el.classList.remove("is-playing");
+                }
+              });
+          }
+          break;
+
+        case "playback-progress":
+          if (data) {
+            const {
+              currentTrack,
+              progress,
+              currentTime,
+              duration,
+              currentTimeRaw,
+            } = data;
+
+            document
+              .querySelectorAll(".music-bubble-from-regex.is-playing")
+              .forEach((el) => {
+                const bubbleTitle = el.dataset.title;
+                const bubbleArtist = el.dataset.artist;
+
+                const matchesCurrent =
+                  currentTrack &&
+                  bubbleTitle === currentTrack.title &&
+                  bubbleArtist === currentTrack.artist;
+
+                if (matchesCurrent) {
+                  const progressBar = el.querySelector(".tp-progress-bar");
+                  if (progressBar) {
+                    progressBar.style.animation = "none";
+                    progressBar.style.width = `${progress}%`;
+                  }
+
+                  const timeDisplay = el.querySelector(".tp-time");
+                  if (timeDisplay) {
+                    timeDisplay.textContent = `${currentTime} / ${Math.round(
+                      progress,
+                    )}%`;
+                  }
+                }
+              });
+
+            if (typeof currentTimeRaw === "number") {
+              updateLyricsDisplay(currentTimeRaw);
+            }
+          }
+          break;
+
+        case "audio-playback-failed":
+          if (data && data.id && data.source) {
+            debugLog("[TypingIndicator] 收到播放失败通知，重新获取音频URL...");
+            MusicCache.invalidateAudio(data.id, data.source);
+            const sourceMap = {
+              Netease: "netease",
+              Tencent: "tencent",
+              Kuwo: "kuwo",
+            };
+            const apiSource =
+              sourceMap[data.source] || data.source.toLowerCase();
+
+            fetch(
+              `/api/plugins/g-player-proxy/song?id=${data.id}&source=${apiSource}`,
+            )
+              .then((res) => res.json())
+              .then((songData) => {
+                let newAudioUrl = "";
+
+                if (songData.data) {
+                  if (Array.isArray(songData.data)) {
+                    newAudioUrl = songData.data[0]?.url || "";
+                  } else {
+                    newAudioUrl = songData.data.url || "";
+                  }
+                }
+
+                if (newAudioUrl) {
+                  MusicCache.setAudio(data.id, data.source, newAudioUrl);
+                }
+                const playerIframe = document.querySelector(
+                  "#music_player .theme-iframe",
+                );
+                if (playerIframe && playerIframe.contentWindow) {
+                  playerIframe.contentWindow.postMessage(
+                    {
+                      source: "typing-indicator-host",
+                      type: "audio-url-refreshed",
+                      data: {
+                        audioUrl: newAudioUrl,
+                        trackIndex: data.trackIndex,
+                      },
+                    },
+                    "*",
+                  );
+                }
+              })
+              .catch((err) => {
+                console.error("[TypingIndicator] 重新获取音频URL失败:", err);
+
+                const playerIframe = document.querySelector(
+                  "#music_player .theme-iframe",
+                );
+                if (playerIframe && playerIframe.contentWindow) {
+                  playerIframe.contentWindow.postMessage(
+                    {
+                      source: "typing-indicator-host",
+                      type: "audio-url-refreshed",
+                      data: {
+                        audioUrl: "",
+                        trackIndex: data.trackIndex,
+                      },
+                    },
+                    "*",
+                  );
+                }
+              });
+          }
+          break;
+        case "player-expanding": {
+          const player = document.getElementById("music_player");
+          if (player) {
+            const settings = getSettings();
+            if (!playerOriginalPosition) {
+              playerOriginalPosition = {
+                x: settings.playerPosition.x,
+                y: settings.playerPosition.y,
+              };
+            }
+            player.style.transition = "left 0.3s ease, top 0.3s ease";
+            player.style.left = `${window.innerWidth / 2}px`;
+            player.style.top = `${window.innerHeight / 2}px`;
+            player.style.transform = "translate(-50%, -50%)";
+
+            setTimeout(() => {
+              if (player) player.style.transition = "";
+            }, 300);
+          }
+          break;
         }
 
-        if (messagesToProcess.size > 0) {
-            clearTimeout(observerTimeout);
-            observerTimeout = setTimeout(() => {
-                lastObserverRun = Date.now();
-                messagesToProcess.forEach((mes) => {
-                    renderBgmBubblesDebounced(mes);
-                });
-            }, 50);
-        }
-    });
+        case "player-collapsing": {
+          const player = document.getElementById("music_player");
+          if (player && playerOriginalPosition) {
+            player.style.transition = "left 0.3s ease, top 0.3s ease";
+            player.style.left = `${(playerOriginalPosition.x / 100) * window.innerWidth}px`;
+            player.style.top = `${(playerOriginalPosition.y / 100) * window.innerHeight}px`;
+            player.style.transform = "translate(-50%, -50%)";
 
-    setTimeout(() => {
-        const chatElement = document.getElementById("chat");
-        if (chatElement) {
-            chatObserver.observe(chatElement, {
-                childList: true,
-                subtree: true,
-                characterData: false,
-            });
-            console.log("[Typing Indicator Music] MutationObserver 兜底已启动");
+            setTimeout(() => {
+              if (player) player.style.transition = "";
+            }, 300);
+            playerOriginalPosition = null;
+          }
+          break;
         }
-    }, 1500);
-
-    eventSource.on(event_types.MESSAGE_UPDATED, (messageId) => {
-        setTimeout(() => {
-            const messageElement = document.querySelector(
-                `#chat .mes[mesid="${messageId}"]`,
+        case "update-audio-cache":
+          if (data && data.id && data.source && data.audioUrl) {
+            console.log(
+              "[缓存更新] 收到播放器的URL刷新通知:",
+              data.id,
+              data.source,
             );
-            if (messageElement) {
-                renderBgmBubbles(messageElement);
-            }
-        }, 0);
-    });
+            MusicCache.setAudio(data.id, data.source, data.audioUrl);
+            console.log("[缓存更新] ✓ 音频URL已更新");
+          }
+          break;
+      }
+    }
+  });
 
-    eventSource.on(event_types.MESSAGE_SWIPED, (data) => {
-        const messageId = typeof data === "object" ? data.id : data;
-        setTimeout(() => {
-            const messageElement = document.querySelector(
-                `#chat .mes[mesid="${messageId}"]`,
-            );
-            if (messageElement) {
-                renderBgmBubbles(messageElement);
-            }
-        }, 0);
-    });
+  setupGlobalSvgDefs();
+  updateGlobalDefs();
 
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (messageId) => {
+  window.ti_debug = {
+    eventSource: eventSource,
+    event_types: event_types,
+    triggerEnd: (msgId) => {
+      const finalId = typeof msgId === "number" ? msgId : chat.length - 1;
+      eventSource.emit(event_types.GENERATION_ENDED, finalId);
+    },
+  };
+
+  eventSource.on(
+    event_types.GENERATION_AFTER_COMMANDS,
+    (type, args, dryRun) => {
+      if (dryRun) return;
+      clearTimeout(dynamicThemeTimeoutId);
+      dynamicThemeTimeoutId = null;
+      accumulatedStreamedText = "";
+      if (currentDynamicThemeId) {
+        revertDynamicTheme("new_action_started");
+      }
+    },
+  );
+
+  eventSource.on(event_types.GENERATION_STARTED, (type, args, dryRun) => {
+    if (dryRun) return;
+    const settings = getSettings();
+    if (!settings.persistentMode) {
+      updateAndApplyTheme("generation_start_display");
+      showTypingIndicator(type, args, dryRun);
+    }
+  });
+
+  eventSource.on("stream_token_received", (token) => {
+    const settings = getSettings();
+    if (
+      settings.enabled &&
+      settings.enableDynamicThemes &&
+      isStreamingEnabled()
+    ) {
+      accumulatedStreamedText += token;
+      const themeName = parseThemeFromText(accumulatedStreamedText);
+      if (themeName) applyDynamicTheme(themeName);
+    }
+  });
+
+  eventSource.on(event_types.GENERATION_ENDED, (messageId) => {
+    const settings = getSettings();
+    if (settings.persistentMode) return;
+    const shouldHideDynamicThemeNow =
+      currentDynamicThemeId && settings.dynamicThemeDuration === 0;
+    if (
+      (!isStreamingEnabled() && !currentDynamicThemeId) ||
+      shouldHideDynamicThemeNow
+    ) {
+      if (shouldHideDynamicThemeNow) {
+        currentDynamicThemeId = null;
+        currentDynamicPresetId = null;
+      }
+      hideTypingIndicator();
+    }
+  });
+
+  eventSource.on(event_types.MESSAGE_RECEIVED, (messageId) => {
+    if (messageId === undefined || messageId === null || messageId === 0)
+      return;
+    appendNewSongs(messageId);
+  });
+
+  eventSource.on(event_types.MESSAGE_EDITED, (messageId) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         const messageElement = document.querySelector(
-            `#chat .mes[mesid="${messageId}"]`,
+          `#chat .mes[mesid="${messageId}"]`,
         );
         renderBgmBubblesDebounced(messageElement);
-        const settings = getSettings();
-        if (!settings.enabled || !settings.enableDynamicThemes) return;
-        if (settings.persistentMode && !settings.dynamicThemesInPersistent)
-            return;
-        const foundTheme = processMessageForTheme(messageId);
-        if (foundTheme) {
-            const duration = settings.dynamicThemeDuration * 1000;
-            clearTimeout(dynamicThemeTimeoutId);
-            if (settings.persistentMode) {
-                if (duration >= 0) {
-                    dynamicThemeTimeoutId = setTimeout(() => {
-                        dynamicThemeTimeoutId = null;
-                        revertDynamicTheme("duration_ended_persistent");
-                    }, duration);
-                }
-            } else {
-                if (duration > 0) {
-                    dynamicThemeTimeoutId = setTimeout(() => {
-                        dynamicThemeTimeoutId = null;
-                        currentDynamicThemeId = null;
-                        currentDynamicPresetId = null;
-                        hideTypingIndicator();
-                    }, duration);
-                } else {
-                    currentDynamicThemeId = null;
-                    currentDynamicPresetId = null;
-                    hideTypingIndicator();
-                }
-            }
-        } else if (!settings.persistentMode) {
-            if (!dynamicThemeTimeoutId) {
-                hideTypingIndicator();
-            }
-        }
+      });
     });
+  });
 
-    eventSource.on(event_types.GENERATION_STOPPED, (messageId) => {
-        const settings = getSettings();
-        if (!settings.persistentMode) {
-            clearTimeout(dynamicThemeTimeoutId);
-            dynamicThemeTimeoutId = null;
-            currentDynamicThemeId = null;
-            currentDynamicPresetId = null;
-            hideTypingIndicator();
-        }
-    });
-
-    eventSource.on("chatLoaded", () => {
-        manualOverrideActive = false;
-        setTimeout(async () => {
-            const renderSettings = addExtensionSettings();
-            updateAndApplyTheme("extension_init");
-            const initialSettings = getSettings();
-
-            if (initialSettings.persistentMode) {
-                isIndicatorPersisted = true;
-                showTypingIndicator("persistent-start");
-            }
-
-            if (initialSettings.playerEnabled) {
-                showPlayer();
-                const waitStart = Date.now();
-                await new Promise((resolve) => {
-                    const checkInterval = setInterval(() => {
-                        if (
-                            isPlayerInitialized ||
-                            Date.now() - waitStart > 3000
-                        ) {
-                            clearInterval(checkInterval);
-                            resolve();
-                        }
-                    }, 50);
-                });
-                await buildAndSetInitialPlaylist();
-            }
-
-            applyBubbleStyles();
-
-            const autoFollowCheckbox = document.getElementById(
-                "ti_auto_follow_theme",
-            );
-            if (autoFollowCheckbox) {
-                autoFollowCheckbox.addEventListener("change", (e) => {
-                    const settings = getSettings();
-                    settings.autoFollowTheme = e.target.checked;
-                    saveSettingsDebounced();
-                    if (e.target.checked) handleMainThemeChange(renderSettings);
-                });
-            }
-
-            const settings = getSettings();
-            if (settings.showFpsMonitor) {
-                FPSMonitor.start();
-            }
-
-            const observer = new MutationObserver((mutationsList) => {
-                for (const mutation of mutationsList) {
-                    if (
-                        mutation.type === "attributes" &&
-                        mutation.attributeName === "class"
-                    ) {
-                        setTimeout(
-                            () => handleMainThemeChange(renderSettings),
-                            100,
-                        );
-                    }
-                }
-            });
-            observer.observe(document.body, { attributes: true });
-
-            if (getSettings().autoFollowTheme)
-                handleMainThemeChange(renderSettings);
-
-            const stopButton = document.getElementById("mes_stop");
-            if (stopButton) {
-                const buttonObserver = new MutationObserver((mutations) => {
-                    for (const mutation of mutations) {
-                        if (mutation.attributeName === "style") {
-                            const isHidden =
-                                stopButton.style.display === "none";
-                            const settings = getSettings();
-                            const indicator =
-                                document.getElementById("typing_indicator");
-                            if (
-                                isHidden &&
-                                !settings.persistentMode &&
-                                indicator
-                            ) {
-                                if (
-                                    settings.enableDynamicThemes &&
-                                    (currentDynamicThemeId ||
-                                        dynamicThemeTimeoutId)
-                                ) {
-                                    return;
-                                }
-                                hideTypingIndicator();
-                            }
-                        }
-                    }
-                });
-                buttonObserver.observe(stopButton, { attributes: true });
-            }
-        }, 500);
-    });
-
-    eventSource.on(event_types.CHAT_CHANGED, (chatId) => {
-        manualOverrideActive = false;
-        settleListeningTime("chat_changed");
-        setTimeout(() => {
-            if (chatId) {
-                buildAndSetInitialPlaylist();
-                const settings = getSettings();
-                updateAndApplyTheme("chatChanged_logic", true);
-                requestSettingsRender();
-                if (settings.persistentMode) {
-                    handlePersistentModeUpdate("切换聊天");
-                }
-                refreshAllBubbles();
-                if (listeningStatsUpdateCallback) {
-                    listeningStatsUpdateCallback();
-                }
-            } else {
-                const settings = getSettings();
-                const { themeId: globalThemeId } = getActiveThemeConfig();
-                applyTheme(globalThemeId);
-                requestSettingsRender();
-                if (settings.persistentMode) {
-                    handlePersistentModeUpdate("退出聊天");
-                } else {
-                    hideTypingIndicator();
-                }
-            }
-        }, 100);
-    });
-
-    eventSource.on(event_types.GENERATION_STOPPED, (messageId) => {
-        const settings = getSettings();
-        if (!settings.persistentMode) {
-            clearTimeout(dynamicThemeTimeoutId);
-            dynamicThemeTimeoutId = null;
-            currentDynamicThemeId = null;
-            currentDynamicPresetId = null;
-            hideTypingIndicator();
-        }
-    });
-
-    setTimeout(() => {
-        const renderSettings = addExtensionSettings();
-        updateAndApplyTheme("extension_init");
-        const initialSettings = getSettings();
-        if (initialSettings.persistentMode) {
-            isIndicatorPersisted = true;
-            showTypingIndicator("persistent-start");
-        }
-        if (initialSettings.playerEnabled) {
-            showPlayer();
-        }
-        applyBubbleStyles();
-        const autoFollowCheckbox = document.getElementById(
-            "ti_auto_follow_theme",
+  eventSource.on(event_types.MESSAGE_EDITED, (messageId) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const messageElement = document.querySelector(
+          `#chat .mes[mesid="${messageId}"]`,
         );
-        if (autoFollowCheckbox) {
-            autoFollowCheckbox.addEventListener("change", (e) => {
-                const settings = getSettings();
-                settings.autoFollowTheme = e.target.checked;
-                saveSettingsDebounced();
-                if (e.target.checked) handleMainThemeChange(renderSettings);
-            });
+        renderBgmBubblesDebounced(messageElement);
+      });
+    });
+    if (messageId === 0) {
+      setTimeout(() => buildAndSetInitialPlaylist(), 100);
+      return;
+    }
+
+    setTimeout(async () => {
+      const updatedSongs = await findSongsInMessage(messageId);
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (playerIframe && playerIframe.contentWindow) {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "update-songs-from-message",
+            data: { messageId, songs: updatedSongs },
+          },
+          "*",
+        );
+      }
+    }, 100);
+  });
+
+  eventSource.on(event_types.MESSAGE_UPDATED, (messageId) => {
+    requestAnimationFrame(() => {
+      const messageElement = document.querySelector(
+        `#chat .mes[mesid="${messageId}"]`,
+      );
+      renderBgmBubblesDebounced(messageElement);
+    });
+  });
+
+  eventSource.on(event_types.MESSAGE_SWIPED, (data) => {
+    const messageId = typeof data === "object" ? data.id : data;
+    requestAnimationFrame(() => {
+      const messageElement = document.querySelector(
+        `#chat .mes[mesid="${messageId}"]`,
+      );
+      renderBgmBubblesDebounced(messageElement);
+    });
+  });
+
+  let observerTimeout = null;
+  let lastObserverRun = 0;
+  const OBSERVER_THROTTLE = 250;
+
+  const chatObserver = new MutationObserver((mutations) => {
+    const settings = getSettings();
+    if (!settings.enableBubbleReplacement) return;
+    const now = Date.now();
+    if (now - lastObserverRun < OBSERVER_THROTTLE) {
+      return;
+    }
+
+    const messagesToProcess = new Set();
+
+    for (const mutation of mutations) {
+      if (mutation.type === "characterData") continue;
+
+      let targetMes = mutation.target.closest?.(".mes");
+      if (!targetMes && mutation.target.classList?.contains("mes")) {
+        targetMes = mutation.target;
+      }
+
+      if (targetMes) {
+        const mesText = targetMes.querySelector(".mes_text");
+        if (
+          mesText &&
+          mesText.textContent.includes("[bgm]") &&
+          mesText.textContent.includes("[/bgm]")
+        ) {
+          messagesToProcess.add(targetMes);
         }
-        const observer = new MutationObserver((mutationsList) => {
-            for (const mutation of mutationsList) {
-                if (
-                    mutation.type === "attributes" &&
-                    mutation.attributeName === "class"
-                ) {
-                    setTimeout(
-                        () => handleMainThemeChange(renderSettings),
-                        100,
-                    );
-                }
-            }
+      }
+    }
+
+    if (messagesToProcess.size > 0) {
+      clearTimeout(observerTimeout);
+      observerTimeout = setTimeout(() => {
+        lastObserverRun = Date.now();
+        messagesToProcess.forEach((mes) => {
+          renderBgmBubblesDebounced(mes);
         });
-        observer.observe(document.body, { attributes: true });
-        if (getSettings().autoFollowTheme)
-            handleMainThemeChange(renderSettings);
-        const stopButton = document.getElementById("mes_stop");
-        if (stopButton) {
-            const buttonObserver = new MutationObserver((mutations) => {
-                for (const mutation of mutations) {
-                    if (mutation.attributeName === "style") {
-                        const isHidden = stopButton.style.display === "none";
-                        const settings = getSettings();
-                        const indicator =
-                            document.getElementById("typing_indicator");
-                        if (isHidden && !settings.persistentMode && indicator) {
-                            if (
-                                settings.enableDynamicThemes &&
-                                (currentDynamicThemeId || dynamicThemeTimeoutId)
-                            ) {
-                                console.log(
-                                    "[TypingIndicator] 检测到停止按钮隐藏，但动态主题正在显示中，保持指示器",
-                                );
-                                return;
-                            }
-                            console.log(
-                                "[TypingIndicator] 检测到停止按钮隐藏，隐藏指示器",
-                            );
-                            hideTypingIndicator();
-                        }
-                    }
-                }
-            });
-            buttonObserver.observe(stopButton, { attributes: true });
-            debugLog("[TypingIndicator] 已启用停止按钮监听");
-        } else {
-            console.warn("[TypingIndicator] 未找到停止按钮，按钮监听未启用");
+      }, 50);
+    }
+  });
+
+  setTimeout(() => {
+    const chatElement = document.getElementById("chat");
+    if (chatElement) {
+      chatObserver.observe(chatElement, {
+        childList: true,
+        subtree: true,
+        characterData: false,
+      });
+      console.log("[Typing Indicator Music] MutationObserver 兜底已启动");
+    }
+  }, 1500);
+
+  eventSource.on(event_types.MESSAGE_UPDATED, (messageId) => {
+    setTimeout(() => {
+      const messageElement = document.querySelector(
+        `#chat .mes[mesid="${messageId}"]`,
+      );
+      if (messageElement) {
+        renderBgmBubbles(messageElement);
+      }
+    }, 0);
+  });
+
+  eventSource.on(event_types.MESSAGE_SWIPED, (data) => {
+    const messageId = typeof data === "object" ? data.id : data;
+    setTimeout(() => {
+      const messageElement = document.querySelector(
+        `#chat .mes[mesid="${messageId}"]`,
+      );
+      if (messageElement) {
+        renderBgmBubbles(messageElement);
+      }
+    }, 0);
+  });
+
+  eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (messageId) => {
+    const messageElement = document.querySelector(
+      `#chat .mes[mesid="${messageId}"]`,
+    );
+    renderBgmBubblesDebounced(messageElement);
+    const settings = getSettings();
+    if (!settings.enabled || !settings.enableDynamicThemes) return;
+    if (settings.persistentMode && !settings.dynamicThemesInPersistent) return;
+    const foundTheme = processMessageForTheme(messageId);
+    if (foundTheme) {
+      const duration = settings.dynamicThemeDuration * 1000;
+      clearTimeout(dynamicThemeTimeoutId);
+      if (settings.persistentMode) {
+        if (duration >= 0) {
+          dynamicThemeTimeoutId = setTimeout(() => {
+            dynamicThemeTimeoutId = null;
+            revertDynamicTheme("duration_ended_persistent");
+          }, duration);
         }
+      } else {
+        if (duration > 0) {
+          dynamicThemeTimeoutId = setTimeout(() => {
+            dynamicThemeTimeoutId = null;
+            currentDynamicThemeId = null;
+            currentDynamicPresetId = null;
+            hideTypingIndicator();
+          }, duration);
+        } else {
+          currentDynamicThemeId = null;
+          currentDynamicPresetId = null;
+          hideTypingIndicator();
+        }
+      }
+    } else if (!settings.persistentMode) {
+      if (!dynamicThemeTimeoutId) {
+        hideTypingIndicator();
+      }
+    }
+  });
+
+  eventSource.on(event_types.GENERATION_STOPPED, (messageId) => {
+    const settings = getSettings();
+    if (!settings.persistentMode) {
+      clearTimeout(dynamicThemeTimeoutId);
+      dynamicThemeTimeoutId = null;
+      currentDynamicThemeId = null;
+      currentDynamicPresetId = null;
+      hideTypingIndicator();
+    }
+  });
+
+  eventSource.on("chatLoaded", () => {
+    manualOverrideActive = false;
+    setTimeout(async () => {
+      const renderSettings = addExtensionSettings();
+      updateAndApplyTheme("extension_init");
+      const initialSettings = getSettings();
+
+      if (initialSettings.persistentMode) {
+        isIndicatorPersisted = true;
+        showTypingIndicator("persistent-start");
+      }
+
+      if (initialSettings.playerEnabled) {
+        showPlayer();
+        const waitStart = Date.now();
+        await new Promise((resolve) => {
+          const checkInterval = setInterval(() => {
+            if (isPlayerInitialized || Date.now() - waitStart > 3000) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 50);
+        });
+        await buildAndSetInitialPlaylist();
+      }
+
+      applyBubbleStyles();
+
+      const autoFollowCheckbox = document.getElementById(
+        "ti_auto_follow_theme",
+      );
+      if (autoFollowCheckbox) {
+        autoFollowCheckbox.addEventListener("change", (e) => {
+          const settings = getSettings();
+          settings.autoFollowTheme = e.target.checked;
+          saveSettingsDebounced();
+          if (e.target.checked) handleMainThemeChange(renderSettings);
+        });
+      }
+
+      const settings = getSettings();
+      if (settings.showFpsMonitor) {
+        FPSMonitor.start();
+      }
+
+      const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+          if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "class"
+          ) {
+            setTimeout(() => handleMainThemeChange(renderSettings), 100);
+          }
+        }
+      });
+      observer.observe(document.body, { attributes: true });
+
+      if (getSettings().autoFollowTheme) handleMainThemeChange(renderSettings);
+
+      const stopButton = document.getElementById("mes_stop");
+      if (stopButton) {
+        const buttonObserver = new MutationObserver((mutations) => {
+          for (const mutation of mutations) {
+            if (mutation.attributeName === "style") {
+              const isHidden = stopButton.style.display === "none";
+              const settings = getSettings();
+              const indicator = document.getElementById("typing_indicator");
+              if (isHidden && !settings.persistentMode && indicator) {
+                if (
+                  settings.enableDynamicThemes &&
+                  (currentDynamicThemeId || dynamicThemeTimeoutId)
+                ) {
+                  return;
+                }
+                hideTypingIndicator();
+              }
+            }
+          }
+        });
+        buttonObserver.observe(stopButton, { attributes: true });
+      }
     }, 500);
-    window.MusicCache = MusicCache;
+  });
+
+  eventSource.on(event_types.CHAT_CHANGED, (chatId) => {
+    manualOverrideActive = false;
+    settleListeningTime("chat_changed");
+    setTimeout(() => {
+      if (chatId) {
+        buildAndSetInitialPlaylist();
+        const settings = getSettings();
+        updateAndApplyTheme("chatChanged_logic", true);
+        requestSettingsRender();
+        if (settings.persistentMode) {
+          handlePersistentModeUpdate("切换聊天");
+        }
+        refreshAllBubbles();
+        if (listeningStatsUpdateCallback) {
+          listeningStatsUpdateCallback();
+        }
+      } else {
+        const settings = getSettings();
+        const { themeId: globalThemeId } = getActiveThemeConfig();
+        applyTheme(globalThemeId);
+        requestSettingsRender();
+        if (settings.persistentMode) {
+          handlePersistentModeUpdate("退出聊天");
+        } else {
+          hideTypingIndicator();
+        }
+      }
+    }, 100);
+  });
+
+  eventSource.on(event_types.GENERATION_STOPPED, (messageId) => {
+    const settings = getSettings();
+    if (!settings.persistentMode) {
+      clearTimeout(dynamicThemeTimeoutId);
+      dynamicThemeTimeoutId = null;
+      currentDynamicThemeId = null;
+      currentDynamicPresetId = null;
+      hideTypingIndicator();
+    }
+  });
+
+  setTimeout(() => {
+    const renderSettings = addExtensionSettings();
+    updateAndApplyTheme("extension_init");
+    const initialSettings = getSettings();
+    if (initialSettings.persistentMode) {
+      isIndicatorPersisted = true;
+      showTypingIndicator("persistent-start");
+    }
+    if (initialSettings.playerEnabled) {
+      showPlayer();
+    }
+    applyBubbleStyles();
+    const autoFollowCheckbox = document.getElementById("ti_auto_follow_theme");
+    if (autoFollowCheckbox) {
+      autoFollowCheckbox.addEventListener("change", (e) => {
+        const settings = getSettings();
+        settings.autoFollowTheme = e.target.checked;
+        saveSettingsDebounced();
+        if (e.target.checked) handleMainThemeChange(renderSettings);
+      });
+    }
+    const observer = new MutationObserver((mutationsList) => {
+      for (const mutation of mutationsList) {
+        if (
+          mutation.type === "attributes" &&
+          mutation.attributeName === "class"
+        ) {
+          setTimeout(() => handleMainThemeChange(renderSettings), 100);
+        }
+      }
+    });
+    observer.observe(document.body, { attributes: true });
+    if (getSettings().autoFollowTheme) handleMainThemeChange(renderSettings);
+    const stopButton = document.getElementById("mes_stop");
+    if (stopButton) {
+      const buttonObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.attributeName === "style") {
+            const isHidden = stopButton.style.display === "none";
+            const settings = getSettings();
+            const indicator = document.getElementById("typing_indicator");
+            if (isHidden && !settings.persistentMode && indicator) {
+              if (
+                settings.enableDynamicThemes &&
+                (currentDynamicThemeId || dynamicThemeTimeoutId)
+              ) {
+                console.log(
+                  "[TypingIndicator] 检测到停止按钮隐藏，但动态主题正在显示中，保持指示器",
+                );
+                return;
+              }
+              console.log("[TypingIndicator] 检测到停止按钮隐藏，隐藏指示器");
+              hideTypingIndicator();
+            }
+          }
+        }
+      });
+      buttonObserver.observe(stopButton, { attributes: true });
+      debugLog("[TypingIndicator] 已启用停止按钮监听");
+    } else {
+      console.warn("[TypingIndicator] 未找到停止按钮，按钮监听未启用");
+    }
+  }, 500);
+  window.MusicCache = MusicCache;
 })();

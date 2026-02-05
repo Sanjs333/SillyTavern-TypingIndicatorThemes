@@ -1310,9 +1310,21 @@ function toggleExpand(expand) {
 | 2      | **分离格式**     | 检测到时间戳回退超过 30 秒 | 前半部分全是日文，后半部分全是中文，时间戳重新从 00:00 开始  |
 | 3      | **交替格式**     | 相邻行语言不同的比例 ≥ 70% | 日文→中文→日文→中文...，时间递增                             |
 | 4      | **同时间戳格式** | 相邻两行时间差 < 0.05 秒   | `[00:25.10]All alone with you`<br>`[00:25.10]独自与你在一起` |
+| 5      | **酷我格式**     | `source` 参数为 `'Kuwo'`   | 翻译行时间戳 = 下一句原文时间戳，需要按出现顺序配对          |
+
+- **【关键】酷我格式的特殊性**:
+  酷我歌词的翻译行时间戳**不是当前原文的时间戳**，而是**下一句原文的时间戳**：
+
+  ```
+  [00:12.020]認めていた臆病な過去      ← 原文1 (时间 12.020)
+  [00:16.820]原本早已认同软弱的过去    ← 翻译1 (时间戳 16.820，是下一句的！)
+  [00:16.820]わからないままに怖がっていた ← 原文2 (时间 16.820)
+  [00:24.660]心中始终怀着莫名的畏惧    ← 翻译2
+  ```
+
+  由于这种格式无法通过歌词内容本身检测，**必须通过 `source` 参数识别**。当 `source === 'Kuwo'` 时，使用专门的按序配对逻辑。
 
 - **【关键】分离格式检测原理**:
-
   分离格式的歌词文件中，原文和翻译各自独立排列，翻译部分的时间戳会"回退"到歌曲开头重新计算：
 
   ```
@@ -1332,7 +1344,11 @@ function toggleExpand(expand) {
 - **【推荐解析器】**: 以下解析器能够自动识别并处理所有格式：
 
 ```javascript
-function parseLRCText(lrcText, tlyricText = '') {
+function parseLRCText(lrcText, tlyricText = '', source = '') {
+    if (source && source.toLowerCase() === 'kuwo') {
+        state.parsedLRC = parseLRCKuwo(lrcText);
+        return;
+    }
     if (!lrcText && !tlyricText) {
         state.parsedLRC = [];
         return;
@@ -1512,6 +1528,78 @@ function parseLRCText(lrcText, tlyricText = '') {
 
     state.parsedLRC = merged;
 }
+/**
+ * 酷我格式专用解析器
+ */
+function parseLRCKuwo(lrcData) {
+    if (!lrcData || typeof lrcData !== 'string') return [];
+
+    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+    const lines = lrcData.split('\n');
+
+    // 第一步：解析所有行
+    const parsed = [];
+    for (const line of lines) {
+        const match = line.match(timeRegex);
+        if (!match) continue;
+
+        const content = line.replace(/\[[\d:.]+\]/g, '').trim();
+        // 过滤空行和无意义内容
+        if (!content || content === '//' || content === '/ /' ||
+            content.match(/^\/+$/) || content.match(/^[:\s]+$/)) continue;
+
+        const time = parseInt(match[1]) * 60 + parseInt(match[2]) +
+                    parseInt(match[3].padEnd(3, '0')) / 1000;
+
+        parsed.push({ time, text: content });
+    }
+
+    // 第二步：按时间戳分组
+    const timeGroups = new Map();
+    for (const item of parsed) {
+        const key = item.time.toFixed(3);
+        if (!timeGroups.has(key)) {
+            timeGroups.set(key, []);
+        }
+        timeGroups.get(key).push(item.text);
+    }
+
+    // 第三步：构建结果
+    const result = [];
+    const sortedTimes = Array.from(timeGroups.keys())
+        .sort((a, b) => parseFloat(a) - parseFloat(b));
+
+    for (const timeKey of sortedTimes) {
+        const time = parseFloat(timeKey);
+        const texts = timeGroups.get(timeKey);
+
+        if (texts.length === 1) {
+            // 只有一行 → 作为原文
+            result.push({ time, text: texts[0], translated: null });
+        } else if (texts.length >= 2) {
+            // 多行 → 第一行是前一句的翻译，第二行是当前原文
+            if (result.length > 0 && !result[result.length - 1].translated) {
+                result[result.length - 1].translated = texts[0];
+            }
+            result.push({ time, text: texts[1], translated: null });
+            // 如果有第三行以上（极罕见），作为当前句的翻译
+            if (texts.length > 2) {
+                result[result.length - 1].translated = texts.slice(2).join(' ');
+            }
+        }
+    }
+
+    return result;
+}
+```
+
+**调用时传入 source 参数**:
+
+在你的 `loadTrack` 函数或处理歌词的地方，确保传入歌曲来源：
+
+```javascript
+// 解析歌词时传入 source
+parseLRCText(lyricData.lyric, lyricData.tlyric, track.source);
 ```
 
 **关键点说明**:
@@ -1672,7 +1760,57 @@ try {
 }
 ```
 
-### 14. 音频链接代理策略
+### 14. 【铁律】搜索结果匹配策略
+
+- **问题**: 搜索 API 返回的结果可能包含很多不相关的歌曲。如果只匹配歌手名，或者匹配失败后直接取第一条结果，会导致**播放错误的歌曲**。
+
+- **错误示范**:
+
+```javascript
+// ❌ 错误：只匹配歌手，找不到就取第一条
+const track = searchData.data.find((item) => {
+    const itemArtist = (item.singer || item.artist || "").toLowerCase();
+    return itemArtist.includes(artist.toLowerCase());
+}) || searchData.data[0];  // 这会播放完全不相关的歌！
+```
+
+- **【最佳实践】**: **必须同时匹配歌名和歌手**，找不到精确匹配时返回 `null`，让换源逻辑继续尝试其他音源。
+
+```javascript
+// ✅ 正确：同时匹配歌名+歌手
+const normalizedTitle = title.toLowerCase().trim();
+const normalizedArtist = artist.toLowerCase().trim();
+
+const track = searchData.data.find((item) => {
+    const itemName = (item.song || item.name || "").toLowerCase();
+    const itemArtist = (item.singer || item.artist || "").toLowerCase();
+
+    // 歌名匹配（包含关系）
+    const titleMatch =
+        itemName.includes(normalizedTitle) ||
+        normalizedTitle.includes(itemName);
+
+    // 歌手匹配（包含关系）
+    const artistMatch =
+        itemArtist.includes(normalizedArtist) ||
+        normalizedArtist.includes(itemArtist);
+
+    return titleMatch && artistMatch;
+});
+
+// ✅ 找不到就返回 null，不要随便取第一条！
+if (!track) {
+    console.log(`[Player] ${source} 未找到匹配 "${title} - ${artist}" 的结果`);
+    return null;
+}
+```
+
+- **【注意】**: 这个匹配逻辑适用于所有涉及搜索的场景：
+  - `fetchSongDetailsFromSource()` - 从指定源获取详情
+  - `searchAndPlay()` - 搜索并播放
+  - 换源重试逻辑
+
+### 15. 音频链接代理策略
 
 **【铁律】不是所有链接都需要走后端代理！**
 
@@ -1723,7 +1861,7 @@ dom.audio.src = getAudioSource(track.audioUrl);
 
 **【注意】**: 如果你全部走后端代理，用户在世界书里放的 catbox 等链接可能会因为服务器网络环境问题而无法播放！
 
-### 15. BGM 歌单数据来源
+### 16. BGM 歌单数据来源
 
 播放器的歌单数据有两个来源：
 
@@ -1756,7 +1894,7 @@ dom.audio.src = getAudioSource(track.audioUrl);
 
 当 AI 在回复中输出 `[bgm]歌曲名-歌手[/bgm]` 格式的文本时，主系统会自动搜索并添加到播放列表。
 
-### 16. 悬浮歌词支持
+### 17. 悬浮歌词支持
 
 主系统提供了悬浮歌词功能，播放器主题只需正确发送数据即可自动启用。
 
@@ -1849,7 +1987,7 @@ dom.audio.onpause = () => {
 };
 ```
 
-### 17. 缓存协作机制 (`cache-track-data`)
+### 18. 缓存协作机制 (`cache-track-data`)
 
 播放器主题可以主动请求主系统帮忙缓存歌曲数据，避免重复搜索和API调用。
 
@@ -1888,7 +2026,7 @@ ThemeUtils.sendMessage('cache-track-data', {
 - `trackData` 必须包含 `id` 和 `source` 字段，否则缓存会被忽略
 -
 
-### 18. 原始搜索信息的保留与传递
+### 19. 原始搜索信息的保留与传递
 
 - **问题背景**: 当用户点击聊天中的音乐气泡时，气泡上显示的歌曲名（如 `Sweet Boy`）可能与 API 实际返回的歌曲名（如 `Sweet Boy (Explicit)`）不同。这会导致主系统无法正确识别"当前播放的歌曲"与"气泡上的歌曲"是同一首，从而无法更新气泡的 `.is-playing` 状态。
 
