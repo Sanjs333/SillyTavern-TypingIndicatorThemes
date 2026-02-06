@@ -97,7 +97,7 @@ let esprimaPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.1.0";
+const PLUGIN_VERSION = "3.2.0";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -179,46 +179,40 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.1.0": {
+  "3.2.0": {
     date: "2025-2-6",
     title: {
       zh: "指示器更新",
       en: "Indicator Update",
+      th: "อัปเดตตัวบ่งชี้",
     },
     content: {
       zh: `
 ### 更新内容
-- 修复了歌词解析错乱的问题
-- 修复搜索结果匹配不精确问题
-- 修复编辑消息时的阻塞问题
+- 修复了全屏覆盖层主题的位移问题
+- 增加了泰文翻译
 - 更新了创作指南
 
-### ⚠️ 重要提示
-1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
-
-2. **内置主题已更新！** 请前往：
-> 设置 → 工具 → **恢复内置项**
-
-- 您自己创建的主题 **不受影响**
-- ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
 - **请提问前务必确认已仔细查看过使用指南**
             `,
       en: `
 ### What's New
-- Fixed lyrics parsing display issues
-- Fixed inaccurate search result matching
-- Fixed blocking issue when editing messages
+- Fixed displacement issue with fullscreen overlay themes
+- Added Thai language translation
 - Updated the theme creation guide
 
-### ⚠️ Important Notice
-1. **Backend plugin has been updated!** Please restart SillyTavern, the backend plugin will update automatically
-
-2. **Built-in themes have been updated!** Please go to:
-> Settings → Tools → **Restore Built-in Items**
-
-- Your custom-created themes are **not affected**
-- ⚠️ If you modified any built-in themes, please **export a backup** before restoring
 - **Please read the Usage Guide carefully before asking questions**
+            `,
+      th: `
+### มีอะไรใหม่
+- แก้ไขปัญหาการเลื่อนตำแหน่งของธีมโอเวอร์เลย์เต็มหน้าจอ
+- เพิ่มการแปลภาษาไทย
+- อัปเดตคู่มือสร้างธีม
+
+- **กรุณาอ่านคู่มือการใช้งานอย่างละเอียดก่อนถามคำถาม**
+
+### 📝 หมายเหตุสำหรับผู้ใช้ภาษาไทย
+การค้นหาเพลง**ไม่รองรับภาษาไทย** กรุณาใช้ชื่อเพลงในภาษาต้นฉบับ (จีน, อังกฤษ, ญี่ปุ่น, เกาหลี ฯลฯ)
             `,
     },
   },
@@ -232,15 +226,24 @@ function checkAndShowChangelog() {
     return;
   }
 
-  const isZh = (power_user?.language || navigator.language || "en")
-    .toLowerCase()
-    .startsWith("zh");
+  const userLang = (
+    power_user?.language ||
+    navigator.language ||
+    "en"
+  ).toLowerCase();
+  let currentLang = "en";
+
+  if (userLang.startsWith("zh")) {
+    currentLang = "zh";
+  } else if (userLang.startsWith("th")) {
+    currentLang = "th";
+  }
 
   const changelog = CHANGELOG[PLUGIN_VERSION];
   if (!changelog) return;
 
-  const title = isZh ? changelog.title.zh : changelog.title.en;
-  const content = isZh ? changelog.content.zh : changelog.content.en;
+  const title = changelog.title[currentLang] || changelog.title.en;
+  const content = changelog.content[currentLang] || changelog.content.en;
 
   const converter = new showdown.Converter({
     tables: true,
@@ -1072,7 +1075,7 @@ const MusicCache = {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
       if (!data) return { bytes: 0, formatted: "0 B" };
-      const bytes = data.length * 2; // UTF-16
+      const bytes = data.length * 2;
 
       let formatted;
       if (bytes < 1024) {
@@ -3619,12 +3622,8 @@ function updateLyricsDisplay(currentTime) {
   if (!currentInner) return;
   const updateScrollEffect = (innerEl, containerEl, text) => {
     if (!innerEl || !containerEl) return;
-
-    // 先移除动画，设置文本
     innerEl.classList.remove("scrolling");
     innerEl.textContent = text;
-
-    // 等DOM更新后检测是否需要滚动
     requestAnimationFrame(() => {
       const textWidth = innerEl.scrollWidth;
       const containerWidth = containerEl.clientWidth;
@@ -3643,8 +3642,6 @@ function updateLyricsDisplay(currentTime) {
   if (newIndex >= 0 && newIndex < currentLyrics.length) {
     const currentLyric = currentLyrics[newIndex];
     const nextLyric = currentLyrics[newIndex + 1];
-
-    // 计算当前行的进度（改进版卡拉OK效果）
     const nextTime = nextLyric ? nextLyric.time : currentLyric.time + 5;
     const lineDuration = nextTime - currentLyric.time;
     const elapsed = currentTime - currentLyric.time;
@@ -4809,8 +4806,6 @@ function addExtensionSettings() {
 `;
 
     container.appendChild(section);
-
-    // 标签页切换逻辑
     const tabButtons = section.querySelectorAll(".tab-button");
     const tabPanels = section.querySelectorAll(".tab-panel");
 
@@ -4818,12 +4813,8 @@ function addExtensionSettings() {
       button.addEventListener("click", () => {
         const targetTab = button.dataset.tab;
         currentActiveTab = targetTab;
-
-        // 更新按钮状态
         tabButtons.forEach((btn) => btn.classList.remove("active"));
         button.classList.add("active");
-
-        // 更新面板显示
         tabPanels.forEach((panel) => {
           panel.classList.remove("active");
           if (panel.dataset.tab === targetTab) {
@@ -6092,16 +6083,6 @@ function addExtensionSettings() {
             0,
             scriptUrl.pathname.lastIndexOf("/") + 1,
           );
-          const worldBookPath = `${extensionPath}indicator.json`;
-          const response = await fetch(worldBookPath);
-          if (!response.ok) {
-            throw new Error(
-              t`World book file not found (status: ${response.status})`,
-            );
-          }
-
-          const worldBookContent = await response.text();
-          const worldBookData = JSON.parse(worldBookContent);
           const detectLanguage = () => {
             if (power_user && power_user.language) {
               return power_user.language;
@@ -6112,12 +6093,34 @@ function addExtensionSettings() {
             return navigator.language || "en";
           };
 
-          const currentLang = detectLanguage();
-          const isChinese = currentLang.toLowerCase().startsWith("zh");
-          worldBookData.name = isChinese ? "指示器" : "Indicator";
+          const currentLang = detectLanguage().toLowerCase();
+          let fileName, worldBookName;
+          if (currentLang.startsWith("zh")) {
+            fileName = "indicator_zh.json";
+            worldBookName = "指示器";
+          } else if (currentLang.startsWith("th")) {
+            fileName = "indicator_th.json";
+            worldBookName = "ตัวบ่งชี้";
+          } else {
+            fileName = "indicator_en.json";
+            worldBookName = "Indicator";
+          }
+
+          const worldBookPath = `${extensionPath}${fileName}`;
+          const response = await fetch(worldBookPath);
+
+          if (!response.ok) {
+            throw new Error(
+              t`World book file not found (status: ${response.status})`,
+            );
+          }
+
+          const worldBookContent = await response.text();
+          const worldBookData = JSON.parse(worldBookContent);
+          worldBookData.name = worldBookName;
 
           console.log(
-            `[TypingIndicator] 检测到语言: ${currentLang}, 使用名称: ${worldBookData.name}`,
+            `[TypingIndicator] 检测到语言: ${currentLang}, 使用文件: ${fileName}, 名称: ${worldBookName}`,
           );
 
           const formData = new FormData();
@@ -8023,6 +8026,12 @@ function addExtensionSettings() {
         isCurrentIndicatorOverlay = true;
         const indicator = document.getElementById("typing_indicator");
         if (indicator) {
+          indicator.style.position = "fixed";
+          indicator.style.top = "0";
+          indicator.style.left = "0";
+          indicator.style.bottom = "0";
+          indicator.style.right = "0";
+          indicator.style.transform = "none";
           const settings = getSettings();
           const isDraggableAndUnlocked =
             settings.position === "draggable" &&
@@ -8034,6 +8043,7 @@ function addExtensionSettings() {
         }
         return;
       }
+
       if (type === "set-shutdown-timeout" && themeId) {
         const duration = parseInt(data.duration, 10);
         if (duration > 200 && duration <= 5000)

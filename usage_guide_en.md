@@ -204,7 +204,7 @@ Dynamic themes can be used for atmosphere effects. When AI describes specific sc
 [Theme: ThemeName]
 ```
 
-**Example:** When AI describes a snowing scene, outputting `[Theme: Snow]` triggers the snow effect.
+**Example:** When AI describes a snowing scene, outputting `[Theme: 飘雪]` triggers the snow effect.
 Display duration is controlled by the "Theme Duration" setting (set to 0 for immediate hide).
 
 **Dynamic themes consume performance and may cause lag. Enable based on your device capabilities.**
