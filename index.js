@@ -97,7 +97,7 @@ let esprimaPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.2.0";
+const PLUGIN_VERSION = "3.2.1";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -179,7 +179,7 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.2.0": {
+  "3.2.1": {
     date: "2025-2-6",
     title: {
       zh: "指示器更新",
@@ -289,7 +289,7 @@ function checkAndShowChangelog() {
         padding: 8px 20px;
         font-weight: bold;
         white-space: nowrap;
-    ">${isZh ? "我知道了" : "Got it"}</button>
+    ">${currentLang === "zh" ? "我知道了" : currentLang === "th" ? "เข้าใจแล้ว" : "Got it"}</button>
 </div>
         </dialog>
     `;
@@ -5742,12 +5742,20 @@ function addExtensionSettings() {
             return navigator.language || "en";
           };
 
-          let currentLang = detectLanguage().toLowerCase().startsWith("zh")
-            ? "zh"
-            : "en";
+          const detectedLang = detectLanguage().toLowerCase();
+          let currentLang = "en";
+          if (detectedLang.startsWith("zh")) {
+            currentLang = "zh";
+          } else if (detectedLang.startsWith("th")) {
+            currentLang = "th";
+          }
           const loadGuideContent = async (lang) => {
-            const fileName =
-              lang === "zh" ? "usage_guide_zh.md" : "usage_guide_en.md";
+            let fileName = "usage_guide_en.md";
+            if (lang === "zh") {
+              fileName = "usage_guide_zh.md";
+            } else if (lang === "th") {
+              fileName = "usage_guide_th.md";
+            }
             const guideFilePath = `${extensionPath}${fileName}`;
             const response = await fetch(guideFilePath);
             if (!response.ok) {
@@ -5801,35 +5809,44 @@ function addExtensionSettings() {
                             border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
                             flex-shrink: 0;
                         ">
-                            <h3 style="margin: 0; font-size: 1.2em;">📖 ${currentLang === "zh" ? "使用说明" : "Usage Guide"}</h3>
+                            <h3 style="margin: 0; font-size: 1.2em;">📖 ${currentLang === "zh" ? "使用说明" : currentLang === "th" ? "คู่มือการใช้งาน" : "Usage Guide"}</h3>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <!-- 语言切换按钮 -->
                                 <div id="ti_lang_switch" style="
-                                    display: flex;
-                                    background: rgba(255,255,255,0.1);
-                                    border-radius: 6px;
-                                    overflow: hidden;
-                                    border: 1px solid var(--SmartThemeBorderColor, #444);
-                                ">
-                                    <button id="ti_lang_zh" class="${currentLang === "zh" ? "active" : ""}" style="
-                                        padding: 4px 10px;
-                                        border: none;
-                                        background: ${currentLang === "zh" ? "var(--SmartThemeQuoteColor, #88c0d0)" : "transparent"};
-                                        color: ${currentLang === "zh" ? "#000" : "var(--SmartThemeBodyColor, #fff)"};
-                                        cursor: pointer;
-                                        font-size: 12px;
-                                        transition: all 0.2s;
-                                    ">中文</button>
-                                    <button id="ti_lang_en" class="${currentLang === "en" ? "active" : ""}" style="
-                                        padding: 4px 10px;
-                                        border: none;
-                                        background: ${currentLang === "en" ? "var(--SmartThemeQuoteColor, #88c0d0)" : "transparent"};
-                                        color: ${currentLang === "en" ? "#000" : "var(--SmartThemeBodyColor, #fff)"};
-                                        cursor: pointer;
-                                        font-size: 12px;
-                                        transition: all 0.2s;
-                                    ">EN</button>
-                                </div>
+    display: flex;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+">
+    <button id="ti_lang_zh" class="${currentLang === "zh" ? "active" : ""}" style="
+        padding: 4px 10px;
+        border: none;
+        background: ${currentLang === "zh" ? "var(--SmartThemeQuoteColor, #88c0d0)" : "transparent"};
+        color: ${currentLang === "zh" ? "#000" : "var(--SmartThemeBodyColor, #fff)"};
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    ">中文</button>
+    <button id="ti_lang_en" class="${currentLang === "en" ? "active" : ""}" style="
+        padding: 4px 10px;
+        border: none;
+        background: ${currentLang === "en" ? "var(--SmartThemeQuoteColor, #88c0d0)" : "transparent"};
+        color: ${currentLang === "en" ? "#000" : "var(--SmartThemeBodyColor, #fff)"};
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    ">EN</button>
+    <button id="ti_lang_th" class="${currentLang === "th" ? "active" : ""}" style="
+        padding: 4px 10px;
+        border: none;
+        background: ${currentLang === "th" ? "var(--SmartThemeQuoteColor, #88c0d0)" : "transparent"};
+        color: ${currentLang === "th" ? "#000" : "var(--SmartThemeBodyColor, #fff)"};
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+    ">ไทย</button>
+</div>
                                 <button id="ti_close_usage_guide" style="
                                     background: transparent;
                                     border: none;
@@ -5872,6 +5889,7 @@ function addExtensionSettings() {
           const contentDiv = document.getElementById("ti_usage_guide_content");
           const langZhBtn = document.getElementById("ti_lang_zh");
           const langEnBtn = document.getElementById("ti_lang_en");
+          const langThBtn = document.getElementById("ti_lang_th");
           const titleEl = dialog.querySelector("h3");
 
           centerDialog(dialog);
@@ -5886,27 +5904,44 @@ function addExtensionSettings() {
               contentDiv.innerHTML = newHtml;
               contentDiv.style.opacity = "1";
               currentLang = lang;
+
               langZhBtn.style.background =
                 lang === "zh"
                   ? "var(--SmartThemeQuoteColor, #88c0d0)"
                   : "transparent";
               langZhBtn.style.color =
                 lang === "zh" ? "#000" : "var(--SmartThemeBodyColor, #fff)";
+
               langEnBtn.style.background =
                 lang === "en"
                   ? "var(--SmartThemeQuoteColor, #88c0d0)"
                   : "transparent";
               langEnBtn.style.color =
                 lang === "en" ? "#000" : "var(--SmartThemeBodyColor, #fff)";
+
+              langThBtn.style.background =
+                lang === "th"
+                  ? "var(--SmartThemeQuoteColor, #88c0d0)"
+                  : "transparent";
+              langThBtn.style.color =
+                lang === "th" ? "#000" : "var(--SmartThemeBodyColor, #fff)";
+
               titleEl.textContent =
-                lang === "zh" ? "📖 使用说明" : "📖 Usage Guide";
+                lang === "zh"
+                  ? "📖 使用说明"
+                  : lang === "th"
+                    ? "📖 คู่มือการใช้งาน"
+                    : "📖 Usage Guide";
+
               contentDiv.scrollTop = 0;
             } catch (error) {
               console.error("切换语言失败:", error);
               toastr.error(
                 lang === "zh"
                   ? "加载中文版本失败"
-                  : "Failed to load English version",
+                  : lang === "th"
+                    ? "โหลดเวอร์ชันภาษาไทยล้มเหลว"
+                    : "Failed to load English version",
               );
               contentDiv.style.opacity = "1";
             }
@@ -5914,6 +5949,7 @@ function addExtensionSettings() {
 
           langZhBtn.addEventListener("click", () => switchLanguage("zh"));
           langEnBtn.addEventListener("click", () => switchLanguage("en"));
+          langThBtn.addEventListener("click", () => switchLanguage("th"));
           const closePopup = () => {
             popup.style.opacity = "0";
             popup.style.transition = "opacity 0.2s";
