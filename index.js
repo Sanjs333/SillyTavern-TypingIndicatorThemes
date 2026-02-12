@@ -151,7 +151,7 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 
 const CHANGELOG = {
     "3.3.0": {
-        date: "2025-x-x",
+        date: "2025-2-13",
         title: {
             zh: "搜索与播放器更新",
             en: "Search & Player Update",
