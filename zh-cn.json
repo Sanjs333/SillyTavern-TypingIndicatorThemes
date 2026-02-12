@@ -226,5 +226,10 @@
     "Unknown Artist": "未知歌手",
     "CSS styles for .music-bubble": "“.music-bubble”元素的CSS样式",
     "This will refresh all indicator displays. Music playback will pause but playlist will reload. Your settings and cache are preserved. Continue?": "将会刷新所有指示器的显示内容。音乐播放会暂停，但播放列表会重新加载。您的设置及缓存数据仍将保留。是否继续？",
-    "All indicators have been reset.": "所有指示器已重置。"
+    "All indicators have been reset.": "所有指示器已重置。",
+    "Verbose: Show all internal logs": "详细日志：显示所有内部日志",
+    "Detected theme font conflict, auto-fixing icons...": "检测到主题字体冲突，正在自动修复图标…",
+    "0 minutes": "0 分钟",
+    "...Replying...": "...回复中...",
+    "JSON format error: ${0}": "JSON 格式错误：${0}"
 }

@@ -226,5 +226,10 @@
     "Unknown Artist": "ศิลปินไม่ทราบ",
     "CSS styles for .music-bubble": "สไตล์ CSS สำหรับ .music-bubble",
     "This will refresh all indicator displays. Music playback will pause but playlist will reload. Your settings and cache are preserved. Continue?": "การดำเนินการนี้จะรีเฟรชการแสดงผลตัวบ่งชี้ทั้งหมด การเล่นเพลงจะหยุดชั่วคราวแต่เพลย์ลิสต์จะโหลดใหม่ การตั้งค่าและแคชของคุณจะยังคงอยู่ ดำเนินการต่อหรือไม่?",
-    "All indicators have been reset.": "รีเซ็ตตัวบ่งชี้ทั้งหมดแล้ว"
+    "All indicators have been reset.": "รีเซ็ตตัวบ่งชี้ทั้งหมดแล้ว",
+    "Verbose: Show all internal logs": "รายละเอียด: แสดงบันทึกภายในทั้งหมด",
+    "Detected theme font conflict, auto-fixing icons...": "ตรวจพบข้อขัดแย้งฟอนต์ธีม กำลังแก้ไขไอคอนอัตโนมัติ...",
+    "0 minutes": "0 นาที",
+    "...Replying...": "...กำลังตอบ...",
+    "JSON format error: ${0}": "รูปแบบ JSON ผิดพลาด: ${0}"
 }

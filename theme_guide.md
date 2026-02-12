@@ -257,7 +257,55 @@
   });
   ```
 
-### 3. 【核心】响应角色切换：动态更新上下文数据
+### 3. 歌曲匹配工具 (`MusicUtils`)
+
+播放器主题可以使用主系统提供的 `MusicUtils` 工具来进行歌曲匹配，避免重复编写匹配逻辑。
+
+- **获取方式**: `window.parent.MusicUtils`
+- **注意**: 这个对象挂载在父窗口上，不是 iframe 内部
+
+| 方法                                 | 说明                                           | 示例                                                          |
+| ------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
+| `normalize(str)`                     | 标准化字符串（处理繁简、全角半角、去除括号等） | `normalize("可愛くてごめん")` → `"可爱くてごめん"`            |
+| `isTitleMatch(query, candidate)`     | 判断两个歌名是否匹配                           | `isTitleMatch("可爱くてごめん", "可愛くてごめん")` → `true`   |
+| `isArtistMatch(query, candidate)`    | 判断歌手是否匹配（支持数组）                   | `isArtistMatch("HoneyWorks", "HoneyWorks/早見沙織")` → `true` |
+| `isTrackMatch(title, artist, track)` | 判断 track 对象是否匹配给定的歌名和歌手        | 见下方示例                                                    |
+
+- **使用示例**:
+
+```javascript
+// 获取工具对象（带降级处理）
+const MusicUtils = window.parent.MusicUtils || {
+    isTrackMatch: () => false,
+    isTitleMatch: (a, b) => a?.toLowerCase() === b?.toLowerCase(),
+    isArtistMatch: (a, b) => !a || b?.toLowerCase().includes(a?.toLowerCase()),
+    normalize: (s) => s?.toLowerCase() || ''
+};
+
+// 在搜索结果中查找匹配的歌曲
+const track = searchResult.data.find((item) => {
+    const itemTitle = item.song || item.name || "";
+    const itemArtist = item.singer || item.artist || "";
+    return MusicUtils.isTitleMatch(queryTitle, itemTitle)
+        && MusicUtils.isArtistMatch(queryArtist, itemArtist);
+});
+
+// 检查播放列表中是否已存在
+const existingIndex = state.playlist.findIndex((track) =>
+    MusicUtils.isTrackMatch(title, artist, track)
+);
+```
+
+- **支持的标准化处理**:
+  - 繁简转换：`愛` → `爱`、`見` → `见`、`樂` → `乐` 等
+  - 日文汉字：`気` → `气`、`桜` → `樱` 等
+  - 全角半角：`ｈｅｌｌｏ` → `hello`
+  - 去除括号内容：`歌名 (Remix)` → `歌名`
+  - 去除特殊符号：空格、连字符、标点等
+
+```
+
+### 4. 【核心】响应角色切换：动态更新上下文数据
 
 当用户在固定模式下切换角色时，如果你的主题需要动态更新角色名、头像等信息，**必须**注册为"有状态主题"。
 
@@ -312,7 +360,7 @@ window.addEventListener("message", (event) => {
 });
 ```
 
-### 4. CSS 最佳实践 - 字体设置
+### 5. CSS 最佳实践 - 字体设置
 
 - **背景**: 你的 iframe 主题是一个独立的沙盒环境，它**不会**自动继承 SillyTavern 主界面的美观字体。如果不进行任何设置，它将显示浏览器自带的、可能不协调的默认字体（如宋体或 Arial）。
 - **【最佳实践】**: **强烈建议**你为你的主题设置一个明确的 `font-family`，以保证视觉效果的统一和美观。
@@ -331,7 +379,7 @@ window.addEventListener("message", (event) => {
   }
   ```
 
-### 5. 尺寸配置 (Sizes) - 【核心准则】
+### 6. 尺寸配置 (Sizes) - 【核心准则】
 
 - iframe 模式需要你通过 JSON 格式，为你的主题**在 PC 端**定义一个推荐的基础尺寸，**必须**使用框架推荐的**标准尺寸配置格式**。
 - **【重要】**: 这个尺寸配置直接影响你的响应式策略选择！
@@ -897,22 +945,143 @@ async function loadTrack(index, autoPlay = true) {
 
 ### 6. 播放器必须处理的消息类型
 
-| 消息类型                    | 触发时机                    | 数据内容                                | 处理建议                       |
-| --------------------------- | --------------------------- | --------------------------------------- | ------------------------------ |
-| `set-initial-playlist`      | 主题首次加载时              | `{ playlist, charName, charAvatarUrl }` | 初始化播放列表和头像           |
-| `context-update`            | 用户切换角色时              | 见下方详细说明                          | 更新所有上下文数据             |
-| `append-songs-to-playlist`  | 聊天中发现新的 `[bgm]` 标签 | `[{ id, name, artist, ... }, ...]`      | 追加到播放列表末尾             |
-| `update-songs-from-message` | 消息被编辑时                | `{ messageId, songs: [...] }`           | 更新指定消息的歌曲             |
-| `play-now`                  | 用户点击气泡请求播放新歌    | `{ id, name, artist, ... }`             | 插入到当前位置并立即播放       |
-| `toggle-playback`           | 用户点击正在播放的气泡      | 无                                      | 切换播放/暂停状态              |
-| `graceful-shutdown-request` | 指示器即将关闭              | 无                                      | 暂停播放、清理资源             |
-| `audio-playback-failed`     | 音频播放失败时              | `{ id, source, trackIndex }`            | 通知主系统URL可能过期          |
-| `audio-url-refreshed`       | 主系统刷新URL后发回         | `{ audioUrl, trackIndex }`              | 用新URL重试播放                |
-| `cache-track-data`          | 播放器请求缓存歌曲数据      | 见下方详细说明                          | 让主系统帮忙缓存               |
-| `update-audio-cache`        | 播放器通知更新音频缓存      | `{ id, source, audioUrl }`              | 刷新后的URL写入缓存            |
-| `pause-theme`               | iframe池回收时              | 无                                      | 通知主题暂停活动               |
-| `play-by-info`              | 用户点击气泡但缓存未命中时  | `{ title, artist }`                     | 搜索歌曲并播放                 |
-| `request-chat-scan`         | 播放器请求扫描历史消息      | 无                                      | 主系统会扫描聊天并返回歌曲列表 |
+#### A. 播放器必须**接收**并处理的消息
+
+| 消息类型                    | 触发时机                           | 数据内容                                                         | 处理建议                                                                                                                                                                                                                      |
+| --------------------------- | ---------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `set-initial-playlist`      | 主题首次加载时                     | `{ playlist, charName, charAvatarUrl }`                          | 初始化播放列表、头像；必须使用语义比较（按 id+source 或 audioUrl 或 title+artist）判断歌单是否变化，禁止使用 JSON.stringify；若歌单确实变化，在新列表中查找当前正在播放的歌曲：找到则只更新索引不打断播放，找不到才加载第一首 |
+| `context-update`            | 用户切换角色时                     | `{ charName, userName, charAvatarUrl, userAvatarUrl, playlist }` | 更新头像和角色名；比较新旧歌单，有变化时更新列表并重新渲染 更新头像和角色名；播放列表处理逻辑与 set-initial-playlist 完全相同——使用语义比较，保留当前播放状态                                                                 |
+| `update-playlist`           | 固定模式下切换角色时（播放器专用） | 新的播放列表数组 `[{...}, {...}]`                                | 与 context-update 类似，但只包含歌单数据；必须使用同样的语义比较和当前歌曲查找逻辑，保留当前播放状态                                                                                                                          |
+| `append-songs-to-playlist`  | 聊天中发现新的 `[bgm]` 标签        | `[{ id, name, artist, ... }, ...]`                               | 去重后追加到播放列表末尾（按 id+source 或 audioUrl 判断）；若当前列表为空，加载第一首                                                                                                                                         |
+| `update-songs-from-message` | 消息被编辑时                       | `{ messageId, songs: [...] }`                                    | 先删除该 `messageId` 的旧歌曲，再添加新歌曲；更新列表UI                                                                                                                                                                       |
+| `play-now`                  | 用户点击气泡（缓存完全命中）       | 完整歌曲数据对象，含 `audioUrl`                                  | 先检查歌单中是否已存在匹配的歌曲（使用 MusicUtils.isTrackMatch）：已存在则直接播放该位置，不存在则插入到当前位置后并播放                                                                                                      |
+| `play-by-info`              | 用户点击气泡（缓存未命中）         | `{ title, artist }`                                              | 调用 `searchAndPlay()` 搜索歌曲并播放；需要自行处理换源逻辑                                                                                                                                                                   |
+| `toggle-playback`           | 用户点击正在播放的气泡             | 无                                                               | 简单切换：`audio.paused ? play() : pause()`                                                                                                                                                                                   |
+| `enter-loading`             | 用户点击气泡，播放指令发出前       | 无                                                               | 显示加载动画/状态，如 `container.classList.add('loading')`                                                                                                                                                                    |
+| `audio-url-refreshed`       | 主系统刷新URL后发回                | `{ audioUrl, trackIndex }`                                       | 用新URL更新对应歌曲，若是当前歌曲则重新加载播放                                                                                                                                                                               |
+| `pause-theme`               | iframe池回收时                     | 无                                                               | 暂停音频和动画循环，但**保留状态**（不清空列表），等待复用                                                                                                                                                                    |
+| `graceful-shutdown-request` | 指示器即将关闭                     | 无                                                               | 暂停音频、取消所有定时器/动画循环、发送 `graceful-shutdown-response`                                                                                                                                                          |
+
+#### B. 播放器需要**发送**的消息
+
+| 消息类型                     | 发送时机               | 数据内容                                                                         | 处理建议                                                                                   |
+| ---------------------------- | ---------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `player-initialized`         | 播放器初始化完成后     | 无                                                                               | **必须**在 `DOMContentLoaded` 的最后一行发送，否则点击气泡可能丢失                         |
+| `register-stateful-theme`    | 初始化时               | 无                                                                               | 角色切换时只更新数据不重建iframe，保持播放连续性                                           |
+| `playback-state-changed`     | 播放/暂停/切歌时       | `{ isPlaying, currentTrack, lyrics }`                                            | `currentTrack` 需包含 `originalTitle/originalArtist`；`lyrics` 用于悬浮歌词                |
+| `playback-progress`          | 播放过程中             | `{ progress, currentTime, duration, currentTimeRaw, currentTrack }`              | 推荐用 `requestAnimationFrame` 发送以实现流畅的歌词变色效果                                |
+| `player-expanding`           | 从迷你模式展开时       | 无                                                                               | 通知主系统，移动端会自动将播放器居中                                                       |
+| `player-collapsing`          | 收起到迷你模式时       | 无                                                                               | 通知主系统恢复原始位置（如果有记录的话）                                                   |
+| `audio-playback-failed`      | 音频播放失败时         | `{ id, source, trackIndex }`                                                     | 请求主系统帮忙刷新URL；需配合 `_refreshed` 标记防止无限循环                                |
+| `cache-track-data`           | 成功获取歌曲完整信息后 | `{ title, artist, trackData, audioUrl, lyricsContent, tlyricContent, coverUrl }` | 只在 `!track._fromCache` 时发送，避免重复写入缓存                                          |
+| `update-audio-cache`         | URL刷新成功后          | `{ id, source, audioUrl }`                                                       | 通知主系统更新缓存中的音频URL                                                              |
+| `graceful-shutdown-response` | 响应关闭请求后         | 可选：需要保存的数据对象                                                         | 在清理完资源后发送，可附带需要持久化的状态数据                                             |
+| `resize-iframe`              | 需要改变播放器尺寸时   | `{ width, height }`                                                              | 如展开时 `{ width: "320px", height: "480px" }`，收起时 `{ width: "70px", height: "70px" }` |
+
+#### `play-now` vs `play-by-info` 的区别
+
+```javascript
+// play-now: 主系统已经准备好了完整数据，直接用
+case 'play-now':
+    // data 里有 audioUrl，可以直接播放
+    addAndPlayTrack(data, true);
+    break;
+
+// play-by-info: 主系统只知道歌名歌手，需要播放器自己搜索
+case 'play-by-info':
+    // data 只有 { title, artist }，需要调用搜索API
+    searchAndPlay(data.title, data.artist, null, true);
+    break;
+```
+
+#### `pause-theme` vs `graceful-shutdown-request` 的区别
+
+| 消息                        | 目的                  | 是否清理状态   | 后续动作         |
+| --------------------------- | --------------------- | -------------- | ---------------- |
+| `pause-theme`               | iframe 回收到池中复用 | ❌ 保留所有状态 | 等待被重新激活   |
+| `graceful-shutdown-request` | 主题即将被销毁        | ✅ 完全清理     | 发送响应后被移除 |
+
+#### 正确处理空歌单
+
+- **问题**: 当切换到没有 `@BGM@` 条目的角色时，主系统会发送 `playlist: []`（空数组）。如果使用 `if (data.playlist)` 判断，空数组会被跳过，导致旧歌单残留。
+
+- **【最佳实践】**: 使用 `!== undefined` 判断：
+
+```javascript
+    case "set-initial-playlist":
+    case "context-update":
+      // 更新头像和角色名
+      if (data.charAvatarUrl) {
+        dom.avatar.src = data.charAvatarUrl;
+      }
+      if (data.charName) {
+        dom.charName.textContent = data.charName;
+      }
+
+      // 更新播放列表
+      // 【铁律】使用 !== undefined 判断，空数组也能正确进入
+      if (data.playlist !== undefined) {
+        const newPlaylist = normalizePlaylist(data.playlist);
+
+        // 【铁律】使用语义比较，禁止使用 JSON.stringify
+        const isSamePlaylist = (oldList, newList) => {
+          if (oldList.length !== newList.length) return false;
+          for (let i = 0; i < oldList.length; i++) {
+            const a = oldList[i], b = newList[i];
+            const idMatch = a.id && b.id && a.id === b.id && a.source === b.source;
+            const urlMatch = a.audioUrl && b.audioUrl && a.audioUrl === b.audioUrl;
+            const infoMatch = (a.title || a.name) === (b.title || b.name)
+                           && a.artist === b.artist;
+            if (!idMatch && !urlMatch && !infoMatch) return false;
+          }
+          return true;
+        };
+
+        if (!isSamePlaylist(state.playlist, newPlaylist)) {
+          // 播放列表确实变化了
+          const wasPlaying = state.isPlaying;
+          const currentTrack = state.playlist[state.currentIndex];
+
+          // 【核心】在新列表中查找当前正在播放的歌曲
+          let newIndex = -1;
+          if (currentTrack) {
+            newIndex = newPlaylist.findIndex((t) => {
+              if (currentTrack.id && t.id) {
+                return t.id === currentTrack.id && t.source === currentTrack.source;
+              }
+              if (currentTrack.audioUrl && t.audioUrl) {
+                return t.audioUrl === currentTrack.audioUrl;
+              }
+              const aTitle = t.title || t.name || "";
+              const bTitle = currentTrack.title || currentTrack.name || "";
+              return aTitle === bTitle && t.artist === currentTrack.artist;
+            });
+          }
+
+          if (newIndex !== -1 && (wasPlaying || dom.audio.currentTime > 0)) {
+            // ✅ 当前歌还在新列表中 → 不打断，保留运行时数据
+            newPlaylist[newIndex] = { ...newPlaylist[newIndex], ...currentTrack };
+            state.playlist = newPlaylist;
+            state.currentIndex = newIndex;
+            renderPlaylist();
+          } else if (newPlaylist.length > 0) {
+            // 当前歌不在新列表中，才重新加载
+            state.playlist = newPlaylist;
+            renderPlaylist();
+            loadTrack(0, false);
+          } else {
+            // 空列表
+            state.playlist = newPlaylist;
+            renderPlaylist();
+            // 可选：使用内置默认歌单
+            // state.playlist = [...DEFAULT_PLAYLIST];
+            // loadTrack(0, false);
+          }
+        }
+        // else: 播放列表没变，什么都不做 ✅
+      }
+      break;
+```
 
 #### `context-update` 消息的完整数据结构
 
@@ -972,11 +1141,20 @@ window.addEventListener("message", async (event) => {
 
     case "append-songs-to-playlist":
       // 追加新歌曲（聊天中发现新的 [bgm] 标签）
+      // 【必须】先去重，避免重复歌曲
       if (Array.isArray(data) && data.length > 0) {
-        state.playlist.push(...data);
-        renderPlaylist();
+        const songsToAdd = data.filter(song => {
+          return !state.playlist.some(existing =>
+            (existing.id && song.id && existing.id === song.id && existing.source === song.source) ||
+            (existing.audioUrl && song.audioUrl && existing.audioUrl === song.audioUrl)
+          );
+        });
+        if (songsToAdd.length > 0) {
+          state.playlist.push(...songsToAdd);
+          renderPlaylist();
+        }
         // 如果当前没有在播放且这是第一批歌曲，自动开始播放
-        if (!state.isPlaying && state.playlist.length === data.length) {
+        if (!state.isPlaying && state.playlist.length > 0 && state.playlist.length === songsToAdd.length) {
           loadTrack(0);
         }
       }
@@ -997,15 +1175,38 @@ window.addEventListener("message", async (event) => {
       }
       break;
 
-    case "play-now":
+        case "play-now":
       // 立即播放指定歌曲（用户点击气泡）
       if (data) {
+        const trackData = {
+          ...data,
+          name: data.name || data.title,
+          artist: Array.isArray(data.artist) ? data.artist : [data.artist],
+          _fromCache: true,
+        };
+
+        // 【必须】先检查歌单里有没有这首歌
+        const existingIndex = state.playlist.findIndex((track) =>
+          MusicUtils.isTrackMatch(
+            data.originalTitle || data.title || data.name,
+            data.originalArtist || (Array.isArray(data.artist) ? data.artist[0] : data.artist),
+            track,
+          ),
+        );
+        if (existingIndex !== -1) {
+          // 歌单里已有，直接播放那个位置
+          loadTrack(existingIndex, true);
+          renderPlaylist();
+          return;
+        }
+
+        // 歌单里没有，插入到当前位置后
         if (state.playlist.length === 0) {
-          state.playlist.push(data);
+          state.playlist.push(trackData);
           loadTrack(0, true);
         } else {
           const newIndex = state.currentIndex + 1;
-          state.playlist.splice(newIndex, 0, data);
+          state.playlist.splice(newIndex, 0, trackData);
           loadTrack(newIndex, true);
         }
         renderPlaylist();
@@ -1142,7 +1343,53 @@ window.addEventListener('message', (event) => {
 
 - **【注意】**: 为了实现"不播放试听版"，你的 `loadTrack` 函数应该只负责设置 `src` 并让其预加载，而不是直接调用 `play()`。真正的播放命令应该在 `loadedmetadata` 检查通过后，或者在 `canplay` 事件中触发。
 
-### 9. 换源处理
+### 9. 【最佳实践】使用状态标记避免逻辑冲突
+
+播放器需要维护几个关键的状态标记：
+
+#### A. `isChangingTrack` - 换源/换歌过程标记
+
+```javascript
+let isChangingTrack = false;
+
+async function loadTrack(index, autoPlay = false) {
+    isChangingTrack = true;
+    // ... 异步加载过程 ...
+    isChangingTrack = false;
+}
+
+dom.audioPlayer.addEventListener('error', async (e) => {
+    // 换源过程中忽略错误，避免循环处理
+    if (isChangingTrack) {
+        console.log('[Player] 换源中，忽略此错误');
+        return;
+    }
+    // ... 正常错误处理 ...
+});
+```
+
+#### B. `shouldAutoPlay` - 记住播放意图
+
+由于 `loadTrack` 是异步函数，需要记住用户是否希望自动播放：
+
+```javascript
+let shouldAutoPlay = false;
+
+async function loadTrack(index, autoPlay = false) {
+    shouldAutoPlay = autoPlay;
+    // ... 异步加载，可能会清空 audio.src ...
+}
+
+dom.audioPlayer.addEventListener('loadedmetadata', () => {
+    // 检查通过后，根据记住的意图决定是否播放
+    if (shouldAutoPlay) {
+        shouldAutoPlay = false;
+        play();
+    }
+});
+```
+
+### 10. 换源处理
 
 播放器需要处理两种换源场景：
 
@@ -1178,7 +1425,7 @@ dom.audio.onloadedmetadata = () => {
 };
 ```
 
-### 10. 播放器必须发送的消息
+### 11. 播放器必须发送的消息
 
 #### A. `playback-state-changed` - 播放状态变化
 
@@ -1287,7 +1534,7 @@ function toggleExpand(expand) {
 }
 ```
 
-### 11. 尺寸配置策略
+### 12. 尺寸配置策略
 
 播放器主题使用**JS 动态尺寸**策略：
 
@@ -1304,7 +1551,7 @@ function toggleExpand(expand) {
 
 - **工作原理**: 容器的初始大小是固定的。通过主题内部的 JavaScript 调用 `ThemeUtils.sendMessage('resize-iframe', ...)` API，**主动命令**外部容器在不同状态间改变大小。
 
-### 12. 处理多格式双语 LRC 歌词
+### 13. 处理多格式双语 LRC 歌词
 
 - **背景**: 不同音源返回的双语歌词格式差异很大，播放器需要能够智能识别并正确解析。
 
@@ -1600,12 +1847,13 @@ function parseLRCKuwo(lrcData) {
 ```
 
 **调用时传入 source 参数**:
-
+`source` 来自歌曲对象的 `source` 字段（如 `"Netease"`, `"Tencent"`, `"Kuwo"`）：
 在你的 `loadTrack` 函数或处理歌词的地方，确保传入歌曲来源：
 
 ```javascript
-// 解析歌词时传入 source
-parseLRCText(lyricData.lyric, lyricData.tlyric, track.source);
+// 在 loadTrack 中
+const track = state.playlist[index];
+parseLRCText(lyricsContent, tlyricContent, track.source);  // 传入歌曲来源
 ```
 
 **关键点说明**:
@@ -1619,7 +1867,30 @@ parseLRCText(lyricData.lyric, lyricData.tlyric, track.source);
    - 时间差 < 0.05s → 同时间戳格式
 4. **智能配对**: 根据语言类型判断哪行是原文、哪行是译文（优先将中文作为译
 
-### 13. 音乐 API 后端代理
+#### 酷我歌词的两种返回格式
+
+**格式一：`lrclist` 数组（Open Music API）**
+
+后端会自动将其转换为 LRC 文本格式：
+
+```json
+{
+  "lrclist": [
+    { "time": "12.02", "lineLyric": "認めていた臆病な過去" },
+    { "time": "16.82", "lineLyric": "原本早已认同软弱的过去" }
+  ]
+}
+```
+
+**格式二：LRC 文本（GD Studio API）**
+
+直接返回 LRC 格式文本，需要用 `parseLrcKuwo` 解析。
+
+播放器通常只需要处理格式二，因为后端已经做了转换。
+
+```
+
+### 14. 音乐 API 后端代理
 
 - **可用的后端端点**
 
@@ -1766,7 +2037,7 @@ try {
 }
 ```
 
-### 14. 【铁律】搜索结果匹配策略
+### 15. 【铁律】搜索结果匹配策略
 
 - **问题**: 搜索 API 返回的结果可能包含很多不相关的歌曲。如果只匹配歌手名，或者匹配失败后直接取第一条结果，会导致**播放错误的歌曲**。
 
@@ -1780,28 +2051,20 @@ const track = searchData.data.find((item) => {
 }) || searchData.data[0];  // 这会播放完全不相关的歌！
 ```
 
-- **【最佳实践】**: **必须同时匹配歌名和歌手**，找不到精确匹配时返回 `null`，让换源逻辑继续尝试其他音源。
+- **【最佳实践】**: 使用 `window.parent.MusicUtils` 进行智能匹配，找不到精确匹配时返回 `null`，让换源逻辑继续尝试其他音源。
 
 ```javascript
-// ✅ 正确：同时匹配歌名+歌手
-const normalizedTitle = title.toLowerCase().trim();
-const normalizedArtist = artist.toLowerCase().trim();
+// ✅ 正确：使用 MusicUtils 进行智能匹配
+const MusicUtils = window.parent.MusicUtils || {
+    isTitleMatch: (a, b) => a?.toLowerCase() === b?.toLowerCase(),
+    isArtistMatch: (a, b) => !a || b?.toLowerCase().includes(a?.toLowerCase()),
+};
 
 const track = searchData.data.find((item) => {
-    const itemName = (item.song || item.name || "").toLowerCase();
-    const itemArtist = (item.singer || item.artist || "").toLowerCase();
-
-    // 歌名匹配（包含关系）
-    const titleMatch =
-        itemName.includes(normalizedTitle) ||
-        normalizedTitle.includes(itemName);
-
-    // 歌手匹配（包含关系）
-    const artistMatch =
-        itemArtist.includes(normalizedArtist) ||
-        normalizedArtist.includes(itemArtist);
-
-    return titleMatch && artistMatch;
+    const itemTitle = item.song || item.name || "";
+    const itemArtist = item.singer || item.artist || "";
+    return MusicUtils.isTitleMatch(title, itemTitle)
+        && MusicUtils.isArtistMatch(artist, itemArtist);
 });
 
 // ✅ 找不到就返回 null，不要随便取第一条！
@@ -1811,12 +2074,20 @@ if (!track) {
 }
 ```
 
+- **MusicUtils 的优势**:
+  - 自动处理繁简体差异（如 `可愛くてごめん` vs `可爱くてごめん`）
+  - 自动处理全角半角字符
+  - 自动忽略括号内容（如 `(Remix)`、`【Live】`）
+  - 支持数组格式的歌手名
+  - 使用字符重叠度算法容忍小差异
+
 - **【注意】**: 这个匹配逻辑适用于所有涉及搜索的场景：
   - `fetchSongDetailsFromSource()` - 从指定源获取详情
   - `searchAndPlay()` - 搜索并播放
-  - 换源重试逻辑
+  - `tryFallbackSource()` - 换源重试逻辑
+  - `handlePlayByInfo()` - 通过歌名歌手播放
 
-### 15. 音频链接代理策略
+### 16. 音频链接代理策略
 
 **【铁律】不是所有链接都需要走后端代理！**
 
@@ -1867,7 +2138,7 @@ dom.audio.src = getAudioSource(track.audioUrl);
 
 **【注意】**: 如果你全部走后端代理，用户在世界书里放的 catbox 等链接可能会因为服务器网络环境问题而无法播放！
 
-### 16. BGM 歌单数据来源
+### 17. BGM 歌单数据来源
 
 播放器的歌单数据有两个来源：
 
@@ -1900,7 +2171,7 @@ dom.audio.src = getAudioSource(track.audioUrl);
 
 当 AI 在回复中输出 `[bgm]歌曲名-歌手[/bgm]` 格式的文本时，主系统会自动搜索并添加到播放列表。
 
-### 17. 悬浮歌词支持
+### 18. 悬浮歌词支持
 
 主系统提供了悬浮歌词功能，播放器主题只需正确发送数据即可自动启用。
 
@@ -1993,7 +2264,7 @@ dom.audio.onpause = () => {
 };
 ```
 
-### 18. 缓存协作机制 (`cache-track-data`)
+### 19. 缓存协作机制 (`cache-track-data`)
 
 播放器主题可以主动请求主系统帮忙缓存歌曲数据，避免重复搜索和API调用。
 
@@ -2030,9 +2301,31 @@ ThemeUtils.sendMessage('cache-track-data', {
 
 - 只有当所有数据都成功获取后才建议发送缓存请求
 - `trackData` 必须包含 `id` 和 `source` 字段，否则缓存会被忽略
--
 
-### 19. 原始搜索信息的保留与传递
+#### 避免重复缓存写入
+
+使用 `_fromCache` 标记来避免将已缓存的数据再次写入：
+
+```javascript
+// 只有不是来自缓存的数据才需要回写
+if (!track._fromCache) {
+    sendCacheWriteback(track);
+    track._fromCache = true; // 标记为已缓存，避免重复写入
+}
+```
+
+在 `normalizePlaylist` 函数中也要保留这个标记：
+
+```javascript
+function normalizePlaylist(playlist) {
+    return playlist.map(song => ({
+        // ... 其他字段 ...
+        _fromCache: song._fromCache || false,  // 保留缓存标记
+    }));
+}
+```
+
+### 20. 原始搜索信息的保留与传递
 
 - **问题背景**: 当用户点击聊天中的音乐气泡时，气泡上显示的歌曲名（如 `Sweet Boy`）可能与 API 实际返回的歌曲名（如 `Sweet Boy (Explicit)`）不同。这会导致主系统无法正确识别"当前播放的歌曲"与"气泡上的歌曲"是同一首，从而无法更新气泡的 `.is-playing` 状态。
 
@@ -2120,7 +2413,7 @@ ThemeUtils.sendMessage('playback-progress', {
 
 ---
 
-### 完整的消息数据结构（更新版）
+#### 完整的消息数据结构
 
 ```javascript
 // playback-state-changed 消息
@@ -2150,6 +2443,103 @@ ThemeUtils.sendMessage('playback-progress', {
   duration: "3:04",
   currentTimeRaw: 83.5,
 }
+```
+
+### 21. 预加载下一首歌曲
+
+为了实现无缝切歌体验，播放器可以在当前歌曲播放稳定后（如3秒后）预加载下一首：
+
+```javascript
+const preloadNextTrack = async () => {
+    if (currentPlaylist.length <= 1) return;
+
+    const nextIndex = (currentTrackIndex + 1) % currentPlaylist.length;
+    const nextTrack = currentPlaylist[nextIndex];
+    if (!nextTrack) return;
+
+    // 优先从缓存获取 URL
+    if (window.MusicCache && nextTrack.id && nextTrack.source) {
+        const cachedAudio = window.MusicCache.getAudio(nextTrack.id, nextTrack.source);
+        if (cachedAudio) {
+            nextTrack.audioUrl = cachedAudio;
+        }
+    }
+
+    // 如果缓存没有，尝试获取
+    if (!nextTrack.audioUrl && nextTrack.id && nextTrack.source) {
+        try {
+            const sourceMap = { Netease: "netease", Tencent: "tencent", Kuwo: "kuwo" };
+            const apiSource = sourceMap[nextTrack.source] || nextTrack.source.toLowerCase();
+
+            const response = await fetch(
+                `/api/plugins/g-player-proxy/song?id=${nextTrack.id}&source=${apiSource}`
+            );
+            if (response.ok) {
+                const data = await response.json();
+                const songItem = Array.isArray(data.data) ? data.data[0] : data.data;
+                if (songItem?.url) {
+                    nextTrack.audioUrl = songItem.url;
+                }
+            }
+        } catch (e) {
+            console.warn("预加载: 获取URL失败", e);
+            return;
+        }
+    }
+
+    if (!nextTrack.audioUrl) return;
+
+    // 创建或复用预加载音频元素
+    if (!preloadAudio) {
+        preloadAudio = new Audio();
+        preloadAudio.preload = "auto";
+        preloadAudio.volume = 0;
+    }
+
+    // 避免重复加载同一首
+    const trackKey = `${nextTrack.id}-${nextTrack.source}`;
+    if (preloadAudio.dataset.trackId === trackKey) return;
+
+    preloadAudio.dataset.trackId = trackKey;
+    preloadAudio.src = getProxiedUrl(nextTrack.audioUrl);
+    console.log(`[Player] 预加载下一首: ${nextTrack.title}`);
+};
+```
+
+### 22. 加载超时处理
+
+为防止用户无限等待，播放器应实现加载超时机制：
+
+```javascript
+const LOADING_TIMEOUT = 15000; // 15秒
+let loadingTimeoutId = null;
+
+const startLoadingTimeout = () => {
+    clearTimeout(loadingTimeoutId);
+    loadingTimeoutId = setTimeout(() => {
+        if (dom.container.classList.contains("loading")) {
+            handleLoadingTimeout();
+        }
+    }, LOADING_TIMEOUT);
+};
+
+const handleLoadingTimeout = () => {
+    const track = currentPlaylist[currentTrackIndex];
+    if (!track) return;
+
+    // 尝试刷新URL或换源
+    const title = track.originalTitle || track.title;
+    const artist = track.originalArtist || track.artist;
+    searchAndPlay(title, artist, track.source, true);
+};
+
+// 在 loadTrack 开始时调用
+startLoadingTimeout();
+
+// 在播放成功时清除
+dom.audioPlayer.addEventListener("canplaythrough", () => {
+    clearTimeout(loadingTimeoutId);
+});
 ```
 
 ---
