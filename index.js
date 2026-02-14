@@ -98,7 +98,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.3.0";
+const PLUGIN_VERSION = "3.3.1";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,8 +150,8 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-    "3.3.0": {
-        date: "2025-2-13",
+    "3.3.1": {
+        date: "2025-2-15",
         title: {
             zh: "搜索与播放器更新",
             en: "Search & Player Update",
@@ -160,66 +160,21 @@ const CHANGELOG = {
         content: {
             zh: `
 ### 更新内容
-- 优化了在线搜索功能的稳定性，修复了部分接口失效的问题
-- 修复并增强了音乐搜索与匹配机制，引入了评分系统
-- 增强了歌词系统，翻译行自动显示/隐藏
-- 增强了播放列表去重与防抖
-- 修复了内嵌世界书数据过时导致无法实时更新歌单的问题
-- 更新了创作指南
-- 修复了内置播放器
-
-### ⚠️ 重要提示
-1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
-
-2. **内置主题已更新！** 请前往：
-> 设置 → 工具 → **恢复内置项**
-
-- 您自己创建的主题 **不受影响**
-- ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
-- **请提问前务必确认已仔细查看过使用指南**
+- 修复了未启用动态主题时指示器无法正常隐藏的问题
+- 修复了部分初始化路径下主题自动跟随和播放列表构建缺失的问题
+- 为固定模式添加了功能说明
         `,
             en: `
 ### What's New
-- Improved online search stability, fixed some broken API endpoints
-- Fixed and enhanced music search & matching with a new scoring system
-- Enhanced lyrics system with automatic translation line show/hide
-- Improved playlist deduplication and debouncing
-- Fixed embedded world book data becoming stale, preventing real-time playlist updates
-- Updated the theme creation guide
-- Fixed the built-in music player
-
-### ⚠️ Important Notes
-1. **Backend plugin has been updated!** Please restart SillyTavern — the backend plugin will update automatically
-
-2. **Built-in themes have been updated!** Please go to:
-> Settings → Tools → **Restore Built-in Items**
-
-- Your custom-created themes are **not affected**
-- ⚠️ If you have modified any built-in themes, please **export a backup** before restoring
-- **Please read the Usage Guide carefully before asking questions**
+- Fixed indicator not hiding properly when dynamic themes were disabled
+- Fixed theme auto-sync and playlist initialization missing in certain startup paths
+- Added description text for Persistent Mode
         `,
             th: `
 ### มีอะไรใหม่
-- ปรับปรุงความเสถียรของการค้นหาออนไลน์ แก้ไขปัญหา API บางส่วนที่ใช้งานไม่ได้
-- แก้ไขและปรับปรุงระบบค้นหาและจับคู่เพลง เพิ่มระบบให้คะแนน
-- ปรับปรุงระบบเนื้อเพลง แสดง/ซ่อนบรรทัดแปลอัตโนมัติ
-- ปรับปรุงการกรองรายการเพลงซ้ำและ debouncing
-- แก้ไขปัญหาข้อมูล World Book ฝังตัวล้าสมัย ทำให้ไม่สามารถอัปเดตเพลย์ลิสต์แบบเรียลไทม์ได้
-- อัปเดตคู่มือสร้างธีม
-- แก้ไขเครื่องเล่นเพลงในตัว
-
-### ⚠️ หมายเหตุสำคัญ
-1. **ปลั๊กอินแบ็กเอนด์ได้รับการอัปเดตแล้ว!** กรุณารีสตาร์ท SillyTavern — ปลั๊กอินแบ็กเอนด์จะอัปเดตอัตโนมัติ
-
-2. **ธีมในตัวได้รับการอัปเดตแล้ว!** กรุณาไปที่：
-> การตั้งค่า → เครื่องมือ → **คืนค่ารายการในตัว**
-
-- ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
-- ⚠️ หากคุณได้แก้ไขธีมในตัว กรุณา **ส่งออกสำรองข้อมูล** ก่อนคืนค่า
-- **กรุณาอ่านคู่มือการใช้งานอย่างละเอียดก่อนถามคำถาม**
-
-### 📝 หมายเหตุสำหรับผู้ใช้ภาษาไทย
-การค้นหาเพลง**ไม่รองรับภาษาไทย** กรุณาใช้ชื่อเพลงในภาษาต้นฉบับ (จีน, อังกฤษ, ญี่ปุ่น, เกาหลี ฯลฯ)
+- แก้ไขปัญหาตัวบ่งชี้ไม่ซ่อนเมื่อปิดการใช้งานธีมไดนามิก
+- แก้ไขปัญหาการซิงค์ธีมอัตโนมัติและการสร้างเพลย์ลิสต์ขาดหายในบางเส้นทางการเริ่มต้น
+- เพิ่มคำอธิบายสำหรับโหมดถาวร (Persistent Mode)
         `,
         },
     },
@@ -2820,9 +2775,6 @@ async function handleSongPlayRequest(songData) {
 
             MusicCache.invalidateSearch(songData.title, songData.artist);
 
-            const playerIframe = document.querySelector(
-                "#music_player .theme-iframe",
-            );
             if (playerIframe && playerIframe.contentWindow) {
                 playerIframe.contentWindow.postMessage(
                     {
@@ -3047,6 +2999,12 @@ function applyThemeToIndicator(theme, indicatorElement) {
         indicatorElement.classList.add("iframe-theme");
         const characterName = getCurrentCharName();
         setTimeout(() => {
+            if (!indicatorElement.isConnected) {
+                debugLog(
+                    "[TypingIndicator] Element detached, skip iframe creation",
+                );
+                return;
+            }
             getOrCreateIframe(theme, indicatorElement, characterName);
         }, 50);
     }
@@ -4880,6 +4838,7 @@ function addExtensionSettings() {
                                 <label class="checkbox_label"><input type="checkbox" id="ti_persistent_mode" ${
                                     settings.persistentMode ? "checked" : ""
                                 }>${t`Persistent Mode`}</label>
+                                <small style="margin-left: 24px; opacity: 0.7; display: block; margin-top: 2px;">${t`When enabled, the indicator stays visible and will not disappear after replies.`}</small>
                             </div>
                         </div>
                         <div class="ti-section">
@@ -5405,6 +5364,16 @@ function addExtensionSettings() {
                 ? "block"
                 : "none";
             saveSettingsDebounced();
+
+            if (!e.target.checked) {
+                if (dynamicThemeTimeoutId) {
+                    clearTimeout(dynamicThemeTimeoutId);
+                    dynamicThemeTimeoutId = null;
+                }
+                if (currentDynamicThemeId) {
+                    revertDynamicTheme("dynamic_themes_disabled");
+                }
+            }
         });
 
         section
@@ -8636,8 +8605,55 @@ function addExtensionSettings() {
     return render;
 }
 
-// ==================== 事件监听器设置 ====================
+function initializeObservers() {
+    if (bodyClassObserver) {
+        bodyClassObserver.disconnect();
+    }
+    bodyClassObserver = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+            if (
+                mutation.type === "attributes" &&
+                mutation.attributeName === "class"
+            ) {
+                setTimeout(() => handleMainThemeChange(), 100);
+            }
+        }
+    });
+    bodyClassObserver.observe(document.body, { attributes: true });
 
+    if (stopButtonObserver) {
+        stopButtonObserver.disconnect();
+    }
+    const stopButton = document.getElementById("mes_stop");
+    if (stopButton) {
+        stopButtonObserver = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                if (
+                    mutation.attributeName === "style" ||
+                    mutation.attributeName === "class"
+                ) {
+                    const isHidden =
+                        window.getComputedStyle(stopButton).display === "none";
+                    const settings = getSettings();
+                    const indicator =
+                        document.getElementById("typing_indicator");
+                    if (isHidden && !settings.persistentMode && indicator) {
+                        if (
+                            settings.enableDynamicThemes &&
+                            (currentDynamicThemeId || dynamicThemeTimeoutId)
+                        ) {
+                            return;
+                        }
+                        hideTypingIndicator();
+                    }
+                }
+            }
+        });
+        stopButtonObserver.observe(stopButton, { attributes: true });
+    }
+}
+
+// ==================== 事件监听器设置 ====================
 (function () {
     let isInitialized = false;
 
@@ -8971,12 +8987,19 @@ function addExtensionSettings() {
                         const settings = getSettings();
                         if (settings.lyricsEnabled) {
                             if (isPlaying && currentTrack) {
+                                const normalizeArtistForCompare = (a) =>
+                                    Array.isArray(a) ? a.join(",") : a || "";
+
                                 const isNewTrack =
                                     !currentPlayerTrack ||
                                     currentTrack.name !==
                                         currentPlayerTrack?.name ||
-                                    (currentTrack.artist || "") !==
-                                        (currentPlayerTrack?.artist || "");
+                                    normalizeArtistForCompare(
+                                        currentTrack.artist,
+                                    ) !==
+                                        normalizeArtistForCompare(
+                                            currentPlayerTrack?.artist,
+                                        );
 
                                 if (isNewTrack) {
                                     if (lyrics && lyrics.length > 0) {
@@ -9430,36 +9453,45 @@ function addExtensionSettings() {
                 renderBgmBubbles(messageElement);
             }
         }
+
         const settings = getSettings();
-        if (!settings.enabled || !settings.enableDynamicThemes) return;
-        if (settings.persistentMode && !settings.dynamicThemesInPersistent)
-            return;
-        const foundTheme = processMessageForTheme(messageId);
-        if (foundTheme) {
-            const duration = settings.dynamicThemeDuration * 1000;
-            clearTimeout(dynamicThemeTimeoutId);
-            if (settings.persistentMode) {
-                if (duration >= 0) {
-                    dynamicThemeTimeoutId = setTimeout(() => {
-                        dynamicThemeTimeoutId = null;
-                        revertDynamicTheme("duration_ended_persistent");
-                    }, duration);
-                }
-            } else {
-                if (duration > 0) {
-                    dynamicThemeTimeoutId = setTimeout(() => {
-                        dynamicThemeTimeoutId = null;
-                        currentDynamicThemeId = null;
-                        currentDynamicPresetId = null;
-                        hideTypingIndicator();
-                    }, duration);
-                } else {
-                    currentDynamicThemeId = null;
-                    currentDynamicPresetId = null;
-                    hideTypingIndicator();
+
+        if (settings.enabled && settings.enableDynamicThemes) {
+            if (
+                !settings.persistentMode ||
+                settings.dynamicThemesInPersistent
+            ) {
+                const foundTheme = processMessageForTheme(messageId);
+                if (foundTheme) {
+                    const duration = settings.dynamicThemeDuration * 1000;
+                    clearTimeout(dynamicThemeTimeoutId);
+                    if (settings.persistentMode) {
+                        if (duration >= 0) {
+                            dynamicThemeTimeoutId = setTimeout(() => {
+                                dynamicThemeTimeoutId = null;
+                                revertDynamicTheme("duration_ended_persistent");
+                            }, duration);
+                        }
+                    } else {
+                        if (duration > 0) {
+                            dynamicThemeTimeoutId = setTimeout(() => {
+                                dynamicThemeTimeoutId = null;
+                                currentDynamicThemeId = null;
+                                currentDynamicPresetId = null;
+                                hideTypingIndicator();
+                            }, duration);
+                        } else {
+                            currentDynamicThemeId = null;
+                            currentDynamicPresetId = null;
+                            hideTypingIndicator();
+                        }
+                    }
+                    return;
                 }
             }
-        } else if (!settings.persistentMode) {
+        }
+
+        if (!settings.persistentMode) {
             if (!dynamicThemeTimeoutId) {
                 hideTypingIndicator();
             }
@@ -9525,56 +9557,8 @@ function addExtensionSettings() {
             if (settings.showFpsMonitor) {
                 FPSMonitor.start();
             }
-
-            if (bodyClassObserver) {
-                bodyClassObserver.disconnect();
-            }
-            bodyClassObserver = new MutationObserver((mutationsList) => {
-                for (const mutation of mutationsList) {
-                    if (
-                        mutation.type === "attributes" &&
-                        mutation.attributeName === "class"
-                    ) {
-                        setTimeout(() => handleMainThemeChange(), 100);
-                    }
-                }
-            });
-            bodyClassObserver.observe(document.body, { attributes: true });
-
+            initializeObservers();
             if (getSettings().autoFollowTheme) handleMainThemeChange();
-
-            if (stopButtonObserver) {
-                stopButtonObserver.disconnect();
-            }
-            const stopButton = document.getElementById("mes_stop");
-            if (stopButton) {
-                stopButtonObserver = new MutationObserver((mutations) => {
-                    for (const mutation of mutations) {
-                        if (mutation.attributeName === "style") {
-                            const isHidden =
-                                stopButton.style.display === "none";
-                            const settings = getSettings();
-                            const indicator =
-                                document.getElementById("typing_indicator");
-                            if (
-                                isHidden &&
-                                !settings.persistentMode &&
-                                indicator
-                            ) {
-                                if (
-                                    settings.enableDynamicThemes &&
-                                    (currentDynamicThemeId ||
-                                        dynamicThemeTimeoutId)
-                                ) {
-                                    return;
-                                }
-                                hideTypingIndicator();
-                            }
-                        }
-                    }
-                });
-                stopButtonObserver.observe(stopButton, { attributes: true });
-            }
         }, 500);
     });
 
@@ -9648,11 +9632,33 @@ function addExtensionSettings() {
             !document.getElementById("music_player")
         ) {
             showPlayer();
+            const waitForInit = () =>
+                new Promise((resolve) => {
+                    const checkInterval = setInterval(() => {
+                        if (isPlayerInitialized) {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 50);
+                    setTimeout(() => {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }, 3000);
+                });
+            waitForInit().then(() => {
+                buildAndSetInitialPlaylist().catch((err) =>
+                    console.error(
+                        "[TypingIndicator] fallback 播放列表构建失败:",
+                        err,
+                    ),
+                );
+            });
         }
         applyBubbleStyles();
         if (settings.showFpsMonitor) {
             FPSMonitor.start();
         }
+        initializeObservers();
         if (settings.autoFollowTheme) {
             handleMainThemeChange();
         }
