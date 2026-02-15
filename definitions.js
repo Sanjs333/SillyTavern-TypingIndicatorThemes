@@ -636,8 +636,7 @@ const HEARTBEAT_LOADING_CSS = `
 @keyframes float-up { to { transform: translateY(-180px) rotate(15deg); opacity: 0; } }
 @media (max-width: 480px) {
     .typing_indicator { max-width: 320px; }
-    :root { --indicator-height: 150px; --heart-size: 130px; --font-size-char: 12px; --font-size-main: 10px; --line1-top: 46%; --line2-top: 56%; --line3-top: 66%; }
-}`;
+    :root { --indicator-height: 150px; --heart-size: 130px; --font-size-char: 12px; --font-size-main: 10px; --line1-top: 46%; --line2-top: 56%; --line3-top: 66%; } }`;
 
 const VINE_GREEN_THEME_CSS = `
 .typing_indicator {
@@ -786,7 +785,6 @@ const NIGHT_MARE_CSS = `
         --thestral-font-size: 18px;
         --vertical-gap: 0px;
     }
-}
 }`;
 
 const BLACK_SCROLL_CSS = `
@@ -847,11 +845,9 @@ const BLACK_SCROLL_CSS = `
 @media(max-width: 480px) {
   .scroll-container { max-width: 300px; }
   .scroll-text { font-size: 16px; }
-}
 }`;
 
-const HEARTBEAT_LINE_PINK_CSS = `
-.typing_indicator .svg_dots {
+const HEARTBEAT_LINE_PINK_CSS = `.typing_indicator .svg_dots {
     display: none !important;
 }
 
@@ -987,11 +983,7 @@ const HEARTBEAT_LINE_PINK_CSS = `
     66% { content: "..."; }
     100% { content: "..."; }
 }
-@keyframes ti-ellipsis-anim {
-    to {
-        text-indent: -9999px;
-    }
-}
+
 .typing_indicator .ellipsis::after {
     content: '.';
     animation: ti-ellipsis-dots 1.5s steps(3, start) infinite;
@@ -1013,7 +1005,6 @@ const HEARTBEAT_LINE_PINK_CSS = `
         transform: translateY(-80px) scale(1.2);
         opacity: 0;
     }
-}
 }`;
 
 const HEARTBEAT_LINE_BLACK_CSS = `
@@ -1067,8 +1058,7 @@ const HEARTBEAT_LINE_BLACK_CSS = `
 @keyframes ti-char-name-flame-flicker { 0%, 100% { text-shadow: 0 0 2px #fff, 0 0 6px #ff1f1f, 0 0 12px #b80000; opacity: 1; } 25% { text-shadow: 0 0 3px #fff, 0 0 8px #ff4d4d, 0 0 15px #b80000; opacity: 0.95; } 50% { text-shadow: 0 0 2px #fff, 0 0 5px #ff1f1f, 0 0 10px #b80000; opacity: 1; } 75% { text-shadow: 0 0 4px #fff, 0 0 10px #ff4d4d, 0 0 18px #b80000; opacity: 0.9; } }
 @keyframes ti-text-fade-in { 0%, 20% { opacity: 0; } 40%, 100% { opacity: 1; } }
 @keyframes ti-ellipsis-dots { 33% { content: '..'; } 66% { content: '...'; } }
-@keyframes ti-particle-float { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20%, 80% { opacity: 1; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }
-}`;
+@keyframes ti-particle-float { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20%, 80% { opacity: 1; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }`;
 
 const HEARTBEAT_LINE_PURPLE_CSS = `
 :root {
@@ -1125,8 +1115,7 @@ const HEARTBEAT_LINE_PURPLE_CSS = `
 @keyframes ti-char-name-void-flicker { 0%, 100% { text-shadow: 0 0 2px #fff, 0 0 6px #c56eff, 0 0 12px #6c00b0; opacity: 1; } 25% { text-shadow: 0 0 3px #fff, 0 0 8px #d98dff, 0 0 15px #6c00b0; opacity: 0.95; } 50% { text-shadow: 0 0 2px #fff, 0 0 5px #c56eff, 0 0 10px #6c00b0; opacity: 1; } 75% { text-shadow: 0 0 4px #fff, 0 0 10px #d98dff, 0 0 18px #6c00b0; opacity: 0.9; } }
 @keyframes ti-text-fade-in { 0%, 20% { opacity: 0; } 40%, 100% { opacity: 1; } }
 @keyframes ti-ellipsis-dots { 33% { content: '..'; } 66% { content: '...'; } }
-@keyframes ti-particle-float { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20%, 80% { opacity: 1; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }
-}`;
+@keyframes ti-particle-float { 0% { transform: translateY(0) scale(0.5); opacity: 0; } 20%, 80% { opacity: 1; } 100% { transform: translateY(-80px) scale(1.2); opacity: 0; } }`;
 
 const LISTEN_TO_THE_HEARTBEAT_CSS = `
 :root {
@@ -1270,7 +1259,6 @@ const LISTEN_TO_THE_HEARTBEAT_CSS = `
     .heartbeat-container::after {
         font-size: 20px;
     }
-}
 }`;
 
 const DINNER_PARTY_CSS = `
@@ -1360,14 +1348,11 @@ const DINNER_PARTY_CSS = `
     .silver-feast-container {
         transform: scale(0.7);
     }
-}
 }`;
 
-const GOTHIC_STYLE_BILLBOARD_CSS = `
-@font-face {
+const GOTHIC_STYLE_BILLBOARD_CSS = `@font-face {
     font-family: "ZSFT-dd";
-    src: url("https://fontsapi.zeoseven.com/dd/main.woff2") format("woff2"),
-         url("https://fontsapi-storage.zeoseven.com/dd/main.woff2") format("woff2");
+    src: url("/api/plugins/g-player-proxy/font-proxy?url=https://fontsapi.zeoseven.com/dd/main.woff2") format("woff2");
     font-display: swap;
 }
 
@@ -1462,7 +1447,6 @@ const GOTHIC_STYLE_BILLBOARD_CSS = `
         font-size: 15px;
         letter-spacing: 2px;
     }
-}
 }`;
 
 const PLAIN_PAPER_WITH_INK_CHARM_CSS = `
@@ -1622,7 +1606,6 @@ const PLAIN_PAPER_WITH_INK_CHARM_CSS = `
     .sim-container:active {
         transform: scale(0.8) translateY(-4px);
     }
-}
 }`;
 
 const HESITANT_TO_SPEAK_CSS = `
@@ -1748,7 +1731,6 @@ const HESITANT_TO_SPEAK_CSS = `
 @media (max-width: 480px) {
     .sdb-container { transform: scale(0.8); transform-origin: center; }
     .sdb-container:hover, .sdb-container:active { transform: scale(0.9) translateY(-4px); }
-}
 }`;
 
 const TROUBLEMAKER_CSS = `
@@ -1891,7 +1873,6 @@ const TROUBLEMAKER_CSS = `
         transform-origin: center center;
         transform: scale(0.9) translate(-3px, -3px);
     }
-}
 }`;
 
 // --- Themes 数组定义区 ---
