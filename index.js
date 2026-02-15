@@ -592,42 +592,21 @@ async function createUnifiedIframeOriginal(
 // ==================== 全局变量和常量 ====================
 
 function validateAndFixIconFonts() {
-  const testIcon = document.querySelector("#ti_theme_add.menu_button.fa-solid");
-  if (!testIcon) {
-    debugLog("[Icon Fixer] Test icon not found, skipping check for now.");
-    return;
-  }
-  const computedStyles = window.getComputedStyle(testIcon);
-  const currentFont = computedStyles.fontFamily.toLowerCase();
-  const isIconFontCorrect = currentFont.includes("font awesome");
+  const old = document.getElementById("extension-icon-font-fixer");
+  if (old) old.remove();
 
-  if (!isIconFontCorrect) {
-    console.warn(
-      `[Icon Fixer] Detected incorrect font "${currentFont}". Injecting a fix.`,
-    );
-    toastr.info(
-      t`Detected theme font conflict, auto-fixing icons...`,
-      "Typing Indicator",
-      { timeOut: 2000 },
-    );
-    if (document.getElementById("extension-icon-font-fixer")) {
-      return;
-    }
-    const cssFix = `
-  #typing_indicator_settings .fa-solid::before,
-  #typing_indicator_settings .fa-regular::before,
-  #typing_indicator_settings .fa-brands::before {
-    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
-  }
-`;
-    const styleElement = document.createElement("style");
-    styleElement.id = "extension-icon-font-fixer";
-    styleElement.textContent = cssFix;
-    document.head.appendChild(styleElement);
-  } else {
-    debugLog("[Icon Fixer] Icon font is correct. No action needed.");
-  }
+  const style = document.createElement("style");
+  style.id = "extension-icon-font-fixer";
+  style.textContent = `
+        #typing_indicator_settings .fa-solid,
+        #typing_indicator_settings .fa-regular,
+        #typing_indicator_settings .fa-brands {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+        }
+    `;
+  document.head.appendChild(style);
 }
+
 const MODULE = "typing_indicator_themes";
 
 const NOOP = () => {};
