@@ -98,7 +98,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.3.2";
+const PLUGIN_VERSION = "3.4.0";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,68 +150,92 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.3.2": {
-    date: "2025-2-15",
+  "3.4.0": {
+    date: "2025-2-17",
     title: {
-      zh: "图标修复与字体代理",
-      en: "Icon Fix & Font Proxy",
-      th: "แก้ไขไอคอนและพร็อกซีฟอนต์",
+      zh: "主题信息面板 & UI 优化",
+      en: "Theme Info Panel & UI Improvements",
+      th: "แผงข้อมูลธีมและปรับปรุง UI",
     },
     content: {
       zh: `
-### 修复
-- 修复了图标字体修复功能误覆盖酒馆全局主题字体的问题
-  - 之前的修复范围过大，会导致部分按钮文字回退为默认字体
-  - 现在仅针对插件设置面板内的图标生效，不再影响其他地方
-
 ### 新功能
-- 新增字体代理接口 (\`/font-proxy\`)
-  - 解决 CSS 主题中 \`@font-face\` 因跨域限制无法加载远程字体的问题
-  - 主题作者可通过 \`/api/plugins/g-player-proxy/font-proxy?url=字体链接\` 来加载字体
+- **编辑器折叠**：所有编辑区现在都可以折叠收起，界面更清爽
+- **主题信息面板**：点击主题选择框旁的 ⅰ 按钮，可查看/编辑主题说明
+  - 支持 Markdown 格式渲染
+  - 预览/编辑双模式切换
+  - 有主题信息的项目会在折叠标题旁显示圆点标识
+  - 作者可署名或填写注意事项或版本号
+- **工具栏优化**：重命名、删除、导入、导出按钮收纳至 ⋯ 三点菜单
+  - 界面更简洁，常用操作（新增、保存）保留外露
+- **悬浮歌词字体跟随**：歌词面板字体自动跟随酒馆当前主题字体
+  - 切换酒馆主题时实时同步，无需手动刷新
+
+### 修复
+- 修复关闭悬浮歌词后再次启用时面板不显示的问题
+- 修复弹窗关闭时事件冒泡导致扩展设置面板一起关闭
+
+### 翻译
+- 新增繁体中文完整翻译
 
 ### ⚠️ 重要提示
-1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
-2. **内置主题已更新！** 请前往：
+- **内置主题已更新！** 请前往：
 > 设置 → 工具 → **恢复内置项**
 - 您自己创建的主题 **不受影响**
 - ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
-        `,
+            `,
       en: `
-### Fixes
-- Fixed icon font fixer incorrectly overriding the global theme font
-  - The previous fix was too broad, causing some button text to fall back to default fonts
-  - Now only applies to icons within the plugin settings panel
-
 ### New Features
-- Added font proxy endpoint (\`/font-proxy\`)
-  - Resolves CORS issues when loading remote fonts via \`@font-face\` in CSS themes
-  - Theme authors can use \`/api/plugins/g-player-proxy/font-proxy?url=fontURL\` to load fonts
+- **Collapsible Editors**: All editor sections can now be collapsed for a cleaner interface
+- **Theme Info Panel**: Click the ⅰ button next to the theme selector to view/edit theme descriptions
+  - Supports Markdown rendering
+  - Toggle between preview and edit modes
+  - Items with theme info display a dot indicator next to the collapsed title
+  - Authors can add credits, notes, or version numbers
+- **Toolbar Optimization**: Rename, Delete, Import, and Export buttons are now tucked into a ⋯ menu
+  - Cleaner interface with frequently used actions (Add, Save) still exposed
+- **Floating Lyrics Font Sync**: Lyrics panel font automatically follows the current SillyTavern theme font
+  - Syncs in real-time when switching tavern themes, no manual refresh needed
+
+### Fixes
+- Fixed floating lyrics panel not showing when re-enabled after being disabled
+- Fixed event bubbling when closing popups causing the extension settings panel to close as well
+
+### Translations
+- Added complete Traditional Chinese translation
 
 ### ⚠️ Important Notes
-1. **Backend plugin has been updated!** Please restart SillyTavern, the backend plugin will update automatically
-2. **Built-in themes have been updated!** Please go to:
+- **Built-in themes have been updated!** Please go to:
 > Settings → Tools → **Restore Built-in Items**
 - Your custom-created themes are **not affected**
 - ⚠️ If you have modified any built-in themes, please **export a backup** before restoring
-        `,
+            `,
       th: `
-### แก้ไข
-- แก้ไขปัญหาการแก้ไขฟอนต์ไอคอนที่เขียนทับฟอนต์ธีมทั่วโลกโดยไม่ตั้งใจ
-  - ก่อนหน้านี้การแก้ไขมีขอบเขตกว้างเกินไป ทำให้ข้อความปุ่มบางส่วนกลับไปใช้ฟอนต์เริ่มต้น
-  - ตอนนี้มีผลเฉพาะไอคอนในแผงการตั้งค่าปลั๊กอินเท่านั้น
-
 ### ฟีเจอร์ใหม่
-- เพิ่ม endpoint พร็อกซีฟอนต์ (\`/font-proxy\`)
-  - แก้ปัญหา CORS เมื่อโหลดฟอนต์จากภายนอกผ่าน \`@font-face\` ในธีม CSS
-  - ผู้สร้างธีมสามารถใช้ \`/api/plugins/g-player-proxy/font-proxy?url=ลิงก์ฟอนต์\` เพื่อโหลดฟอนต์
+- **ตัวแก้ไขพับได้**: ส่วนตัวแก้ไขทั้งหมดสามารถพับเก็บได้เพื่อหน้าจอที่สะอาดขึ้น
+- **แผงข้อมูลธีม**: คลิกปุ่ม ⅰ ข้างตัวเลือกธีมเพื่อดู/แก้ไขคำอธิบายธีม
+  - รองรับการเรนเดอร์ Markdown
+  - สลับระหว่างโหมดดูตัวอย่างและแก้ไข
+  - รายการที่มีข้อมูลธีมจะแสดงจุดตัวบ่งชี้ข้างชื่อที่พับ
+  - ผู้สร้างสามารถเพิ่มเครดิต หมายเหตุ หรือหมายเลขเวอร์ชัน
+- **ปรับปรุงแถบเครื่องมือ**: ปุ่มเปลี่ยนชื่อ ลบ นำเข้า และส่งออก ถูกย้ายไปในเมนู ⋯
+  - หน้าจอสะอาดขึ้น การดำเนินการที่ใช้บ่อย (เพิ่ม, บันทึก) ยังคงแสดงอยู่
+- **ซิงค์ฟอนต์เนื้อเพลงลอย**: ฟอนต์แผงเนื้อเพลงจะติดตามฟอนต์ธีม SillyTavern ปัจจุบันโดยอัตโนมัติ
+  - ซิงค์แบบเรียลไทม์เมื่อสลับธีม ไม่ต้องรีเฟรชด้วยตนเอง
+
+### แก้ไข
+- แก้ไขแผงเนื้อเพลงลอยไม่แสดงเมื่อเปิดใช้งานอีกครั้งหลังจากปิด
+- แก้ไข event bubbling เมื่อปิดป๊อปอัพทำให้แผงการตั้งค่าส่วนขยายปิดไปด้วย
+
+### การแปล
+- เพิ่มการแปลภาษาจีนตัวเต็มที่สมบูรณ์
 
 ### ⚠️ หมายเหตุสำคัญ
-1. **ปลั๊กอินแบ็กเอนด์ได้รับการอัปเดต!** กรุณารีสตาร์ท SillyTavern ปลั๊กอินจะอัปเดตอัตโนมัติ
-2. **ธีมในตัวได้รับการอัปเดต!** กรุณาไปที่：
+- **ธีมในตัวได้รับการอัปเดต!** กรุณาไปที่：
 > การตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
 - ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
 - ⚠️ หากคุณเคยแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
-        `,
+            `,
     },
   },
 };
@@ -335,24 +359,37 @@ function checkAndShowChangelog() {
         }
     `;
   document.head.appendChild(style);
-
   dialog.showModal();
-
-  const closeDialog = () => {
-    settings.lastSeenVersion = PLUGIN_VERSION;
-    saveSettingsDebounced();
+  [
+    "click",
+    "mousedown",
+    "mouseup",
+    "pointerdown",
+    "pointerup",
+    "touchstart",
+    "touchend",
+  ].forEach((evt) => {
+    dialog.addEventListener(evt, (e) => e.stopPropagation());
+  });
+  dialog.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+  });
+  dialog.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     dialog.close();
-    dialog.remove();
-    document.getElementById("ti-changelog-style")?.remove();
-  };
+  });
 
   const closeBtn = document.getElementById("ti_changelog_close");
-  closeBtn.addEventListener("click", closeDialog);
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => dialog.close());
+  }
 
   dialog.addEventListener("click", (e) => {
-    if (e.target === dialog) {
-      closeDialog();
-    }
+    if (e.target === dialog) dialog.close();
   });
 
   dialog.addEventListener("close", () => {
@@ -535,7 +572,8 @@ async function createUnifiedIframeOriginal(
       .replace(/\u2029/g, "\\u2029");
   }
 
-  let processedHTML = theme.html || `<div>No HTML content provided.</div>`;
+  let processedHTML =
+    theme.html || `<div>${t`No HTML content provided.`}</div>`;
   const safeCharName = escapeHtml(charName);
   const safeUserName = escapeHtml(userName);
   processedHTML = processedHTML
@@ -603,6 +641,227 @@ function validateAndFixIconFonts() {
         #typing_indicator_settings .fa-brands {
             font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
         }
+
+        .ti-more-menu {
+            position: relative;
+            display: inline-flex;
+        }
+        .ti-more-menu .ti-more-toggle {
+            cursor: pointer;
+            min-width: 30px;
+            text-align: center;
+        }
+        .ti-more-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            z-index: 1050;
+            background: var(--SmartThemeBlurTintColor, #1a1a2e);
+            border: 1px solid var(--SmartThemeBorderColor, #444);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            padding: 4px;
+            min-width: auto;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .ti-more-dropdown.open {
+            display: flex;
+        }
+        .ti-more-dropdown .menu_button {
+            width: 100%;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+        .ti-more-dropdown .menu_button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+            /* ========== 主题信息弹窗 ========== */
+#ti_theme_info_dialog {
+    margin: auto;
+    max-width: 520px;
+    width: 90%;
+    max-height: 80vh;
+    border-radius: 12px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    background: var(--SmartThemeBlurTintColor, #1a1a2e);
+    color: var(--SmartThemeBodyColor, #fff);
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+#ti_theme_info_dialog::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3px);
+}
+#ti_theme_info_dialog .ti-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    flex-shrink: 0;
+}
+#ti_theme_info_dialog .ti-info-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#ti_theme_info_dialog .ti-info-header h3 i {
+    opacity: 0.7;
+}
+#ti_theme_info_dialog .ti-info-header-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+#ti_theme_info_dialog .ti-info-header-actions .menu_button {
+    padding: 4px 10px;
+    min-width: unset;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    white-space: nowrap;
+}
+
+/* 预览区 */
+#ti_theme_info_dialog .ti-info-preview {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    line-height: 1.8;
+}
+#ti_theme_info_dialog .ti-info-preview h1 {
+    font-size: 1.3em;
+    margin: 0 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+}
+#ti_theme_info_dialog .ti-info-preview h2 {
+    font-size: 1.1em;
+    margin: 18px 0 8px 0;
+    color: var(--SmartThemeQuoteColor, #88c0d0);
+}
+#ti_theme_info_dialog .ti-info-preview h3 {
+    font-size: 1em;
+    margin: 14px 0 6px 0;
+}
+#ti_theme_info_dialog .ti-info-preview ul,
+#ti_theme_info_dialog .ti-info-preview ol {
+    margin: 8px 0;
+    padding-left: 22px;
+}
+#ti_theme_info_dialog .ti-info-preview li {
+    margin: 4px 0;
+}
+#ti_theme_info_dialog .ti-info-preview code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: monospace;
+}
+#ti_theme_info_dialog .ti-info-preview blockquote {
+    margin: 10px 0;
+    padding: 8px 14px;
+    border-left: 3px solid var(--SmartThemeQuoteColor, #88c0d0);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0 6px 6px 0;
+    font-style: italic;
+    opacity: 0.85;
+}
+#ti_theme_info_dialog .ti-info-preview strong {
+    color: var(--SmartThemeQuoteColor, #88c0d0);
+}
+#ti_theme_info_dialog .ti-info-preview hr {
+    border: none;
+    border-top: 1px solid var(--SmartThemeBorderColor, #444);
+    margin: 14px 0;
+}
+#ti_theme_info_dialog .ti-info-preview p {
+    margin: 6px 0;
+}
+/* ========== 折叠式 README 编辑区 ========== */
+.ti-readme-details {
+    margin-top: 12px;
+    border: 1px solid var(--SmartThemeBorderColor, #444);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.ti-readme-details:hover {
+    border-color: var(--SmartThemeQuoteColor, #88c0d0);
+}
+.ti-readme-details summary {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 0.9em;
+    opacity: 0.75;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    list-style: none;
+}
+.ti-readme-details summary::-webkit-details-marker {
+    display: none;
+}
+.ti-readme-details summary::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(-45deg);
+    transition: transform 0.25s ease;
+    will-change: transform;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+.ti-readme-details[open] summary::before {
+    transform: rotate(45deg);
+}
+.ti-readme-details:hover summary::before {
+    opacity: 1;
+}
+.ti-readme-details summary:hover {
+    opacity: 1;
+}
+.ti-readme-details[open] summary {
+    border-bottom: 1px solid var(--SmartThemeBorderColor, #444);
+    opacity: 1;
+    font-weight: 600;
+}
+.ti-readme-details .ti-readme-textarea-wrapper {
+    padding: 10px;
+}
+.ti-readme-details textarea {
+    width: 100%;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.88em;
+    line-height: 1.5;
+    resize: vertical;
+}
+.ti-readme-details.has-content summary::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--SmartThemeQuoteColor, #88c0d0);
+    border-radius: 50%;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
     `;
   document.head.appendChild(style);
 }
@@ -1384,6 +1643,67 @@ function getSettings() {
       settings.bubbleStyles,
     );
 
+    settings.themes.forEach((theme) => {
+      if (theme.isBuiltIn && !theme.readme) {
+        const authorMatch = theme.name.match(/\(by\s+(.+?)\)/i);
+        const author = authorMatch ? authorMatch[1].trim() : "SANJ";
+        const displayName = theme.name.replace(/\s*\(by\s+.+?\)/i, "").trim();
+
+        const isPlayer =
+          theme.name.startsWith("播放器") || theme.name.startsWith("Player");
+        const mode = theme.useIframe ? "iframe 动画" : "CSS";
+        const category = isPlayer ? "播放器" : "指示器";
+
+        theme.readme = [
+          `# ${displayName}`,
+          ``,
+          `> ❑ 内置${category}${mode}主题 | ❒ 作者: **${author}**`,
+          ``,
+          `这是「指示器美化」插件的内置${category}主题，开箱即用。`,
+          ``,
+          `---`,
+          `*如需自定义，建议先导出备份再修改。恢复内置项可还原此主题。*`,
+        ].join("\n");
+      }
+    });
+
+    settings.textPresets.forEach((preset) => {
+      if (preset.isBuiltIn && !preset.readme) {
+        const authorMatch = preset.name.match(/\(by\s+(.+?)\)/i);
+        const author = authorMatch ? authorMatch[1].trim() : "SANJ";
+        const displayName = preset.name.replace(/\s*\(by\s+.+?\)/i, "").trim();
+
+        preset.readme = [
+          `# ${displayName}`,
+          ``,
+          `> ✭ 内置文本预设 | ✮ 作者: **${author}**`,
+          ``,
+          `这是「指示器美化」插件的内置文本预设，定义指示器显示的文字内容与排版。`,
+          ``,
+          `---`,
+          `*如需自定义，建议先导出备份再修改。恢复内置项可还原此预设。*`,
+        ].join("\n");
+      }
+    });
+
+    settings.bubbleStyles.forEach((style) => {
+      if (style.isBuiltIn && !style.readme) {
+        const authorMatch = style.name.match(/\(by\s+(.+?)\)/i);
+        const author = authorMatch ? authorMatch[1].trim() : "SANJ";
+        const displayName = style.name.replace(/\s*\(by\s+.+?\)/i, "").trim();
+
+        style.readme = [
+          `# ${displayName}`,
+          ``,
+          `> ✦ 内置音乐气泡样式 | ✧ 作者: **${author}**`,
+          ``,
+          `这是「指示器美化」插件的内置BGM气泡样式，用于美化聊天中的 \`[bgm]歌名-歌手[/bgm]\` 标签。`,
+          ``,
+          `---`,
+          `*如需自定义，建议先导出备份再修改。恢复内置项可还原此样式。*`,
+        ].join("\n");
+      }
+    });
     _needsSync = false;
   }
 
@@ -2964,16 +3284,19 @@ function applyThemeToIndicator(theme, indicatorElement) {
 
 // ==================== 拖拽功能 ====================
 
-function makeDraggable(element, isPlayer = false) {
+function makeDraggable(element, positionType = "indicator") {
   const settings = getSettings();
-  const positionSettings = isPlayer
-    ? settings.playerPosition
-    : settings.customPosition;
+  const positionSettings =
+    positionType === "player"
+      ? settings.playerPosition
+      : positionType === "lyrics"
+        ? settings.lyricsPosition
+        : settings.customPosition;
 
-  const oldHandle = element.querySelector(".ti-drag-handle");
-  if (oldHandle) {
-    oldHandle.remove();
-  }
+  const oldHandle = element.querySelector(
+    ".ti-drag-handle, .lyrics-drag-handle",
+  );
+  if (oldHandle) oldHandle.remove();
 
   if (positionSettings.locked) {
     element.style.cursor = "default";
@@ -2981,7 +3304,8 @@ function makeDraggable(element, isPlayer = false) {
   }
 
   const dragHandle = document.createElement("div");
-  dragHandle.className = "ti-drag-handle";
+  dragHandle.className =
+    positionType === "lyrics" ? "lyrics-drag-handle" : "ti-drag-handle";
   dragHandle.style.cssText =
     "position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 99;";
   element.appendChild(dragHandle);
@@ -2990,13 +3314,9 @@ function makeDraggable(element, isPlayer = false) {
 
   function onDragStart(e) {
     const iframe = element.querySelector("iframe");
-    if (iframe) {
-      iframe.style.pointerEvents = "none";
-    }
+    if (iframe) iframe.style.pointerEvents = "none";
     document.body.style.userSelect = "none";
-
     if (e.cancelable) e.preventDefault();
-
     element.style.transition = "none";
 
     const rect = element.getBoundingClientRect();
@@ -3022,25 +3342,17 @@ function makeDraggable(element, isPlayer = false) {
     const currentX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
     const currentY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
 
-    let deltaX = currentX - startX;
-    let deltaY = currentY - startY;
-    let newX = initialX + deltaX;
-    let newY = initialY + deltaY;
-
+    let newX = initialX + (currentX - startX);
+    let newY = initialY + (currentY - startY);
     newX = Math.max(0, Math.min(newX, window.innerWidth - elementWidth));
     newY = Math.max(0, Math.min(newY, window.innerHeight - elementHeight));
 
-    let finalDeltaX = newX - initialX;
-    let finalDeltaY = newY - initialY;
-
-    element.style.transform = `translate3d(${finalDeltaX}px, ${finalDeltaY}px, 0)`;
+    element.style.transform = `translate3d(${newX - initialX}px, ${newY - initialY}px, 0)`;
   }
 
-  function onDragEnd(e) {
+  function onDragEnd() {
     const iframe = element.querySelector("iframe");
-    if (iframe) {
-      iframe.style.pointerEvents = "auto";
-    }
+    if (iframe) iframe.style.pointerEvents = "auto";
     document.body.style.userSelect = "";
 
     const finalRect = element.getBoundingClientRect();
@@ -3057,14 +3369,8 @@ function makeDraggable(element, isPlayer = false) {
     const centerX = finalRect.left + finalRect.width / 2;
     const centerY = finalRect.top + finalRect.height / 2;
 
-    if (isPlayer) {
-      settings.playerPosition.x = (centerX / window.innerWidth) * 100;
-      settings.playerPosition.y = (centerY / window.innerHeight) * 100;
-    } else {
-      settings.customPosition.x = (centerX / window.innerWidth) * 100;
-      settings.customPosition.y = (centerY / window.innerHeight) * 100;
-    }
-
+    positionSettings.x = (centerX / window.innerWidth) * 100;
+    positionSettings.y = (centerY / window.innerHeight) * 100;
     saveSettingsDebounced();
   }
 
@@ -3333,7 +3639,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
     }
 
     if (position === "draggable") {
-      makeDraggable(typingIndicator);
+      makeDraggable(typingIndicator, "indicator");
     }
     if (position === "bottom" && wasChatScrolledDown) {
       chatElement.scrollTop = chatElement.scrollHeight;
@@ -3507,7 +3813,7 @@ function showPlayer() {
   musicPlayer.style.overflow = "hidden";
 
   document.body.appendChild(musicPlayer);
-  makeDraggable(musicPlayer, true);
+  makeDraggable(musicPlayer, "player");
   applyThemeToIndicator(selectedTheme, musicPlayer);
   if (settings.playerHidden) {
     musicPlayer.style.setProperty("display", "none", "important");
@@ -3582,7 +3888,7 @@ function createLyricsOverlay() {
   overlay.style.transform = "translate(-50%, -50%)";
 
   if (!settings.lyricsPosition.locked) {
-    makeLyricsDraggable(overlay);
+    makeDraggable(overlay, "lyrics");
   }
 
   return overlay;
@@ -3592,14 +3898,17 @@ function applyLyricsStyles(overlay) {
   const settings = getSettings();
   const showTranslation = shouldShowTranslation();
   const pointerEvents = settings.lyricsPosition.locked ? "none" : "auto";
+  const tavernFont =
+    getComputedStyle(document.body).fontFamily ||
+    '"Microsoft YaHei", "PingFang SC", sans-serif';
 
   overlay.style.cssText = `
         position: fixed;
         z-index: 1002;
-        padding: 4px 10px;
+        padding: 3px 10px;
         border-radius: 6px;
         text-align: center;
-        font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        font-family: ${tavernFont};
         pointer-events: ${pointerEvents};
         user-select: none;
         width: 350px;
@@ -3617,7 +3926,7 @@ function applyLyricsStyles(overlay) {
     currentLine.style.cssText = `
             font-size: ${settings.lyricsFontSize}px;
             font-weight: bold;
-            margin-bottom: ${showTranslation ? "4px" : "0"};
+            margin-bottom: ${showTranslation ? "3px" : "0"};
             min-height: ${settings.lyricsFontSize + 4}px;
             white-space: nowrap;
             overflow: hidden;
@@ -3653,99 +3962,16 @@ function applyLyricsStyles(overlay) {
         }
         .lyrics-line-inner {
             display: inline-block;
-            padding-right: 20px;
             text-shadow: none !important;
         }
         .lyrics-line-inner.scrolling {
+            padding-right: 20px;
             animation: lyrics-scroll var(--scroll-duration) linear infinite;
         }
         #floating_lyrics, #floating_lyrics * {
             text-shadow: none !important;
         }
     `;
-}
-
-function makeLyricsDraggable(element) {
-  const settings = getSettings();
-  const oldHandle = element.querySelector(".lyrics-drag-handle");
-  if (oldHandle) oldHandle.remove();
-
-  if (settings.lyricsPosition.locked) {
-    element.style.cursor = "default";
-    return;
-  }
-
-  const dragHandle = document.createElement("div");
-  dragHandle.className = "lyrics-drag-handle";
-  dragHandle.style.cssText =
-    "position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: move; z-index: 99;";
-  element.appendChild(dragHandle);
-
-  let initialX, initialY, startX, startY, elementWidth, elementHeight;
-
-  function onDragStart(e) {
-    if (e.cancelable) e.preventDefault();
-    document.body.style.userSelect = "none";
-    element.style.transition = "none";
-
-    const rect = element.getBoundingClientRect();
-    initialX = rect.left;
-    initialY = rect.top;
-    elementWidth = rect.width;
-    elementHeight = rect.height;
-
-    element.style.left = `${rect.left}px`;
-    element.style.top = `${rect.top}px`;
-    element.style.transform = "none";
-    startX = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
-    startY = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
-
-    document.addEventListener("mousemove", onDragMove);
-    document.addEventListener("mouseup", onDragEnd);
-    document.addEventListener("touchmove", onDragMove, { passive: false });
-    document.addEventListener("touchend", onDragEnd);
-  }
-
-  function onDragMove(e) {
-    if (e.cancelable) e.preventDefault();
-    const currentX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
-    const currentY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
-
-    let newX = initialX + (currentX - startX);
-    let newY = initialY + (currentY - startY);
-
-    newX = Math.max(0, Math.min(newX, window.innerWidth - elementWidth));
-    newY = Math.max(0, Math.min(newY, window.innerHeight - elementHeight));
-
-    element.style.transform = `translate3d(${newX - initialX}px, ${
-      newY - initialY
-    }px, 0)`;
-  }
-
-  function onDragEnd() {
-    document.body.style.userSelect = "";
-
-    const finalRect = element.getBoundingClientRect();
-    element.style.transform = "";
-    element.style.left = `${finalRect.left}px`;
-    element.style.top = `${finalRect.top}px`;
-    element.style.transition = "";
-
-    document.removeEventListener("mousemove", onDragMove);
-    document.removeEventListener("mouseup", onDragEnd);
-    document.removeEventListener("touchmove", onDragMove);
-    document.removeEventListener("touchend", onDragEnd);
-
-    const centerX = finalRect.left + finalRect.width / 2;
-    const centerY = finalRect.top + finalRect.height / 2;
-
-    settings.lyricsPosition.x = (centerX / window.innerWidth) * 100;
-    settings.lyricsPosition.y = (centerY / window.innerHeight) * 100;
-    saveSettingsDebounced();
-  }
-
-  dragHandle.addEventListener("mousedown", onDragStart);
-  dragHandle.addEventListener("touchstart", onDragStart, { passive: false });
 }
 
 function showLyricsOverlay() {
@@ -3947,7 +4173,7 @@ function refreshLyricsOverlay() {
   if (oldHandle) oldHandle.remove();
 
   if (!settings.lyricsPosition.locked) {
-    makeLyricsDraggable(lyricsOverlayElement);
+    makeDraggable(lyricsOverlayElement, "lyrics");
   } else {
     lyricsOverlayElement.style.cursor = "default";
   }
@@ -4669,6 +4895,100 @@ function updateGlobalDefs(itemToProcess = null) {
 }
 
 // ==================== 扩展设置界面 ====================
+function showThemeInfoPopup(theme) {
+  if (!theme || !theme.readme) return;
+  const existingDialog = document.getElementById("ti_theme_info_dialog");
+  if (existingDialog) {
+    existingDialog.close();
+    existingDialog.remove();
+  }
+
+  const converter = new showdown.Converter({
+    tables: true,
+    strikethrough: true,
+    ghCodeBlocks: true,
+    simpleLineBreaks: true,
+  });
+  const rawHtml = converter.makeHtml(theme.readme);
+  let renderedHtml;
+  if (typeof DOMPurify !== "undefined") {
+    renderedHtml = DOMPurify.sanitize(rawHtml, {
+      USE_PROFILES: { html: true },
+    });
+  } else {
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = rawHtml;
+    tempDiv
+      .querySelectorAll("script, iframe, object, embed, form")
+      .forEach((el) => el.remove());
+    tempDiv.querySelectorAll("*").forEach((el) => {
+      for (const attr of [...el.attributes]) {
+        if (attr.name.startsWith("on") || attr.value.includes("javascript:")) {
+          el.removeAttribute(attr.name);
+        }
+      }
+    });
+    renderedHtml = tempDiv.innerHTML;
+  }
+
+  const dialog = document.createElement("dialog");
+  dialog.id = "ti_theme_info_dialog";
+  dialog.innerHTML = `
+        <div class="ti-info-header">
+            <h3>
+                <i class="fa-solid fa-circle-info"></i>
+                ${t`Theme Info`} — ${escapeHtml(theme.name || t`Untitled`)}
+            </h3>
+            <div class="ti-info-header-actions">
+                <button class="ti-info-close menu_button" title="${t`Close`}"
+                    style="display:inline-flex!important;align-items:center!important;white-space:nowrap;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+        <div class="ti-info-preview">
+            ${renderedHtml}
+        </div>
+    `;
+
+  document.body.appendChild(dialog);
+  dialog.showModal();
+  [
+    "click",
+    "mousedown",
+    "mouseup",
+    "pointerdown",
+    "pointerup",
+    "touchstart",
+    "touchend",
+  ].forEach((evt) => {
+    dialog.addEventListener(evt, (e) => e.stopPropagation());
+  });
+  dialog.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+    }
+  });
+  dialog.addEventListener("cancel", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closePopup();
+  });
+
+  const closeBtn = dialog.querySelector(".ti-info-close");
+  const closePopup = () => {
+    dialog.close();
+    dialog.remove();
+  };
+  closeBtn.addEventListener("click", closePopup);
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) closePopup();
+  });
+  dialog.addEventListener("close", () => {
+    if (dialog.parentNode) dialog.remove();
+  });
+}
 
 function addExtensionSettings() {
   const existingSection = document.getElementById("typing_indicator_settings");
@@ -4834,22 +5154,87 @@ function addExtensionSettings() {
 
                         <div id="ti_preset_section" class="ti-section">
                             <h4>${t`Indicator Text Presets`}</h4><p>${t`Select a preset to edit or switch.`}</p>
-                            <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
-                                <select id="ti_preset_select" class="text_pole" style="flex-grow: 1;"></select>
-                                <button id="ti_preset_add" class="menu_button fa-solid fa-plus" title="${t`Add New Preset`}"></button><button id="ti_preset_rename" class="menu_button fa-solid fa-pencil" title="${t`Rename Preset`}"></button><button id="ti_preset_del" class="menu_button fa-solid fa-trash-can" title="${t`Delete Preset`}"></button><button id="ti_preset_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button><button id="ti_preset_import" class="menu_button fa-solid fa-file-import" title="${t`Import`}"></button><button id="ti_preset_export" class="menu_button fa-solid fa-file-export" title="${t`Export`}"></button>
-                            </div>
-                            <textarea id="ti_preset_text" class="text_pole" rows="5"></textarea>
+<div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
+    <select id="ti_preset_select" class="text_pole" style="flex-grow: 1;"></select>
+    <button id="ti_preset_info" class="menu_button" title="${t`Theme Info`}">
+        <i class="fa-solid fa-circle-info"></i>
+    </button>
+    <button id="ti_preset_add" class="menu_button fa-solid fa-plus" title="${t`Add New Preset`}"></button>
+    <button id="ti_preset_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button>
+    <div class="ti-more-menu">
+        <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
+        <div class="ti-more-dropdown">
+            <button id="ti_preset_rename" class="menu_button" title="${t`Rename Preset`}">
+                <i class="fa-solid fa-pencil"></i>
+                <span>${t`Rename`}</span>
+            </button>
+            <button id="ti_preset_del" class="menu_button" title="${t`Delete Preset`}">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>${t`Delete`}</span>
+            </button>
+            <button id="ti_preset_import" class="menu_button" title="${t`Import`}">
+                <i class="fa-solid fa-file-import"></i>
+                <span>${t`Import`}</span>
+            </button>
+            <button id="ti_preset_export" class="menu_button" title="${t`Export`}">
+                <i class="fa-solid fa-file-export"></i>
+                <span>${t`Export`}</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+                            <details class="ti-readme-details" id="ti_preset_editor_details">
+    <summary><i class="fa-solid fa-code"></i> ${t`Editor`}</summary>
+    <div class="ti-readme-textarea-wrapper">
+        <textarea id="ti_preset_text" class="text_pole" rows="5"></textarea>
+    </div>
+</details>
+<details class="ti-readme-details" id="ti_preset_readme_details">
+    <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
+    <div class="ti-readme-textarea-wrapper">
+        <textarea id="ti_preset_readme" class="text_pole" rows="4"
+            placeholder="${t`Optional: Write a description for this preset in Markdown format...`}"></textarea>
+    </div>
+</details>
                         </div>
 
                         <div class="ti-section">
                             <h4>${t`Indicator Style Themes`}</h4><p>${t`Select a theme to edit or switch.`}</p>
                             <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
-                                <select id="ti_theme_select" class="text_pole" style="flex-grow: 1;"></select>
-                                <button id="ti_theme_add" class="menu_button fa-solid fa-plus" title="${t`Add New Theme`}"></button><button id="ti_theme_rename" class="menu_button fa-solid fa-pencil" title="${t`Rename Theme`}"></button><button id="ti_theme_del" class="menu_button fa-solid fa-trash-can" title="${t`Delete Theme`}"></button><button id="ti_theme_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button><button id="ti_theme_import" class="menu_button fa-solid fa-file-import" title="${t`Import`}"></button><button id="ti_theme_export" class="menu_button fa-solid fa-file-export" title="${t`Export`}"></button>
-                            </div>
+    <select id="ti_theme_select" class="text_pole" style="flex-grow: 1;"></select>
+    <button id="ti_theme_info" class="menu_button" title="${t`Theme Info`}">
+        <i class="fa-solid fa-circle-info"></i>
+    </button>
+    <button id="ti_theme_add" class="menu_button fa-solid fa-plus" title="${t`Add New Theme`}"></button>
+    <button id="ti_theme_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button>
+    <div class="ti-more-menu">
+        <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
+        <div class="ti-more-dropdown">
+            <button id="ti_theme_rename" class="menu_button" title="${t`Rename Theme`}">
+                <i class="fa-solid fa-pencil"></i>
+                <span>${t`Rename`}</span>
+            </button>
+            <button id="ti_theme_del" class="menu_button" title="${t`Delete Theme`}">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>${t`Delete`}</span>
+            </button>
+            <button id="ti_theme_import" class="menu_button" title="${t`Import`}">
+                <i class="fa-solid fa-file-import"></i>
+                <span>${t`Import`}</span>
+            </button>
+            <button id="ti_theme_export" class="menu_button" title="${t`Export`}">
+                <i class="fa-solid fa-file-export"></i>
+                <span>${t`Export`}</span>
+            </button>
+        </div>
+    </div>
+</div>
 
-                            <div class="ti-card">
-                                <label style="font-weight: bold; margin-bottom: 8px; display: block;">${t`Theme Mode`}:</label>
+                            <details class="ti-readme-details" id="ti_theme_editor_details">
+    <summary><i class="fa-solid fa-code"></i> ${t`Editor`}</summary>
+<div class="ti-card" style="border:none; margin:0;">
+    <label style="font-weight: bold; ...">${t`Theme Mode`}:</label>
                                 <div style="display: flex; gap: 15px; margin-bottom: 10px;">
                                     <label class="checkbox_label"><input type="radio" name="theme_mode" value="css" id="theme_mode_css">${t`CSS Mode`}</label>
                                     <label class="checkbox_label"><input type="radio" name="theme_mode" value="iframe" id="theme_mode_iframe">${t`iframe Mode`}</label>
@@ -4872,7 +5257,15 @@ function addExtensionSettings() {
                                         <div id="ti_theme_iframe_sizes_error"></div><small>${t`Set width and height for different positions. If left empty, default sizes and positions will be used.`}</small>
                                     </div>
                                 </div>
+                                <details class="ti-readme-details" id="ti_theme_readme_details">
+                                    <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
+                                    <div class="ti-readme-textarea-wrapper">
+                                        <textarea id="ti_theme_readme" class="text_pole" rows="4"
+                                            placeholder="${t`Optional: Write a description for this theme in Markdown format...`}"></textarea>
+                                    </div>
+                                                                </details>
                             </div>
+</details>
                         </div>
 
                         <div class="ti-section">
@@ -4955,16 +5348,38 @@ function addExtensionSettings() {
                         };">
                             <h4>${t`Music Player Themes`}</h4>
                             <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
-                                <select id="ti_player_theme_select" class="text_pole" style="flex-grow: 1;"></select>
-                                <button id="ti_player_theme_add" class="menu_button fa-solid fa-plus" title="${t`Add New Theme`}"></button>
-                                <button id="ti_player_theme_rename" class="menu_button fa-solid fa-pencil" title="${t`Rename Theme`}"></button>
-                                <button id="ti_player_theme_del" class="menu_button fa-solid fa-trash-can" title="${t`Delete Theme`}"></button>
-                                <button id="ti_player_theme_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button>
-                                <button id="ti_player_theme_import" class="menu_button fa-solid fa-file-import" title="${t`Import`}"></button>
-                                <button id="ti_player_theme_export" class="menu_button fa-solid fa-file-export" title="${t`Export`}"></button>
-                            </div>
+    <select id="ti_player_theme_select" class="text_pole" style="flex-grow: 1;"></select>
+    <button id="ti_player_theme_info" class="menu_button" title="${t`Theme Info`}">
+        <i class="fa-solid fa-circle-info"></i>
+    </button>
+    <button id="ti_player_theme_add" class="menu_button fa-solid fa-plus" title="${t`Add New Theme`}"></button>
+    <button id="ti_player_theme_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button>
+    <div class="ti-more-menu">
+        <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
+        <div class="ti-more-dropdown">
+    <button id="ti_player_theme_rename" class="menu_button" title="${t`Rename Theme`}">
+        <i class="fa-solid fa-pencil"></i>
+        <span>${t`Rename`}</span>
+    </button>
+    <button id="ti_player_theme_del" class="menu_button" title="${t`Delete Theme`}">
+        <i class="fa-solid fa-trash-can"></i>
+        <span>${t`Delete`}</span>
+    </button>
+    <button id="ti_player_theme_import" class="menu_button" title="${t`Import`}">
+        <i class="fa-solid fa-file-import"></i>
+        <span>${t`Import`}</span>
+    </button>
+    <button id="ti_player_theme_export" class="menu_button" title="${t`Export`}">
+        <i class="fa-solid fa-file-export"></i>
+        <span>${t`Export`}</span>
+    </button>
+</div>
+    </div>
+</div>
 
-                            <div id="player_iframe_editor_container" class="ti-card" style="display:flex; flex-direction:column; gap:15px;">
+                            <details class="ti-readme-details" id="ti_player_editor_details">
+    <summary><i class="fa-solid fa-code"></i> ${t`Editor`}</summary>
+<div id="player_iframe_editor_container" class="ti-card" style="display:flex; flex-direction:column; gap:15px; border:none; margin:0;">
                                 <div><label for="ti_player_theme_html" style="font-weight: bold; margin-bottom: 5px; display: block;">${t`HTML Structure (for iframe)`}:</label><textarea id="ti_player_theme_html" class="text_pole" rows="8" placeholder="${t`HTML structure, supports {{char}} variable.`}"></textarea></div>
                                 <div><label for="ti_player_theme_iframe_css" style="font-weight: bold; margin-bottom: 5px; display: block;">${t`CSS Style (for iframe)`}:</label><textarea id="ti_player_theme_iframe_css" class="text_pole" rows="12" placeholder="${t`Full CSS styles, effective inside the iframe.`}"></textarea></div>
                                 <div><label for="ti_player_theme_iframe_js" style="font-weight: bold; margin-bottom: 5px; display: block;">${t`JavaScript Code (for iframe)`}:</label><textarea id="ti_player_theme_iframe_js" class="text_pole" rows="15" placeholder="${t`JavaScript code to manipulate DOM elements inside the iframe.`}"></textarea><small>${t`Hint: Use window.parent.name2 or ThemeUtils.getCharacterName() in JS to get the character name.`}</small></div>
@@ -4976,7 +5391,15 @@ function addExtensionSettings() {
                                     <textarea id="ti_player_theme_iframe_sizes" class="text_pole" rows="8" placeholder="${t`Configure sizes for the player theme. The player only supports draggable mode.`}"></textarea>
                                     <div id="ti_player_theme_iframe_sizes_error"></div><small>${t`Player themes only support the draggable position.`}</small>
                                 </div>
+                                <details class="ti-readme-details" id="ti_player_theme_readme_details">
+                                    <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
+                                    <div class="ti-readme-textarea-wrapper">
+                                        <textarea id="ti_player_theme_readme" class="text_pole" rows="4"
+                                            placeholder="${t`Optional: Write a description for this player theme in Markdown format...`}"></textarea>
+                                    </div>
+                                                                </details>
                             </div>
+</details>
                         </div>
 
                         <div class="ti-section">
@@ -5058,17 +5481,40 @@ function addExtensionSettings() {
     <div id="ti_bubble_controls" style="display: ${
       settings.enableBubbleReplacement ? "block" : "none"
     };">
-        <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
+
+<div style="display: flex; align-items: center; gap: 5px; margin-bottom: 10px;">
     <select id="ti_bubble_style_select" class="text_pole" style="flex-grow: 1;"></select>
+    <button id="ti_bubble_info" class="menu_button" title="${t`Theme Info`}">
+        <i class="fa-solid fa-circle-info"></i>
+    </button>
     <button id="ti_bubble_add" class="menu_button fa-solid fa-plus" title="${t`Add New Style`}"></button>
-    <button id="ti_bubble_rename" class="menu_button fa-solid fa-pencil" title="${t`Rename Style`}"></button>
-    <button id="ti_bubble_del" class="menu_button fa-solid fa-trash-can" title="${t`Delete Style`}"></button>
     <button id="ti_bubble_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button>
-    <button id="ti_bubble_import" class="menu_button fa-solid fa-file-import" title="${t`Import`}"></button>
-    <button id="ti_bubble_export" class="menu_button fa-solid fa-file-export" title="${t`Export`}"></button>
+    <div class="ti-more-menu">
+        <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
+        <div class="ti-more-dropdown">
+            <button id="ti_bubble_rename" class="menu_button" title="${t`Rename Style`}">
+                <i class="fa-solid fa-pencil"></i>
+                <span>${t`Rename`}</span>
+            </button>
+            <button id="ti_bubble_del" class="menu_button" title="${t`Delete Style`}">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>${t`Delete`}</span>
+            </button>
+            <button id="ti_bubble_import" class="menu_button" title="${t`Import`}">
+                <i class="fa-solid fa-file-import"></i>
+                <span>${t`Import`}</span>
+            </button>
+            <button id="ti_bubble_export" class="menu_button" title="${t`Export`}">
+                <i class="fa-solid fa-file-export"></i>
+                <span>${t`Export`}</span>
+            </button>
+        </div>
+    </div>
 </div>
 
-        <div class="ti-card" style="display: flex; flex-direction: column; gap: 10px;">
+        <details class="ti-readme-details" id="ti_bubble_editor_details">
+    <summary><i class="fa-solid fa-code"></i> ${t`Editor`}</summary>
+<div class="ti-card" style="display: flex; flex-direction: column; gap: 10px; border:none; margin:0;">
             <div>
                 <label for="ti_bubble_html" style="font-weight: bold; display: block; margin-bottom: 5px;">${t`HTML Template`}:</label>
                 <textarea id="ti_bubble_html" class="text_pole" rows="5" placeholder="${t`Use {{title}} and {{artist}} as placeholders`}"></textarea>
@@ -5078,7 +5524,15 @@ function addExtensionSettings() {
                 <label for="ti_bubble_css" style="font-weight: bold; display: block; margin-bottom: 5px;">${t`CSS Style`}:</label>
                 <textarea id="ti_bubble_css" class="text_pole" rows="8" placeholder="${t`CSS styles for .music-bubble`}"></textarea>
             </div>
+            <details class="ti-readme-details" id="ti_bubble_readme_details">
+                <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
+                <div class="ti-readme-textarea-wrapper">
+                    <textarea id="ti_bubble_readme" class="text_pole" rows="4"
+                        placeholder="${t`Optional: Write a description for this bubble style in Markdown format...`}"></textarea>
+                </div>
+                        </details>
         </div>
+</details>
 
         <div id="ti_bubble_preview_area" style="margin-top: 15px; padding: 15px; background: var(--SmartThemeBlurTintColor); border-radius: 8px; text-align: center;">
             <span style="color: var(--SmartThemeBodyColor); opacity: 0.7;">${t`Bubble preview will appear here`}</span>
@@ -5171,7 +5625,162 @@ function addExtensionSettings() {
     initializeIndicatorSettings();
     initializePlayerSettings();
     initializeToolsSettings();
+
+    section.querySelectorAll(".ti-more-toggle").forEach((toggle) => {
+      toggle.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const dropdown = toggle.nextElementSibling;
+        section.querySelectorAll(".ti-more-dropdown.open").forEach((d) => {
+          if (d !== dropdown) d.classList.remove("open");
+        });
+        dropdown.classList.toggle("open");
+      });
+    });
+
+    section
+      .querySelectorAll(".ti-more-dropdown .menu_button")
+      .forEach((btn) => {
+        btn.addEventListener("click", () => {
+          btn.closest(".ti-more-dropdown").classList.remove("open");
+        });
+      });
+
+    if (!window._tiMoreMenuClickRegistered) {
+      window._tiMoreMenuClickRegistered = true;
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".ti-more-menu")) {
+          document
+            .querySelectorAll(
+              "#typing_indicator_settings .ti-more-dropdown.open",
+            )
+            .forEach((d) => {
+              d.classList.remove("open");
+            });
+        }
+      });
+    }
   };
+
+  function savedToast(name, hasReadme) {
+    const msg = hasReadme
+      ? t`"${name}" saved (with theme info).`
+      : t`"${name}" saved.`;
+    toastr.success(msg);
+  }
+
+  function saveReadmeField(textareaId, targetObj) {
+    const textarea = section.querySelector(textareaId);
+    if (!textarea) return !!targetObj.readme;
+    const val = textarea.value.trim();
+    if (val) {
+      targetObj.readme = val;
+    } else {
+      delete targetObj.readme;
+    }
+    return !!targetObj.readme;
+  }
+
+  function updateReadmeIndicators(
+    infoIconSelector,
+    detailsSelector,
+    hasReadme,
+  ) {
+    const icon = section.querySelector(infoIconSelector);
+    if (icon) {
+      icon.style.color = hasReadme
+        ? "var(--SmartThemeQuoteColor, #88c0d0)"
+        : "";
+    }
+    const details = section.querySelector(detailsSelector);
+    if (details) {
+      details.classList.toggle("has-content", hasReadme);
+    }
+  }
+
+  function loadReadmeField(textareaId, detailsId, readme) {
+    const textarea = section.querySelector(textareaId);
+    if (textarea) textarea.value = readme || "";
+    const details = section.querySelector(detailsId);
+    if (details) details.removeAttribute("open");
+  }
+
+  function handleReadmeInfoClick(itemWithName, textareaId, detailsId) {
+    const textarea = section.querySelector(textareaId);
+    const currentReadme = textarea
+      ? textarea.value.trim()
+      : itemWithName.readme || "";
+    if (currentReadme) {
+      const savedReadme = (itemWithName.readme || "").trim();
+      const isUnsaved = currentReadme !== savedReadme;
+      showThemeInfoPopup({
+        name: itemWithName.name + (isUnsaved ? ` (${t`unsaved`})` : ""),
+        readme: currentReadme,
+      });
+    } else {
+      const details = section.querySelector(detailsId);
+      if (details) {
+        if (details.hasAttribute("open")) {
+          details.removeAttribute("open");
+        } else {
+          const parentDetails = details.parentElement?.closest("details");
+          if (parentDetails && !parentDetails.hasAttribute("open")) {
+            parentDetails.setAttribute("open", "");
+          }
+          details.setAttribute("open", "");
+          setTimeout(() => details.querySelector("textarea")?.focus(), 50);
+        }
+      }
+    }
+  }
+
+  function readmeOps({ textarea, details, icon }) {
+    return {
+      load(readme) {
+        loadReadmeField(textarea, details, readme);
+        updateReadmeIndicators(icon, details, !!readme);
+      },
+      save(targetObj) {
+        const hasReadme = saveReadmeField(textarea, targetObj);
+        updateReadmeIndicators(icon, details, hasReadme);
+        return hasReadme;
+      },
+      infoClick(itemWithName) {
+        handleReadmeInfoClick(itemWithName, textarea, details);
+      },
+      openForEdit() {
+        const el = section.querySelector(details);
+        if (el) {
+          const parentDetails = el.parentElement?.closest("details");
+          if (parentDetails && !parentDetails.hasAttribute("open")) {
+            parentDetails.setAttribute("open", "");
+          }
+          el.setAttribute("open", "");
+          setTimeout(() => el.querySelector("textarea")?.focus(), 50);
+        }
+      },
+    };
+  }
+
+  const presetReadme = readmeOps({
+    textarea: "#ti_preset_readme",
+    details: "#ti_preset_readme_details",
+    icon: "#ti_preset_info i",
+  });
+  const themeReadme = readmeOps({
+    textarea: "#ti_theme_readme",
+    details: "#ti_theme_readme_details",
+    icon: "#ti_theme_info i",
+  });
+  const playerThemeReadme = readmeOps({
+    textarea: "#ti_player_theme_readme",
+    details: "#ti_player_theme_readme_details",
+    icon: "#ti_player_theme_info i",
+  });
+  const bubbleReadme = readmeOps({
+    textarea: "#ti_bubble_readme",
+    details: "#ti_bubble_readme_details",
+    icon: "#ti_bubble_info i",
+  });
 
   function initializeMainSettings() {
     const settings = getSettings();
@@ -5304,7 +5913,7 @@ function addExtensionSettings() {
           const oldHandle = indicator.querySelector(".ti-drag-handle");
           if (oldHandle) oldHandle.remove();
           if (!settings.customPosition.locked) {
-            makeDraggable(indicator);
+            makeDraggable(indicator, "indicator");
           } else {
             indicator.style.cursor = "default";
           }
@@ -5340,7 +5949,7 @@ function addExtensionSettings() {
             'div[style*="cursor: move"]',
           );
           if (oldHandle) oldHandle.remove();
-          makeDraggable(indicator);
+          makeDraggable(indicator, "indicator");
           toastr.info(t`Draggable state refreshed.`, "", {
             timeOut: 1000,
           });
@@ -5400,11 +6009,9 @@ function addExtensionSettings() {
       const currentStyle = settings.bubbleStyles.find(
         (s) => s.id === settings.selectedBubbleStyleId,
       );
-      if (currentStyle && htmlTextarea && cssTextarea) {
-        htmlTextarea.value = currentStyle.html || "";
-        cssTextarea.value = currentStyle.css || "";
-      }
-
+      if (htmlTextarea) htmlTextarea.value = currentStyle?.html || "";
+      if (cssTextarea) cssTextarea.value = currentStyle?.css || "";
+      bubbleReadme.load(currentStyle?.readme);
       updateBubblePreview();
     }
 
@@ -5458,6 +6065,18 @@ function addExtensionSettings() {
         });
       }
 
+      const bubbleInfoBtn = section.querySelector("#ti_bubble_info");
+      if (bubbleInfoBtn) {
+        bubbleInfoBtn.addEventListener("click", () => {
+          const settings = getSettings();
+          const style = settings.bubbleStyles.find(
+            (s) => s.id === settings.selectedBubbleStyleId,
+          );
+          if (!style) return;
+          bubbleReadme.infoClick(style);
+        });
+      }
+
       const saveBtn = section.querySelector("#ti_bubble_save");
       if (saveBtn) {
         saveBtn.addEventListener("click", () => {
@@ -5468,10 +6087,11 @@ function addExtensionSettings() {
           if (style) {
             style.html = htmlTextarea.value;
             style.css = cssTextarea.value;
+            const hasReadme = bubbleReadme.save(style);
             saveSettingsDebounced();
             applyBubbleStyles();
             refreshAllBubbles();
-            toastr.success(t`Bubble style saved.`);
+            savedToast(style.name, hasReadme);
           }
         });
       }
@@ -5493,6 +6113,7 @@ function addExtensionSettings() {
           settings.selectedBubbleStyleId = newStyle.id;
           saveSettingsDebounced();
           populateBubbleStyles();
+          bubbleReadme.openForEdit();
         });
       }
 
@@ -5568,6 +6189,9 @@ function addExtensionSettings() {
                   css: imported.css || "",
                   isBuiltIn: false,
                 };
+                if (imported.readme) {
+                  newStyle.readme = imported.readme;
+                }
 
                 const existingIndex = settings.bubbleStyles.findIndex(
                   (s) => s.id === newStyle.id,
@@ -5605,16 +6229,11 @@ function addExtensionSettings() {
           );
           if (!style) return;
 
-          const exportData = {
-            id: style.id,
-            name: style.name,
-            html: style.html,
-            css: style.css,
-            _metadata: {
-              exportedAt: new Date().toISOString(),
-              exportedBy: "SillyTavern Typing Indicator Themes Extension",
-              type: "bubble-style",
-            },
+          const exportData = { ...style };
+          exportData._metadata = {
+            exportedAt: new Date().toISOString(),
+            exportedBy: "SillyTavern Typing Indicator Themes Extension",
+            type: "bubble-style",
           };
 
           const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -5694,7 +6313,7 @@ function addExtensionSettings() {
         const oldHandle = player.querySelector(".ti-drag-handle");
         if (oldHandle) oldHandle.remove();
         if (!settings.playerPosition.locked) {
-          makeDraggable(player, true);
+          makeDraggable(player, "player");
         } else {
           player.style.cursor = "default";
         }
@@ -5729,7 +6348,7 @@ function addExtensionSettings() {
         }, 300);
         const oldHandle = player.querySelector(".ti-drag-handle");
         if (oldHandle) oldHandle.remove();
-        makeDraggable(player, true);
+        makeDraggable(player, "player");
 
         toastr.info(t`Draggable state refreshed.`, "", {
           timeOut: 1000,
@@ -5845,10 +6464,21 @@ function addExtensionSettings() {
           if (currentLyrics.length > 0) {
             showLyricsOverlay();
           } else if (currentPlayerTrack) {
-            loadLyricsForTrack(currentPlayerTrack);
+            const playerIframe = document.querySelector(
+              "#music_player .theme-iframe",
+            );
+            if (playerIframe && playerIframe.contentWindow) {
+              playerIframe.contentWindow.postMessage(
+                {
+                  source: "typing-indicator-host",
+                  type: "request-playback-state",
+                },
+                "*",
+              );
+            }
           }
         } else {
-          removeLyricsOverlay();
+          hideLyricsOverlay();
         }
       });
 
@@ -6079,10 +6709,10 @@ function addExtensionSettings() {
         saveSettingsDebounced();
         if (e.target.checked) {
           FPSMonitor.start();
-          toastr.info(t`FPS Monitor enabled`, "", { timeOut: 1500 });
+          toastr.info(t`FPS Monitor enabled`, "", { timeOut: 1000 });
         } else {
           FPSMonitor.stop();
-          toastr.info(t`FPS Monitor disabled`, "", { timeOut: 1500 });
+          toastr.info(t`FPS Monitor disabled`, "", { timeOut: 1000 });
         }
       });
     }
@@ -6313,10 +6943,21 @@ function addExtensionSettings() {
           const resizeHandler = () => centerDialog(dialog);
 
           let escHandler;
+          [
+            "click",
+            "mousedown",
+            "mouseup",
+            "pointerdown",
+            "pointerup",
+            "touchstart",
+            "touchend",
+          ].forEach((evt) => {
+            popup.addEventListener(evt, (e) => e.stopPropagation());
+          });
 
           const closePopup = () => {
             window.removeEventListener("resize", resizeHandler);
-            document.removeEventListener("keydown", escHandler);
+            document.removeEventListener("keydown", escHandler, true);
             popup.style.opacity = "0";
             popup.style.transition = "opacity 0.2s";
             setTimeout(() => popup.remove(), 200);
@@ -6324,6 +6965,9 @@ function addExtensionSettings() {
 
           escHandler = (e) => {
             if (e.key === "Escape") {
+              e.stopImmediatePropagation();
+              e.stopPropagation();
+              e.preventDefault();
               closePopup();
             }
           };
@@ -6332,7 +6976,7 @@ function addExtensionSettings() {
           popup.addEventListener("click", (e) => {
             if (e.target === popup) closePopup();
           });
-          document.addEventListener("keydown", escHandler);
+          document.addEventListener("keydown", escHandler, true);
           window.addEventListener("resize", resizeHandler);
         } catch (error) {
           console.error("加载使用说明失败:", error);
@@ -6490,6 +7134,7 @@ function addExtensionSettings() {
           toastr.success(
             t`Built-in items have been restored to their default settings.`,
           );
+          requestSettingsRender(true);
         }
       });
 
@@ -7033,7 +7678,6 @@ function addExtensionSettings() {
     const tiPresetText = section.querySelector("#ti_preset_text");
 
     if (!tiPresetSelect || !tiPresetText) return;
-
     tiPresetSelect.innerHTML = settings.textPresets
       .map(
         (p) =>
@@ -7043,14 +7687,13 @@ function addExtensionSettings() {
       )
       .join("");
 
-    const selectedPreset =
-      settings.textPresets.find((p) => p.id === currentId) ||
-      settings.textPresets[0];
-    tiPresetText.value = selectedPreset.text;
-
-    if (settings.selectedTextPresetId !== selectedPreset.id) {
-      settings.selectedTextPresetId = selectedPreset.id;
+    const selectedPreset = settings.textPresets.find((p) => p.id === currentId);
+    if (!selectedPreset) {
+      settings.selectedTextPresetId = settings.textPresets[0]?.id;
+      return populatePresets();
     }
+    tiPresetText.value = selectedPreset.text;
+    presetReadme.load(selectedPreset.readme);
   }
 
   function populateThemes() {
@@ -7078,7 +7721,9 @@ function addExtensionSettings() {
     const selectedTheme =
       settings.themes.find((theme) => theme.id === currentId) ||
       settings.themes[0];
-    requestAnimationFrame(() => updateEditorMode(selectedTheme));
+    requestAnimationFrame(() => {
+      updateEditorMode(selectedTheme);
+    });
   }
 
   function populatePlayerThemes() {
@@ -7105,6 +7750,18 @@ function addExtensionSettings() {
       playerThemes.find((theme) => theme.id === currentId) || playerThemes[0];
     if (selectedTheme) {
       updatePlayerEditorMode(selectedTheme);
+    } else {
+      const fields = [
+        "#ti_player_theme_html",
+        "#ti_player_theme_iframe_css",
+        "#ti_player_theme_iframe_js",
+        "#ti_player_theme_iframe_sizes",
+      ];
+      fields.forEach((id) => {
+        const el = section.querySelector(id);
+        if (el) el.value = "";
+      });
+      playerThemeReadme.load(undefined);
     }
   }
 
@@ -7149,6 +7806,7 @@ function addExtensionSettings() {
       presetSection.style.display = "block";
       cssTextarea.value = (theme.css || "").trim();
     }
+    themeReadme.load(theme.readme);
   }
 
   function updatePlayerEditorMode(theme) {
@@ -7182,6 +7840,7 @@ function addExtensionSettings() {
     }
 
     validatePlayerSizesJson();
+    playerThemeReadme.load(theme.readme);
   }
 
   function validateSizesJson() {
@@ -7241,7 +7900,17 @@ function addExtensionSettings() {
     const tiPresetText = section.querySelector("#ti_preset_text");
 
     if (!tiPresetSelect || !tiPresetText) return;
-
+    const presetInfoBtn = section.querySelector("#ti_preset_info");
+    if (presetInfoBtn) {
+      presetInfoBtn.addEventListener("click", () => {
+        const settings = getSettings();
+        const preset = settings.textPresets.find(
+          (p) => p.id === settings.selectedTextPresetId,
+        );
+        if (!preset) return;
+        presetReadme.infoClick(preset);
+      });
+    }
     tiPresetSelect.addEventListener("change", () => {
       manualOverrideActive = true;
       const settings = getSettings();
@@ -7312,8 +7981,9 @@ function addExtensionSettings() {
       const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
       if (p) {
         p.text = tiPresetText.value;
+        const hasReadme = presetReadme.save(p);
         saveSettingsDebounced();
-        toastr.success(t`Preset "${p.name}" saved.`);
+        savedToast(p.name, hasReadme);
         refreshLiveIndicators("preset_save");
       }
     });
@@ -7331,6 +8001,7 @@ function addExtensionSettings() {
         settings.selectedTextPresetId = p.id;
         populatePresets();
         saveSettingsDebounced();
+        presetReadme.openForEdit();
       }
     });
 
@@ -7395,6 +8066,18 @@ function addExtensionSettings() {
     const tiThemeSelect = section.querySelector("#ti_theme_select");
 
     if (!tiThemeSelect) return;
+
+    const themeInfoBtn = section.querySelector("#ti_theme_info");
+    if (themeInfoBtn) {
+      themeInfoBtn.addEventListener("click", () => {
+        const settings = getSettings();
+        const theme = settings.themes.find(
+          (t) => t.id === settings.selectedThemeId,
+        );
+        if (!theme) return;
+        themeReadme.infoClick(theme);
+      });
+    }
 
     tiThemeSelect.addEventListener("change", () => {
       manualOverrideActive = true;
@@ -7572,12 +8255,13 @@ function addExtensionSettings() {
           delete themeToSave.sizes;
         }
 
+        const hasReadme = themeReadme.save(themeToSave);
         iframeCache.delete(themeToSave.id);
         updateGlobalDefs(themeToSave);
         applyTheme(themeToSave.id);
         saveSettingsDebounced();
         populateThemes();
-        toastr.success(t`Theme "${themeToSave.name}" saved.`);
+        savedToast(themeToSave.name, hasReadme);
         refreshLiveIndicators("theme_save");
         setTimeout(() => {
           section.querySelector("#preview_theme").click();
@@ -7616,6 +8300,7 @@ function addExtensionSettings() {
       populateThemes();
       applyTheme(newTheme.id);
       saveSettingsDebounced();
+      setTimeout(() => themeReadme.openForEdit(), 60);
     });
 
     section.querySelector("#ti_theme_rename").addEventListener("click", () => {
@@ -7903,6 +8588,17 @@ function addExtensionSettings() {
 
     if (!playerThemeSelect) return;
 
+    const playerThemeInfoBtn = section.querySelector("#ti_player_theme_info");
+    if (playerThemeInfoBtn) {
+      playerThemeInfoBtn.addEventListener("click", () => {
+        const settings = getSettings();
+        const theme = settings.themes.find(
+          (t) => t.id === settings.selectedPlayerThemeId,
+        );
+        if (!theme) return;
+        playerThemeReadme.infoClick(theme);
+      });
+    }
     playerThemeSelect.addEventListener("change", () => {
       const settings = getSettings();
       settings.selectedPlayerThemeId = playerThemeSelect.value;
@@ -7922,13 +8618,27 @@ function addExtensionSettings() {
 
     section
       .querySelector("#ti_player_theme_save")
-      .addEventListener("click", () => {
+      .addEventListener("click", async () => {
         const settings = getSettings();
         const themeToSave = settings.themes.find(
           (theme) => theme.id === playerThemeSelect.value,
         );
         if (!themeToSave) return;
 
+        const jsCodeToValidate = section.querySelector(
+          "#ti_player_theme_iframe_js",
+        ).value;
+        const validationResult =
+          await validateJavaScriptSyntax(jsCodeToValidate);
+        if (!validationResult.isValid) {
+          const err = validationResult.error;
+          toastr.error(
+            t`JavaScript syntax error!<br><b>Error:</b> ${err.message}<br><b>Location:</b> Line ${err.line}, Column ${err.column}`,
+            t`Save Failed`,
+            { timeOut: 10000, escapeHtml: false },
+          );
+          return;
+        }
         if (!validatePlayerSizesJson()) {
           toastr.error(
             t`The JSON format for Sizes configuration is incorrect, please fix it!`,
@@ -7964,11 +8674,11 @@ function addExtensionSettings() {
         }
 
         iframeCache.delete(themeToSave.id);
+        const hasReadme = playerThemeReadme.save(themeToSave);
         saveSettingsDebounced();
         populatePlayerThemes();
         populateThemes();
-        toastr.success(t`Theme "${themeToSave.name}" saved.`);
-
+        savedToast(themeToSave.name, hasReadme);
         if (settings.playerEnabled) {
           reloadPlayer();
         }
@@ -7996,6 +8706,7 @@ function addExtensionSettings() {
           populatePlayerThemes();
           populateThemes();
           saveSettingsDebounced();
+          playerThemeReadme.openForEdit();
         }
       });
 
@@ -8174,8 +8885,14 @@ function addExtensionSettings() {
             } else {
               newItem.css = imported.css || "";
             }
+            if (imported.readme) {
+              newItem.readme = imported.readme;
+            }
           } else {
             newItem.text = imported.text;
+            if (imported.readme) {
+              newItem.readme = imported.readme;
+            }
           }
 
           const existingIndex = list.findIndex(
@@ -8259,6 +8976,13 @@ function initializeObservers() {
         mutation.attributeName === "class"
       ) {
         setTimeout(() => handleMainThemeChange(), 100);
+        setTimeout(() => {
+          if (lyricsOverlayElement) {
+            lyricsOverlayElement.style.fontFamily = getComputedStyle(
+              document.body,
+            ).fontFamily;
+          }
+        }, 200);
       }
     }
   });
@@ -8933,7 +9657,27 @@ function initializeObservers() {
       setTimeout(() => buildAndSetInitialPlaylist(), 100);
       return;
     }
-    setTimeout(() => appendNewSongs(messageId), 100);
+
+    processedAppendMessages.delete(messageId);
+    setTimeout(async () => {
+      const newSongs = await findSongsInMessage(messageId);
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (playerIframe && playerIframe.contentWindow) {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "update-songs-from-message",
+            data: {
+              messageId: messageId,
+              songs: newSongs,
+            },
+          },
+          "*",
+        );
+      }
+    }, 100);
   });
 
   eventSource.on(event_types.MESSAGE_UPDATED, (messageId) => {
@@ -8953,6 +9697,28 @@ function initializeObservers() {
       );
       renderBgmBubblesDebounced(messageElement);
     });
+
+    processedAppendMessages.delete(messageId);
+
+    setTimeout(async () => {
+      const newSongs = await findSongsInMessage(messageId);
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (playerIframe && playerIframe.contentWindow) {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "update-songs-from-message",
+            data: {
+              messageId: messageId,
+              songs: newSongs,
+            },
+          },
+          "*",
+        );
+      }
+    }, 200);
   });
 
   let observerTimeout = null;
