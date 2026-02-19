@@ -98,7 +98,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.0";
+const PLUGIN_VERSION = "3.4.1";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,92 +150,71 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.0": {
-    date: "2025-2-17",
+  "3.4.1": {
+    date: "2025-2-20",
     title: {
-      zh: "主题信息面板 & UI 优化",
-      en: "Theme Info Panel & UI Improvements",
-      th: "แผงข้อมูลธีมและปรับปรุง UI",
+      zh: "动态主题锁定 & 头像刷新优化",
+      en: "Dynamic Lock & Avatar Refresh",
+      th: "ล็อกธีมไดนามิก & ปรับการอัปเดตอวตาร",
     },
     content: {
       zh: `
-### 新功能
-- **编辑器折叠**：所有编辑区现在都可以折叠收起，界面更清爽
-- **主题信息面板**：点击主题选择框旁的 ⅰ 按钮，可查看/编辑主题说明
-  - 支持 Markdown 格式渲染
-  - 预览/编辑双模式切换
-  - 有主题信息的项目会在折叠标题旁显示圆点标识
-  - 作者可署名或填写注意事项或版本号
-- **工具栏优化**：重命名、删除、导入、导出按钮收纳至 ⋯ 三点菜单
-  - 界面更简洁，常用操作（新增、保存）保留外露
-- **悬浮歌词字体跟随**：歌词面板字体自动跟随酒馆当前主题字体
-  - 切换酒馆主题时实时同步，无需手动刷新
+### 新增
+- **动态主题自动锁定拖拽**：触发动态主题时自动锁定位置，避免穿透失效
+- **锁定状态UI同步**：自动勾选/取消“锁定位置”复选框
+
+### 优化
+- **头像刷新时序增强**：新增延迟重试补发 context，避免切角色过快导致头像错误
+- **动态主题刷新去重**：避免重复刷新导致主题叠加
 
 ### 修复
-- 修复关闭悬浮歌词后再次启用时面板不显示的问题
-- 修复弹窗关闭时事件冒泡导致扩展设置面板一起关闭
-
-### 翻译
-- 新增繁体中文完整翻译
+- 修复拖拽测试中切角色头像不更新的问题
+- 修复动态主题触发后偶发穿透失效
 
 ### ⚠️ 重要提示
 - **内置主题已更新！** 请前往：
 > 设置 → 工具 → **恢复内置项**
 - 您自己创建的主题 **不受影响**
 - ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
-            `,
+      `,
       en: `
-### New Features
-- **Collapsible Editors**: All editor sections can now be collapsed for a cleaner interface
-- **Theme Info Panel**: Click the ⅰ button next to the theme selector to view/edit theme descriptions
-  - Supports Markdown rendering
-  - Toggle between preview and edit modes
-  - Items with theme info display a dot indicator next to the collapsed title
-  - Authors can add credits, notes, or version numbers
-- **Toolbar Optimization**: Rename, Delete, Import, and Export buttons are now tucked into a ⋯ menu
-  - Cleaner interface with frequently used actions (Add, Save) still exposed
-- **Floating Lyrics Font Sync**: Lyrics panel font automatically follows the current SillyTavern theme font
-  - Syncs in real-time when switching tavern themes, no manual refresh needed
+### Added
+- **Auto-lock on dynamic themes** to preserve pointer-through behavior
+- **UI lock sync** with the "Lock Position" checkbox
 
-### Fixes
-- Fixed floating lyrics panel not showing when re-enabled after being disabled
-- Fixed event bubbling when closing popups causing the extension settings panel to close as well
+### Improved
+- **Avatar refresh timing** with retry-based context update
+- **Deduplicated refresh** to prevent stacked themes
 
-### Translations
-- Added complete Traditional Chinese translation
+### Fixed
+- Avatar not updating when switching characters during drag test
+- Occasional pointer-through failure after dynamic theme activation
 
 ### ⚠️ Important Notes
 - **Built-in themes have been updated!** Please go to:
 > Settings → Tools → **Restore Built-in Items**
 - Your custom-created themes are **not affected**
 - ⚠️ If you have modified any built-in themes, please **export a backup** before restoring
-            `,
+      `,
       th: `
-### ฟีเจอร์ใหม่
-- **ตัวแก้ไขพับได้**: ส่วนตัวแก้ไขทั้งหมดสามารถพับเก็บได้เพื่อหน้าจอที่สะอาดขึ้น
-- **แผงข้อมูลธีม**: คลิกปุ่ม ⅰ ข้างตัวเลือกธีมเพื่อดู/แก้ไขคำอธิบายธีม
-  - รองรับการเรนเดอร์ Markdown
-  - สลับระหว่างโหมดดูตัวอย่างและแก้ไข
-  - รายการที่มีข้อมูลธีมจะแสดงจุดตัวบ่งชี้ข้างชื่อที่พับ
-  - ผู้สร้างสามารถเพิ่มเครดิต หมายเหตุ หรือหมายเลขเวอร์ชัน
-- **ปรับปรุงแถบเครื่องมือ**: ปุ่มเปลี่ยนชื่อ ลบ นำเข้า และส่งออก ถูกย้ายไปในเมนู ⋯
-  - หน้าจอสะอาดขึ้น การดำเนินการที่ใช้บ่อย (เพิ่ม, บันทึก) ยังคงแสดงอยู่
-- **ซิงค์ฟอนต์เนื้อเพลงลอย**: ฟอนต์แผงเนื้อเพลงจะติดตามฟอนต์ธีม SillyTavern ปัจจุบันโดยอัตโนมัติ
-  - ซิงค์แบบเรียลไทม์เมื่อสลับธีม ไม่ต้องรีเฟรชด้วยตนเอง
+### เพิ่ม
+- **ล็อกอัตโนมัติเมื่อใช้ธีมไดนามิก** เพื่อให้ทะลุคลิกทำงานเสถียร
+- **ซิงค์ UI ล็อกตำแหน่ง** กับช่อง “Lock Position”
+
+### ปรับปรุง
+- **เวลาการอัปเดตอวตาร** ด้วยการส่ง context ซ้ำแบบหน่วง
+- **ตัดการรีเฟรชซ้ำ** ป้องกันธีมซ้อนกัน
 
 ### แก้ไข
-- แก้ไขแผงเนื้อเพลงลอยไม่แสดงเมื่อเปิดใช้งานอีกครั้งหลังจากปิด
-- แก้ไข event bubbling เมื่อปิดป๊อปอัพทำให้แผงการตั้งค่าส่วนขยายปิดไปด้วย
-
-### การแปล
-- เพิ่มการแปลภาษาจีนตัวเต็มที่สมบูรณ์
+- อวตารไม่อัปเดตตอนสลับตัวละครระหว่างทดสอบลาก
+- ปัญหาทะลุคลิกหลุดหลังใช้ธีมไดนามิก
 
 ### ⚠️ หมายเหตุสำคัญ
 - **ธีมในตัวได้รับการอัปเดต!** กรุณาไปที่：
 > การตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
 - ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
 - ⚠️ หากคุณเคยแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
-            `,
+      `,
     },
   },
 };
@@ -546,6 +525,35 @@ async function updateIframeContext(iframe, theme, characterName) {
   );
 }
 
+function postContextWhenReady(containerId, retry = 6) {
+  const ctx = getCurrentCharContext();
+  const invalid =
+    !ctx.charName ||
+    ctx.charName === "{{char}}" ||
+    (ctx.charAvatarUrl || "").includes("{{char}}");
+
+  if (invalid && retry > 0) {
+    return setTimeout(() => postContextWhenReady(containerId, retry - 1), 40);
+  }
+
+  const container = containerId
+    ? document.getElementById(containerId)
+    : document.getElementById("typing_indicator");
+  const iframe = container?.querySelector(".theme-iframe");
+
+  if (iframe?.contentWindow) {
+    queuePostMessage(
+      iframe.contentWindow,
+      {
+        source: "typing-indicator-host",
+        type: "context-update",
+        data: ctx,
+      },
+      "*",
+    );
+  }
+}
+
 async function createUnifiedIframeOriginal(
   theme,
   indicatorElement,
@@ -632,7 +640,6 @@ async function createUnifiedIframeOriginal(
 function validateAndFixIconFonts() {
   const old = document.getElementById("extension-icon-font-fixer");
   if (old) old.remove();
-
   const style = document.createElement("style");
   style.id = "extension-icon-font-fixer";
   style.textContent = `
@@ -1468,6 +1475,7 @@ let accumulatedStreamedText = "";
 let currentDynamicThemeId = null;
 let currentDynamicPresetId = null;
 let dynamicThemeTimeoutId = null;
+let dynamicPrevLock = null;
 let isRendering = false;
 let isTestIndicatorActive = false;
 let currentActiveTab = "main";
@@ -3266,7 +3274,6 @@ function applyThemeToIndicator(theme, indicatorElement) {
   const existingIframe = indicatorElement.querySelector(".theme-iframe");
   if (existingIframe) {
     releaseIframeToPool(indicatorElement);
-    existingIframe.remove();
   }
 
   if (theme.useIframe) {
@@ -3376,6 +3383,44 @@ function makeDraggable(element, positionType = "indicator") {
 
   dragHandle.addEventListener("mousedown", onDragStart);
   dragHandle.addEventListener("touchstart", onDragStart, { passive: false });
+}
+
+function syncIndicatorInteractivity() {
+  const settings = getSettings();
+  const indicator = document.getElementById("typing_indicator");
+  if (!indicator) return;
+
+  if (settings.position === "draggable") {
+    if (settings.customPosition.locked) {
+      indicator.querySelector(".ti-drag-handle")?.remove();
+    } else {
+      makeDraggable(indicator, "indicator");
+    }
+  } else {
+    indicator.querySelector(".ti-drag-handle")?.remove();
+  }
+
+  if (indicator.dataset.overlayMode === "1") {
+    const pe = settings.customPosition.locked ? "none" : "auto";
+    indicator.style.pointerEvents = pe;
+    const iframe = indicator.querySelector(".theme-iframe");
+    if (iframe) iframe.style.pointerEvents = pe;
+    return;
+  }
+
+  indicator.style.pointerEvents = "";
+  const iframe = indicator.querySelector(".theme-iframe");
+  if (iframe) iframe.style.pointerEvents = "";
+
+  if (settings.position === "draggable") {
+    if (settings.customPosition.locked) {
+      indicator.querySelector(".ti-drag-handle")?.remove();
+    } else {
+      makeDraggable(indicator, "indicator");
+    }
+  } else {
+    indicator.querySelector(".ti-drag-handle")?.remove();
+  }
 }
 
 // ==================== 指示器显示和隐藏 ====================
@@ -3645,6 +3690,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
       chatElement.scrollTop = chatElement.scrollHeight;
     }
     applyThemeToIndicator(currentTheme, typingIndicator);
+    syncIndicatorInteractivity();
     isRendering = false;
   } catch (e) {
     console.error("[TypingIndicator] showTypingIndicator 异常:", e);
@@ -4631,6 +4677,8 @@ function refreshIndicatorContent(indicator) {
     }`;
     indicator.innerHTML = `<span class="typing_indicator_text" style="font-family: inherit;">${htmlContent}</span>`;
   }
+  indicator.dataset.overlayMode = indicator.dataset.overlayMode || "0";
+  syncIndicatorInteractivity();
 }
 
 // ==================== 动态主题处理 ====================
@@ -4706,9 +4754,18 @@ function revertDynamicTheme(source = "unknown") {
 function applyDynamicTheme(themeName) {
   const settings = getSettings();
   const matchedTheme = settings.themes.find((t) => t.name === themeName);
-
   if (!matchedTheme) return;
   if (currentDynamicThemeId === matchedTheme.id) return;
+
+  const needLock =
+    settings.position === "draggable" && !settings.customPosition.locked;
+
+  if (needLock) {
+    settings.customPosition.locked = true;
+    saveSettingsDebounced();
+    const lockCb = document.querySelector("#ti_position_locked");
+    if (lockCb) lockCb.checked = true;
+  }
 
   const indicator = document.getElementById("typing_indicator");
   const oldThemeId = indicator?.dataset.themeId;
@@ -4719,6 +4776,7 @@ function applyDynamicTheme(themeName) {
 
   currentDynamicThemeId = matchedTheme.id;
   currentDynamicPresetId = null;
+
   if (!matchedTheme.useIframe) {
     const baseName = matchedTheme.name.replace(/-美化$|-Style$/i, "").trim();
     const matchedPreset = settings.textPresets.find((p) => p.name === baseName);
@@ -4726,6 +4784,7 @@ function applyDynamicTheme(themeName) {
   }
 
   if (indicator && handleCrossTypeSwitch(matchedTheme.id, "dynamic-apply")) {
+    syncIndicatorInteractivity();
     return;
   }
 
@@ -4735,11 +4794,10 @@ function applyDynamicTheme(themeName) {
     presetId: currentDynamicPresetId || settings.selectedTextPresetId,
   };
 
-  if (settings.persistentMode && indicator) {
-    refreshIndicatorContent(indicator);
-  } else if (!settings.persistentMode && indicator) {
+  if (indicator) {
     refreshIndicatorContent(indicator);
   }
+  syncIndicatorInteractivity();
 }
 
 function processMessageForTheme(messageId) {
@@ -5901,6 +5959,7 @@ function addExtensionSettings() {
       draggableControls.style.display =
         settings.position === "draggable" ? "flex" : "none";
       saveSettingsDebounced();
+      syncIndicatorInteractivity();
     });
 
     section
@@ -5908,16 +5967,7 @@ function addExtensionSettings() {
       .addEventListener("change", (e) => {
         settings.customPosition.locked = e.target.checked;
         saveSettingsDebounced();
-        const indicator = document.getElementById("typing_indicator");
-        if (indicator) {
-          const oldHandle = indicator.querySelector(".ti-drag-handle");
-          if (oldHandle) oldHandle.remove();
-          if (!settings.customPosition.locked) {
-            makeDraggable(indicator, "indicator");
-          } else {
-            indicator.style.cursor = "default";
-          }
-        }
+        syncIndicatorInteractivity();
       });
 
     section
@@ -5942,14 +5992,10 @@ function addExtensionSettings() {
           setTimeout(() => {
             if (indicator) {
               indicator.style.transition = "";
+              syncIndicatorInteractivity();
             }
           }, 300);
 
-          const oldHandle = indicator.querySelector(
-            'div[style*="cursor: move"]',
-          );
-          if (oldHandle) oldHandle.remove();
-          makeDraggable(indicator, "indicator");
           toastr.info(t`Draggable state refreshed.`, "", {
             timeOut: 1000,
           });
@@ -7314,6 +7360,7 @@ function addExtensionSettings() {
       isStatefulThemeLocked = false;
       currentDynamicThemeId = null;
       currentDynamicPresetId = null;
+      dynamicPrevLock = null;
       currentPlayerTrack = null;
       currentLyrics = [];
       currentLyricIndex = -1;
@@ -9139,6 +9186,9 @@ function initializeObservers() {
     }
 
     const { type, data, themeId, containerId } = event.data;
+    if (type === "theme-loaded" && containerId) {
+      postContextWhenReady(containerId);
+    }
     if (event.data.source === "typing-indicator-theme") {
       if (type === "player-initialized") {
         isPlayerInitialized = true;
@@ -9260,6 +9310,7 @@ function initializeObservers() {
           indicator.style.pointerEvents = pointerEventsValue;
           const iframe = indicator.querySelector(".theme-iframe");
           if (iframe) iframe.style.pointerEvents = pointerEventsValue;
+          indicator.dataset.overlayMode = "1";
         }
         return;
       }
@@ -9576,13 +9627,7 @@ function initializeObservers() {
   eventSource.on(event_types.GENERATION_STARTED, (type, args, dryRun) => {
     if (dryRun) return;
     if (currentDynamicThemeId) {
-      if (statefulThemes.has(currentDynamicThemeId)) {
-        isStatefulThemeLocked = false;
-      }
-
-      currentDynamicThemeId = null;
-      currentDynamicPresetId = null;
-      currentlyAppliedConfig = getActiveThemeConfig();
+      revertDynamicTheme("generation_started");
     }
 
     const settings = getSettings();
@@ -9629,8 +9674,8 @@ function initializeObservers() {
       shouldHideDynamicThemeNow
     ) {
       if (shouldHideDynamicThemeNow) {
-        currentDynamicThemeId = null;
-        currentDynamicPresetId = null;
+        revertDynamicTheme("generation_end_duration_0");
+        return;
       }
       hideTypingIndicator();
     }
@@ -9823,14 +9868,10 @@ function initializeObservers() {
             if (duration > 0) {
               dynamicThemeTimeoutId = setTimeout(() => {
                 dynamicThemeTimeoutId = null;
-                currentDynamicThemeId = null;
-                currentDynamicPresetId = null;
-                hideTypingIndicator();
+                revertDynamicTheme("duration_ended");
               }, duration);
             } else {
-              currentDynamicThemeId = null;
-              currentDynamicPresetId = null;
-              hideTypingIndicator();
+              revertDynamicTheme("duration_ended_immediate");
             }
           }
           return;
@@ -9850,8 +9891,11 @@ function initializeObservers() {
     if (!settings.persistentMode) {
       clearTimeout(dynamicThemeTimeoutId);
       dynamicThemeTimeoutId = null;
-      currentDynamicThemeId = null;
-      currentDynamicPresetId = null;
+
+      if (currentDynamicThemeId) {
+        revertDynamicTheme("generation_stopped");
+        return;
+      }
       hideTypingIndicator();
     }
   });
@@ -9920,6 +9964,7 @@ function initializeObservers() {
         const settings = getSettings();
         updateAndApplyTheme("chatChanged_logic");
         requestSettingsRender();
+        setTimeout(() => postContextWhenReady("typing_indicator"), 150);
         if (settings.persistentMode) {
           handlePersistentModeUpdate("切换聊天").catch((err) =>
             console.error("[TypingIndicator] persistentModeUpdate 失败:", err),
