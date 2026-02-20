@@ -3482,6 +3482,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
 
     const oldIndicator = document.getElementById("typing_indicator");
     if (oldIndicator) {
+      $(oldIndicator).stop(true, true);
       cleanupUnifiedIframe(oldIndicator);
       oldIndicator.remove();
     }
@@ -4347,7 +4348,8 @@ function hidePlayer() {
   const musicPlayer = document.getElementById("music_player");
   if (musicPlayer) {
     cleanupUnifiedIframe(musicPlayer);
-    $(musicPlayer).hide(() => musicPlayer.remove());
+    $(musicPlayer).stop(true, true).hide();
+    musicPlayer.remove();
   }
   removeLyricsOverlay();
 }
@@ -4552,11 +4554,10 @@ function refreshLiveIndicators(source = "unknown") {
     }
 
     debugLog("[TypingIndicator] 同类型刷新，执行fade替换");
-    $(indicator).fadeOut(150, function () {
-      cleanupUnifiedIframe(this);
-      $(this).remove();
-      showTypingIndicator("persistent-refresh");
-    });
+    $(indicator).stop(true, true);
+    cleanupUnifiedIframe(indicator);
+    indicator.remove();
+    showTypingIndicator("persistent-refresh");
   }
 }
 
@@ -5897,8 +5898,9 @@ function addExtensionSettings() {
           isIndicatorPersisted = false;
           const indicator = document.getElementById("typing_indicator");
           if (indicator) {
+            $(indicator).stop(true, true);
             cleanupUnifiedIframe(indicator);
-            $(indicator).hide(() => indicator.remove());
+            indicator.remove();
           }
           const testButton = section.querySelector("#ti_test_draggable");
           if (testButton) {
@@ -8160,10 +8162,13 @@ function addExtensionSettings() {
       saveSettingsDebounced();
 
       if (getSettings().persistentMode) {
-        $("#typing_indicator").fadeOut(50, function () {
-          $(this).remove();
-          showTypingIndicator("persistent-retheme");
-        });
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator) {
+          $(indicator).stop(true, true);
+          cleanupUnifiedIframe(indicator);
+          indicator.remove();
+        }
+        showTypingIndicator("persistent-retheme");
       }
 
       $("#suggestion-container-preset").remove();
