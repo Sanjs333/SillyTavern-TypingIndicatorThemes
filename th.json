@@ -236,5 +236,8 @@
   "Optional: Write a description for this preset in Markdown format...": "ไม่บังคับ: เขียนคำอธิบายสำหรับพรีเซ็ตนี้ในรูปแบบ Markdown…",
   "Optional: Write a description for this theme in Markdown format...": "ไม่บังคับ: เขียนคำอธิบายสำหรับธีมนี้ในรูปแบบ Markdown…",
   "Optional: Write a description for this player theme in Markdown format...": "ไม่บังคับ: เขียนคำอธิบายสำหรับธีมเครื่องเล่นนี้ในรูปแบบ Markdown…",
-  "Optional: Write a description for this bubble style in Markdown format...": "ไม่บังคับ: เขียนคำอธิบายสำหรับสไตล์ฟองอากาศนี้ในรูปแบบ Markdown…"
+  "Optional: Write a description for this bubble style in Markdown format...": "ไม่บังคับ: เขียนคำอธิบายสำหรับสไตล์ฟองอากาศนี้ในรูปแบบ Markdown…",
+  "Interaction": "การโต้ตอบ",
+  "Click-Through Mode": "โหมดคลิกทะลุ",
+  "When enabled, clicks pass through to the chat. The theme itself cannot be interacted with. Recommended for decorative themes.": "เมื่อเปิดใช้งาน การคลิกจะทะลุไปยังแชท ธีมจะไม่สามารถโต้ตอบได้ แนะนำสำหรับธีมตกแต่ง"
 }

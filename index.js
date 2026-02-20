@@ -98,7 +98,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.1";
+const PLUGIN_VERSION = "3.4.2";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,70 +150,48 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.1": {
-    date: "2025-2-20",
+  "3.4.2": {
+    date: "2026-2-21",
     title: {
-      zh: "动态主题锁定 & 头像刷新优化",
-      en: "Dynamic Lock & Avatar Refresh",
-      th: "ล็อกธีมไดนามิก & ปรับการอัปเดตอวตาร",
+      zh: "修复重新生成时指示器偶发消失 & 穿透模式",
+      en: "Fix Indicator Disappearing on Regenerate & Click-Through Mode",
+      th: "แก้ไขตัวบ่งชี้หายเมื่อ Regenerate & โหมดคลิกทะลุ",
     },
     content: {
       zh: `
-### 新增
-- **动态主题自动锁定拖拽**：触发动态主题时自动锁定位置，避免穿透失效
-- **锁定状态UI同步**：自动勾选/取消“锁定位置”复选框
-
-### 优化
-- **头像刷新时序增强**：新增延迟重试补发 context，避免切角色过快导致头像错误
-- **动态主题刷新去重**：避免重复刷新导致主题叠加
-
 ### 修复
-- 修复拖拽测试中切角色头像不更新的问题
-- 修复动态主题触发后偶发穿透失效
+- **修复 Regenerate 时指示器偶发不显示的问题**
+  - 原因：隐藏指示器时使用 jQuery 异步动画删除 DOM，与新指示器的 iframe 创建产生竞态
+  - 改为同步删除，彻底消除时序冲突
 
-### ⚠️ 重要提示
-- **内置主题已更新！** 请前往：
-> 设置 → 工具 → **恢复内置项**
-- 您自己创建的主题 **不受影响**
-- ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
+### 新增
+- **穿透模式**：新增"穿透模式"开关
+  - 开启后点击会穿透到聊天界面，主题本身不可交互
+  - 适合纯装饰类主题，避免遮挡聊天操作
       `,
       en: `
-### Added
-- **Auto-lock on dynamic themes** to preserve pointer-through behavior
-- **UI lock sync** with the "Lock Position" checkbox
-
-### Improved
-- **Avatar refresh timing** with retry-based context update
-- **Deduplicated refresh** to prevent stacked themes
-
 ### Fixed
-- Avatar not updating when switching characters during drag test
-- Occasional pointer-through failure after dynamic theme activation
+- **Fixed indicator occasionally not showing on Regenerate**
+  - Cause: jQuery async animation removal racing with new iframe creation
+  - Changed to synchronous removal to eliminate timing conflicts
 
-### ⚠️ Important Notes
-- **Built-in themes have been updated!** Please go to:
-> Settings → Tools → **Restore Built-in Items**
-- Your custom-created themes are **not affected**
-- ⚠️ If you have modified any built-in themes, please **export a backup** before restoring
+### Added
+- **Click-Through Mode**: New toggle in Indicator Position settings
+  - When enabled, clicks pass through to the chat below
+  - The theme itself cannot be interacted with
+  - Works with all position modes, recommended for decorative themes
       `,
       th: `
-### เพิ่ม
-- **ล็อกอัตโนมัติเมื่อใช้ธีมไดนามิก** เพื่อให้ทะลุคลิกทำงานเสถียร
-- **ซิงค์ UI ล็อกตำแหน่ง** กับช่อง “Lock Position”
-
-### ปรับปรุง
-- **เวลาการอัปเดตอวตาร** ด้วยการส่ง context ซ้ำแบบหน่วง
-- **ตัดการรีเฟรชซ้ำ** ป้องกันธีมซ้อนกัน
-
 ### แก้ไข
-- อวตารไม่อัปเดตตอนสลับตัวละครระหว่างทดสอบลาก
-- ปัญหาทะลุคลิกหลุดหลังใช้ธีมไดนามิก
+- **แก้ไขตัวบ่งชี้ไม่แสดงเมื่อ Regenerate**
+  - สาเหตุ: jQuery ลบ DOM แบบ async แข่งกับการสร้าง iframe ใหม่
+  - เปลี่ยนเป็นลบแบบ sync เพื่อขจัดปัญหาจังหวะ
 
-### ⚠️ หมายเหตุสำคัญ
-- **ธีมในตัวได้รับการอัปเดต!** กรุณาไปที่：
-> การตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
-- ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
-- ⚠️ หากคุณเคยแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
+### เพิ่ม
+- **โหมดคลิกทะลุ**: เพิ่มสวิตช์ใหม่ในการตั้งค่าตำแหน่งตัวบ่งชี้
+  - เมื่อเปิดใช้งาน การคลิกจะทะลุไปยังแชทด้านล่าง
+  - ธีมจะไม่สามารถโต้ตอบได้
+  - ใช้ได้กับทุกโหมดตำแหน่ง แนะนำสำหรับธีมตกแต่ง
       `,
     },
   },
@@ -1601,7 +1579,7 @@ function getSettings() {
     lyricsFontSize: 18,
     lyricsShowNextLine: true,
     listeningStats: {},
-
+    clickThrough: false,
     showFpsMonitor: false,
   };
 
@@ -3409,8 +3387,15 @@ function syncIndicatorInteractivity() {
   }
 
   indicator.style.pointerEvents = "";
-  const iframe = indicator.querySelector(".theme-iframe");
-  if (iframe) iframe.style.pointerEvents = "";
+  if (settings.clickThrough) {
+    indicator.style.pointerEvents = "none";
+    const iframe = indicator.querySelector(".theme-iframe");
+    if (iframe) iframe.style.pointerEvents = "none";
+  } else {
+    indicator.style.pointerEvents = "";
+    const iframe = indicator.querySelector(".theme-iframe");
+    if (iframe) iframe.style.pointerEvents = "";
+  }
 
   if (settings.position === "draggable") {
     if (settings.customPosition.locked) {
@@ -3452,9 +3437,16 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
     const existingIndicator = document.getElementById("typing_indicator");
 
     if (isIndicatorPersisted && existingIndicator) {
+      debugLog(
+        `[TypingIndicator] ⚠️ 早退: isIndicatorPersisted=${isIndicatorPersisted}, existingIndicator存在`,
+      );
       isRendering = false;
       return;
     }
+
+    debugLog(
+      `[TypingIndicator] 检查点A: isIndicatorPersisted=${isIndicatorPersisted}, existingIndicator=${!!existingIndicator}`,
+    );
 
     if (!isIndicatorPersisted && existingIndicator) {
       cleanupUnifiedIframe(existingIndicator);
@@ -3475,12 +3467,15 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
         (type.startsWith("dynamic") ||
           type.startsWith("revert") ||
           type.startsWith("persistent-type"));
+      debugLog(
+        `[TypingIndicator] 检查点B: isDynamicCall=${isDynamicCall}, type=${type}, name2="${name2}", streaming=${settings.streaming}, isStreamingEnabled=${isStreamingEnabled()}`,
+      );
+      const charName = getCurrentCharName();
       if (
         !isDynamicCall &&
         type !== "test" &&
-        (!name2 || (!settings.streaming && isStreamingEnabled()))
+        (!charName || (!settings.streaming && isStreamingEnabled()))
       ) {
-        isRendering = false;
         return;
       }
     }
@@ -3513,6 +3508,9 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
       const supportedPositions = currentTheme.sizes
         ? Object.keys(currentTheme.sizes)
         : defaultIframePositions;
+      debugLog(
+        `[TypingIndicator] 检查点C: position=${settings.position}, supportedPositions=${JSON.stringify(supportedPositions)}`,
+      );
       if (!supportedPositions.includes(settings.position)) {
         console.warn(
           `TypingIndicator: iframe 主题 "${currentTheme.name}" 不支持 "${settings.position}" 位置。`,
@@ -3802,7 +3800,8 @@ async function hideTypingIndicator() {
     }
 
     cleanupUnifiedIframe(typingIndicator);
-    $(typingIndicator).hide(() => typingIndicator.remove());
+    $(typingIndicator).stop(true, true).hide();
+    typingIndicator.remove();
   }
 }
 
@@ -5210,6 +5209,14 @@ function addExtensionSettings() {
                             </div>
                         </div>
 
+                        <div class="ti-section">
+                            <h4>${t`Interaction`}</h4>
+                            <label class="checkbox_label"><input type="checkbox" id="ti_click_through" ${
+                              settings.clickThrough ? "checked" : ""
+                            }>${t`Click-Through Mode`}</label>
+                            <small style="margin-left: 24px; opacity: 0.7; display: block; margin-top: 2px;">${t`When enabled, clicks pass through to the chat. The theme itself cannot be interacted with. Recommended for decorative themes.`}</small>
+                        </div>
+
                         <div id="ti_preset_section" class="ti-section">
                             <h4>${t`Indicator Text Presets`}</h4><p>${t`Select a preset to edit or switch.`}</p>
 <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 5px;">
@@ -5969,6 +5976,15 @@ function addExtensionSettings() {
         saveSettingsDebounced();
         syncIndicatorInteractivity();
       });
+
+    const clickThroughCheckbox = section.querySelector("#ti_click_through");
+    if (clickThroughCheckbox) {
+      clickThroughCheckbox.addEventListener("change", (e) => {
+        settings.clickThrough = e.target.checked;
+        saveSettingsDebounced();
+        syncIndicatorInteractivity();
+      });
+    }
 
     section
       .querySelector("#ti_reset_position")

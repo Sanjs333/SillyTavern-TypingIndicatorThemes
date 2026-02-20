@@ -236,5 +236,8 @@
   "Optional: Write a description for this preset in Markdown format...": "可选：使用 Markdown 格式编写此方案的说明…",
   "Optional: Write a description for this theme in Markdown format...": "可选：使用 Markdown 格式编写此主题的说明…",
   "Optional: Write a description for this player theme in Markdown format...": "可选：使用 Markdown 格式编写此播放器主题的说明…",
-  "Optional: Write a description for this bubble style in Markdown format...": "可选：使用 Markdown 格式编写此气泡样式的说明…"
+  "Optional: Write a description for this bubble style in Markdown format...": "可选：使用 Markdown 格式编写此气泡样式的说明…",
+  "Interaction": "交互",
+  "Click-Through Mode": "穿透模式",
+  "When enabled, clicks pass through to the chat. The theme itself cannot be interacted with. Recommended for decorative themes.": "开启后点击会穿透到聊天界面，主题本身不可交互。推荐纯装饰主题使用。"
 }
