@@ -98,7 +98,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.2";
+const PLUGIN_VERSION = "3.4.3";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,49 +150,56 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.2": {
+  "3.4.3": {
     date: "2026-2-21",
     title: {
-      zh: "修复重新生成时指示器偶发消失 & 穿透模式",
-      en: "Fix Indicator Disappearing on Regenerate & Click-Through Mode",
-      th: "แก้ไขตัวบ่งชี้หายเมื่อ Regenerate & โหมดคลิกทะลุ",
+      zh: "内置动画样式选择",
+      en: "Built-in Animation Styles",
+      th: "รูปแบบแอนิเมชันในตัว",
     },
     content: {
       zh: `
-### 修复
-- **修复 Regenerate 时指示器偶发不显示的问题**
-  - 原因：隐藏指示器时使用 jQuery 异步动画删除 DOM，与新指示器的 iframe 创建产生竞态
-  - 改为同步删除，彻底消除时序冲突
-
 ### 新增
-- **穿透模式**：新增"穿透模式"开关
-  - 开启后点击会穿透到聊天界面，主题本身不可交互
-  - 适合纯装饰类主题，避免遮挡聊天操作
-      `,
+- **内置动画样式选择**：新增 4 种动画风格可选
+  - 渐隐三点（默认）、弹跳三点、脉冲三点、逐显三点
+  - 在「主设置 → 核心功能 → 内置动画」旁的下拉框中切换
+
+### ⚠️ 重要提示
+
+- **内置主题已更新！** 请前往：
+  > 设置 → 工具 → **恢复内置项**
+
+- 您自己创建的主题 **不受影响**
+- ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
+            `,
       en: `
-### Fixed
-- **Fixed indicator occasionally not showing on Regenerate**
-  - Cause: jQuery async animation removal racing with new iframe creation
-  - Changed to synchronous removal to eliminate timing conflicts
-
 ### Added
-- **Click-Through Mode**: New toggle in Indicator Position settings
-  - When enabled, clicks pass through to the chat below
-  - The theme itself cannot be interacted with
-  - Works with all position modes, recommended for decorative themes
-      `,
-      th: `
-### แก้ไข
-- **แก้ไขตัวบ่งชี้ไม่แสดงเมื่อ Regenerate**
-  - สาเหตุ: jQuery ลบ DOM แบบ async แข่งกับการสร้าง iframe ใหม่
-  - เปลี่ยนเป็นลบแบบ sync เพื่อขจัดปัญหาจังหวะ
+- **Built-in Animation Styles**: 4 animation styles to choose from
+  - Fading Dots (default), Bouncing Dots, Pulsing Dots, Sequential Dots
+  - Switch in the dropdown next to "Built-in Animation" under Main Settings → Core Functions
 
+### ⚠️ Important
+
+- **Built-in themes have been updated!** Please go to:
+  > Settings → Tools → **Restore Built-in Items**
+
+- Your custom-created themes are **not affected**
+- ⚠️ If you modified any built-in themes, please **export a backup** before restoring
+            `,
+      th: `
 ### เพิ่ม
-- **โหมดคลิกทะลุ**: เพิ่มสวิตช์ใหม่ในการตั้งค่าตำแหน่งตัวบ่งชี้
-  - เมื่อเปิดใช้งาน การคลิกจะทะลุไปยังแชทด้านล่าง
-  - ธีมจะไม่สามารถโต้ตอบได้
-  - ใช้ได้กับทุกโหมดตำแหน่ง แนะนำสำหรับธีมตกแต่ง
-      `,
+- **รูปแบบแอนิเมชันในตัว**: เพิ่ม 4 รูปแบบแอนิเมชันให้เลือก
+  - จุดจางหาย (ค่าเริ่มต้น), จุดเด้ง, จุดเต้นเป็นจังหวะ, จุดแสดงทีละจุด
+  - สลับได้ที่เมนูดรอปดาวน์ข้าง "แอนิเมชันในตัว" ใน ตั้งค่าหลัก → ฟังก์ชันหลัก
+
+### ⚠️ สำคัญ
+
+- **ธีมในตัวได้รับการอัปเดต!** กรุณาไปที่:
+  > ตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
+
+- ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
+- ⚠️ หากคุณแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
+            `,
     },
   },
 };
@@ -627,6 +634,10 @@ function validateAndFixIconFonts() {
             font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
         }
 
+        .typing_indicator .svg_dots {
+            vertical-align: middle;
+            margin-left: 2px;
+        }
         .ti-more-menu {
             position: relative;
             display: inline-flex;
@@ -923,6 +934,21 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+function getAnimationHTML(style) {
+  switch (style) {
+    case "bounce":
+      return `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.db1{animation:db 1.4s ease-in-out infinite}.db2{animation:db 1.4s ease-in-out .2s infinite}.db3{animation:db 1.4s ease-in-out .4s infinite}@keyframes db{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}</style><g transform="translate(5,10)"><circle class="db1" r="3"/></g><g transform="translate(15,10)"><circle class="db2" r="3"/></g><g transform="translate(25,10)"><circle class="db3" r="3"/></g></svg></span>`;
+    case "pulse":
+      return `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dp1{animation:dp 1.5s ease-in-out infinite}.dp2{animation:dp 1.5s ease-in-out .2s infinite}.dp3{animation:dp 1.5s ease-in-out .4s infinite}@keyframes dp{0%,100%{opacity:.3;transform:scale(.6)}50%{opacity:1;transform:scale(1.15)}}</style><g transform="translate(5,8)"><circle class="dp1" r="3"/></g><g transform="translate(15,8)"><circle class="dp2" r="3"/></g><g transform="translate(25,8)"><circle class="dp3" r="3"/></g></svg></span>`;
+    case "appear":
+      return `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.da1{animation:dotAppear 2.4s ease-in-out infinite}.da2{animation:dotAppear 2.4s ease-in-out .3s infinite}.da3{animation:dotAppear 2.4s ease-in-out .6s infinite}@keyframes dotAppear{0%,15%{opacity:0;transform:scale(0)}25%{opacity:1;transform:scale(1.15)}35%,65%{opacity:1;transform:scale(1)}75%,100%{opacity:0;transform:scale(0)}}</style><g transform="translate(5,8)"><circle class="da1" r="3"/></g><g transform="translate(15,8)"><circle class="da2" r="3"/></g><g transform="translate(25,8)"><circle class="da3" r="3"/></g></svg></span>`;
+    case "fade":
+    default:
+      return `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
+  }
+}
+
 const MusicUtils = {
   CHAR_MAP: {
     愛: "爱",
@@ -1547,6 +1573,7 @@ function getSettings() {
     persistentMode: false,
     streaming: false,
     showAnimation: true,
+    animationStyle: "fade",
     autoFollowTheme: false,
     devMode: false,
     debugLogs: false,
@@ -3578,7 +3605,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
 
       debugLog("Text after all replaces:", baseText);
 
-      const svgAnimation = `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
+      const svgAnimation = getAnimationHTML(settings.animationStyle);
       const htmlContent = `${baseText}${
         settings.showAnimation ? svgAnimation : ""
       }`;
@@ -4671,7 +4698,7 @@ function refreshIndicatorContent(indicator) {
         `<img class="typing-indicator-avatar" src="${avatarUrls.user}">`,
       );
 
-    const svgAnimation = `<span class="svg_dots"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="16" viewBox="0 0 30 16" fill="currentColor"><style>.dot-fade-1{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) 0s infinite}.dot-fade-2{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .2s infinite}.dot-fade-3{animation:smoothFade 1.2s cubic-bezier(.25,.46,.45,.94) .4s infinite}@keyframes smoothFade{0%{opacity:.2}30%{opacity:1}60%{opacity:.4}100%{opacity:.2}}</style><circle class="dot-fade-1" cx="5" cy="8" r="3"/><circle class="dot-fade-2" cx="15" cy="8" r="3"/><circle class="dot-fade-3" cx="25" cy="8" r="3"/></svg></span>`;
+    const svgAnimation = getAnimationHTML(settings.animationStyle);
     const htmlContent = `${baseText}${
       settings.showAnimation ? svgAnimation : ""
     }`;
@@ -5105,9 +5132,17 @@ function addExtensionSettings() {
                                 <label class="checkbox_label"><input type="checkbox" id="ti_streaming" ${
                                   settings.streaming ? "checked" : ""
                                 }>${t`Show if streaming`}</label>
-                                <label class="checkbox_label"><input type="checkbox" id="ti_show_animation" ${
-                                  settings.showAnimation ? "checked" : ""
-                                }>${t`Show typing animation`}</label>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label class="checkbox_label" style="margin-bottom: 0;"><input type="checkbox" id="ti_show_animation" ${
+                                      settings.showAnimation ? "checked" : ""
+                                    }>${t`Built-in Animation`}</label>
+                                    <select id="ti_animation_style" class="text_pole" style="display: ${settings.showAnimation ? "inline-block" : "none"}; width: auto; min-width: 110px;">
+                                        <option value="fade" ${settings.animationStyle === "fade" ? "selected" : ""}>${t`Fading Dots`}</option>
+                                        <option value="bounce" ${settings.animationStyle === "bounce" ? "selected" : ""}>${t`Bouncing Dots`}</option>
+                                        <option value="pulse" ${settings.animationStyle === "pulse" ? "selected" : ""}>${t`Pulsing Dots`}</option>
+                                        <option value="appear" ${settings.animationStyle === "appear" ? "selected" : ""}>${t`Sequential Dots`}</option>
+                                    </select>
+                                </div>
                                 <label class="checkbox_label"><input type="checkbox" id="ti_persistent_mode" ${
                                   settings.persistentMode ? "checked" : ""
                                 }>${t`Persistent Mode`}</label>
@@ -5875,7 +5910,22 @@ function addExtensionSettings() {
       .querySelector("#ti_show_animation")
       .addEventListener("change", (e) => {
         settings.showAnimation = e.target.checked;
+        const styleSelect = section.querySelector("#ti_animation_style");
+        if (styleSelect) {
+          styleSelect.style.display = e.target.checked
+            ? "inline-block"
+            : "none";
+        }
         saveSettingsDebounced();
+        refreshLiveIndicators("animation_toggle");
+      });
+
+    section
+      .querySelector("#ti_animation_style")
+      .addEventListener("change", (e) => {
+        settings.animationStyle = e.target.value;
+        saveSettingsDebounced();
+        refreshLiveIndicators("animation_style_change");
       });
 
     section

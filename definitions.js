@@ -708,6 +708,26 @@ opacity: 0.85;
 filter: drop-shadow(2px 2px 3px rgba(0,0,0,0.1)) hue-rotate(-10deg);
 transform: rotate(-12deg);
 mix-blend-mode: multiply;
+}
+@media (max-width: 768px) {
+    .typing_indicator {
+        padding: 8px 16px;
+        font-size: 0.88em;
+        max-width: 95%;
+        white-space: nowrap;
+    }
+    .typing_indicator::before {
+        top: -22px;
+        right: -30px;
+        width: 65px;
+        height: 65px;
+    }
+    .typing_indicator::after {
+        bottom: -14px;
+        left: -5px;
+        width: 25px;
+        height: 25px;
+    }
 }`;
 
 const NIGHT_MARE_CSS = `
