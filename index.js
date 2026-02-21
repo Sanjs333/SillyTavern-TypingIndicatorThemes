@@ -5260,7 +5260,7 @@ function addExtensionSettings() {
     <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
     <div class="ti-readme-textarea-wrapper">
         <textarea id="ti_preset_readme" class="text_pole" rows="4"
-            placeholder="${t`Optional: Write a description for this preset in Markdown format...`}"></textarea>
+            placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
     </div>
 </details>
                         </div>
@@ -5327,7 +5327,7 @@ function addExtensionSettings() {
                                     <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
                                     <div class="ti-readme-textarea-wrapper">
                                         <textarea id="ti_theme_readme" class="text_pole" rows="4"
-                                            placeholder="${t`Optional: Write a description for this theme in Markdown format...`}"></textarea>
+                                            placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
                                     </div>
                                                                 </details>
                             </div>
@@ -5461,7 +5461,7 @@ function addExtensionSettings() {
                                     <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
                                     <div class="ti-readme-textarea-wrapper">
                                         <textarea id="ti_player_theme_readme" class="text_pole" rows="4"
-                                            placeholder="${t`Optional: Write a description for this player theme in Markdown format...`}"></textarea>
+                                            placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
                                     </div>
                                                                 </details>
                             </div>
@@ -5594,9 +5594,9 @@ function addExtensionSettings() {
                 <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
                 <div class="ti-readme-textarea-wrapper">
                     <textarea id="ti_bubble_readme" class="text_pole" rows="4"
-                        placeholder="${t`Optional: Write a description for this bubble style in Markdown format...`}"></textarea>
+                        placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
                 </div>
-                        </details>
+            </details>
         </div>
 </details>
 
@@ -5726,6 +5726,16 @@ function addExtensionSettings() {
       });
     }
   };
+
+  function openEditorAfterCreate(editorDetailsId, focusTargetId) {
+    setTimeout(() => {
+      const details = section.querySelector(editorDetailsId);
+      if (details) {
+        details.setAttribute("open", "");
+        setTimeout(() => section.querySelector(focusTargetId)?.focus(), 50);
+      }
+    }, 60);
+  }
 
   function savedToast(name, hasReadme) {
     const msg = hasReadme
@@ -6170,14 +6180,14 @@ function addExtensionSettings() {
           const newStyle = {
             id: "bubble_" + Date.now(),
             name: name,
-            html: `<div class="music-bubble music-bubble-from-regex" data-title="{{title}}" data-artist="{{artist}}">🎵 {{title}} - {{artist}}</div>`,
-            css: `.music-bubble { display: inline-flex; padding: 5px 10px; background: #333; color: #fff; border-radius: 10px; cursor: pointer; }`,
+            html: "",
+            css: "",
           };
           settings.bubbleStyles.push(newStyle);
           settings.selectedBubbleStyleId = newStyle.id;
           saveSettingsDebounced();
           populateBubbleStyles();
-          bubbleReadme.openForEdit();
+          openEditorAfterCreate("#ti_bubble_editor_details", "#ti_bubble_html");
         });
       }
 
@@ -8060,13 +8070,13 @@ function addExtensionSettings() {
         const p = {
           id: Date.now().toString(),
           name: n,
-          text: t`...Replying...`,
+          text: "",
         };
         settings.textPresets.push(p);
         settings.selectedTextPresetId = p.id;
         populatePresets();
         saveSettingsDebounced();
-        presetReadme.openForEdit();
+        openEditorAfterCreate("#ti_preset_editor_details", "#ti_preset_text");
       }
     });
 
@@ -8368,7 +8378,10 @@ function addExtensionSettings() {
       populateThemes();
       applyTheme(newTheme.id);
       saveSettingsDebounced();
-      setTimeout(() => themeReadme.openForEdit(), 60);
+      openEditorAfterCreate(
+        "#ti_theme_editor_details",
+        isNewThemeIframe ? "#ti_theme_html" : "#ti_theme_css",
+      );
     });
 
     section.querySelector("#ti_theme_rename").addEventListener("click", () => {
@@ -8765,7 +8778,7 @@ function addExtensionSettings() {
                 ? n
                 : `${t`Player`}-${n}`,
             useIframe: true,
-            html: `<div>${t`Player Theme`}</div>`,
+            html: "",
             iframeCSS: "",
             iframeJS: "",
           };
@@ -8774,7 +8787,10 @@ function addExtensionSettings() {
           populatePlayerThemes();
           populateThemes();
           saveSettingsDebounced();
-          playerThemeReadme.openForEdit();
+          openEditorAfterCreate(
+            "#ti_player_editor_details",
+            "#ti_player_theme_html",
+          );
         }
       });
 
