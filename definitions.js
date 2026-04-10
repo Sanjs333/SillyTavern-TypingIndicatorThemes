@@ -30,12 +30,6 @@ const presets = [
     isBuiltIn: true,
   },
   {
-    id: "pixel_mint_green",
-    name: "像素薄荷绿",
-    text: `<div class="radio-theme-wrapper">\n  <div class="player-container">\n    <img class="background-pixel-art" src="https://i.imgur.com/WOlrha3.png" alt="Radio Background">\n    <div class="top-panel">\n      <div class="title">{{char}}'s Radio</div>\n    </div>\n    <div class="main-content">\n      <div class="now-playing-line">\n        <span class="music-note">♪</span> Now Playing <span class="music-note">♪</span>\n      </div>\n      <div class="song-title">《Love you》</div>\n      <div class="progress-bar-container">\n        <div class="progress-track">\n          <div class="progress-thumb">\n            <svg width="100%" height="100%" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" style="image-rendering: pixelated; shape-rendering: crispEdges;"><path d="M4 1C2.34315 1 1 2.34315 1 4C1 5.48422 1.83883 7.21854 3.23607 8.61577C4.6333 10.013 6.43585 11.2332 8 12.3588C9.56415 11.2332 11.3667 10.013 12.7639 8.61577C14.1612 7.21854 15 5.48422 15 4C15 2.34315 13.6569 1 12 1C10.3431 1 9 2.34315 9 4H7C7 2.34315 5.65685 1 4 1Z" fill="#FF7BAC" stroke="#FFFFFF" stroke-width="2"/></svg>\n          </div>\n        </div>\n        <div class="timestamp">5:20</div>\n      </div>\n    </div>\n    <div class="bottom-panel">\n      <div class="controls-container">\n        <div class="control-btn small-btn"><span>⇆</span></div>\n        <div class="control-btn"><span>ᐊ</span></div>\n        <div class="control-btn play-pause-btn"><span>❚❚</span></div>\n        <div class="control-btn"><span>ᐅ</span></div>\n        <div class="control-btn small-btn"><span>↻</span></div>\n      </div>\n    </div>\n  </div>\n</div>`,
-    isBuiltIn: true,
-  },
-  {
     id: "heartbeat_loading",
     name: "心跳加载中",
     text: `<div class="pixel-heart-indicator">\n    <img class="bg-image" src="https://i.imgur.com/VsLl9fw.png" alt="Typing Indicator Background">\n    <div class="content-wrapper">\n        <svg class="loading-heart-svg" viewBox="0 0 100 90">\n            <path class="heart-path-bg" d="M50 90 L0 50 L0 35 L30 15 L50 30 L70 15 L100 35 L100 50 Z"/>\n            <path class="heart-path-fg" d="M50 90 L0 50 L0 35 L30 15 L50 30 L70 15 L100 35 L100 50 Z"/>\n        </svg>\n        <div class="text-container">\n            <div class="line line1"><span class="typing-text char-name-line">{{char}}</span></div>\n            <div class="line line2"><span class="typing-text">的心跳</span></div>\n            <div class="line line3"><span class="typing-text">加载中</span></div>\n            <div class="line line4"></div>\n        </div>\n        <div class="floating-particles">\n            <span></span><span></span><span></span>\n        </div>\n    </div>\n</div>`,
@@ -494,84 +488,6 @@ const RETRO_PGEAR_CSS = `
 @keyframes text-blink { 50% { opacity: 0; } }
 @keyframes screen-flicker { 0% { opacity: 1; } 50% { opacity: 0.98; } 100% { opacity: 1; } }
 @media (max-width: 480px) { .typing_indicator { width: 100%; max-width: 280px; padding: 8px; transform: scale(0.9); transform-origin: center; } }`;
-
-const PIXEL_MINT_GREEN_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-:root {
-  --panel-bg-color: #BAEBED;
-  --panel-border-color: #89c5c7;
-  --color-title: #3a8b8e;
-  --color-now-playing: #5f9ea0;
-  --color-song-title: #3a8b8e;
-  --color-time: #5f9ea0;
-  --top-panel-top: 0%;
-  --top-panel-left: 25%;
-  --top-panel-width: 44%;
-  --now-playing-top: 30%;
-  --now-playing-left: 35%;
-  --now-playing-width: 26%;
-  --song-title-top: 46%;
-  --song-title-left: 22%;
-  --song-title-width: 52%;
-  --progress-bar-top: 62%;
-  --progress-bar-left: 24%;
-  --progress-bar-width: 52%;
-  --bottom-panel-top: 79%;
-  --bottom-panel-left: 20%;
-  --bottom-panel-width: 55%;
-  --font-size-title: 13px;
-  --font-size-now-playing: 10px;
-  --font-size-song: 16px;
-  --font-size-time: 11px;
-}
-.typing_indicator { padding: 0 !important; background: none !important; border: none !important; box-shadow: none !important; width: 100%; max-width: 480px; margin: 8px auto !important; }
-.typing_indicator .typing_indicator_text { display: block !important; width: 100%; }
-.typing_indicator .svg_dots { display: none !important; }
-.radio-theme-wrapper { position: relative; width: 100%; aspect-ratio: 940 / 280; margin: 0 auto; }
-.player-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-.background-pixel-art { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; z-index: 1; }
-.top-panel, .bottom-panel { position: absolute; padding: 5px; background-color: var(--panel-bg-color); border: 1px solid var(--panel-border-color); border-radius: 4px; box-shadow: 2px 2px 0px 0px #d4a5b8; display: flex; justify-content: center; align-items: center; background-image: repeating-linear-gradient(45deg,rgba(255,255,255,0.08),rgba(255,255,255,0.08) 1px,transparent 1px,transparent 5px),repeating-radial-gradient(circle at center,rgba(255,255,255,0.1) 0,rgba(255,255,255,0.1) 1px,transparent 1px,transparent 4px); background-size: 7px 7px, 4px 4px; animation: scrolling-dither 10s linear infinite; }
-.top-panel { top: var(--top-panel-top); left: var(--top-panel-left); width: var(--top-panel-width); z-index: 2; }
-.top-panel .title { font-family: 'Pixelify Sans', monospace; font-size: var(--font-size-title); color: var(--color-title); font-weight: bold; text-shadow: 1px 1px 0 rgba(255,255,255,0.5); position: relative; animation: title-glow 2s ease-in-out infinite alternate; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.top-panel .title::before { content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff85b2, #87ceeb, #ff85b2); border-radius: 3px; z-index: -1; opacity: 0; animation: title-border-glow 3s linear infinite; }
-.now-playing-line { position: absolute; top: var(--now-playing-top); left: var(--now-playing-left); width: var(--now-playing-width); box-sizing: border-box; text-align: center; font-family: 'Pixelify Sans', monospace; font-size: var(--font-size-now-playing); color: var(--color-now-playing); background-color: rgba(0,0,0,0.05); padding: 2px 8px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); box-shadow: inset 0 0 2px rgba(0,0,0,0.1); z-index: 2; }
-.song-title { position: absolute; top: var(--song-title-top); left: var(--song-title-left); width: var(--song-title-width); box-sizing: border-box; text-align: center; font-family: 'Pixelify Sans', monospace; font-size: var(--font-size-song); font-weight: 500; color: var(--color-song-title); text-shadow: 1px 1px 0 rgba(255,255,255,0.4); background: linear-gradient(45deg, #ff85b2, #87ceeb, #ff85b2, #87ceeb); background-size: 200% 100%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: rainbow-flow 3s linear infinite, gentle-vibration 1.5s infinite ease-in-out; z-index: 2; }
-.song-title::before, .song-title::after { content: '✨'; position: absolute; top: -5px; font-size: 10px; animation: star-twinkle 1.5s infinite ease-in-out alternate; }
-.song-title::before { left: -15px; animation-delay: 0s; }
-.song-title::after { right: -15px; animation-delay: 0.5s; }
-.progress-bar-container { position: absolute; top: var(--progress-bar-top); left: var(--progress-bar-left); width: var(--progress-bar-width); box-sizing: border-box; display: flex; align-items: center; gap: 8px; z-index: 2; }
-.progress-track { flex-grow: 1; height: 10px; background-color: #d3b8c3; border-radius: 2px; position: relative; overflow: visible; box-shadow: inset 0 1px 2px rgba(0,0,0,0.2); background-image: repeating-linear-gradient(90deg, #ffc1da, #ffc1da 8px, transparent 8px, transparent 10px); animation: shimmering-progress 2s linear infinite; }
-.progress-thumb { position: absolute; top: 50%; width: 18px; height: 18px; z-index: 2; animation: heart-pulse 1.5s infinite, sliding-heart 10s linear infinite; }
-.timestamp { font-family: 'Pixelify Sans', monospace; font-size: var(--font-size-time); color: var(--color-time); font-weight: 500; text-shadow: 1px 1px 0 rgba(255,255,255,0.4); }
-.bottom-panel { top: var(--bottom-panel-top); left: var(--bottom-panel-left); width: var(--bottom-panel-width); z-index: 10; }
-.controls-container { width: 100%; display: flex; justify-content: space-around; align-items: center; }
-.control-btn { width: 22px; height: 22px; background-color: #f0f8ff; border-radius: 2px; display: flex; justify-content: center; align-items: center; cursor: default; box-shadow: 2px 2px 0 #b0c4de, inset 1px 1px 0 #fff, inset -1px -1px 0 #d0d0d0; position: relative; transition: all 0.1s ease-in-out; background-image: radial-gradient(circle at 25% 25%,rgba(255,255,255,0.3) 1px,transparent 1px),radial-gradient(circle at 75% 75%,rgba(255,255,255,0.2) 1px,transparent 1px); background-size: 4px 4px; }
-.control-btn:active { transform: translateY(2px) translateX(1px); box-shadow: 0 0 0 #b0c4de, inset 1px 1px 0 #fff, inset -1px -1px 0 #d0d0d0; }
-.control-btn span { font-family: 'Press Start 2P', monospace; color: #4682b4; font-size: 8px; position: relative; text-shadow: 1px 1px 0 rgba(255,255,255,0.8); }
-.play-pause-btn { width: 24px; height: 24px; background-color: #87ceeb; border-radius: 2px; box-shadow: 3px 3px 0 #4682b4, inset 1px 1px 0 rgba(255,255,255,0.6), inset -1px -1px 0 #6495ed; background-image: radial-gradient(circle at 30% 30%,rgba(255,255,255,0.4) 1px,transparent 1px),radial-gradient(circle at 70% 70%,rgba(255,255,255,0.3) 1px,transparent 1px); background-size: 6px 6px; }
-.play-pause-btn:active { transform: translateY(3px) translateX(1px); box-shadow: 0 0 0 #4682b4, inset 1px 1px 0 rgba(255,255,255,0.6), inset -1px -1px 0 #6495ed; }
-.play-pause-btn span { color: white; font-family: 'Press Start 2P', monospace; font-size: 10px; text-shadow: 1px 1px 0 rgba(0,0,0,0.3); }
-.music-note { display: inline-block; color: #ff85b2; }
-.small-btn span { font-size: 16px; }
-
-@media (max-width: 480px) {
-  :root {
-    --font-size-title: 11px;
-    --font-size-now-playing: 9px;
-    --top-panel-top: -1%;
-  }
-}
-@keyframes sliding-heart { from { left: 0%; transform: translateX(-50%) translateY(-50%); } to { left: 100%; transform: translateX(-50%) translateY(-50%); } }
-@keyframes heart-pulse { 0%, 100% { transform: translateY(-50%) scale(1); filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0)); } 50% { transform: translateY(-50%) scale(1.1); filter: drop-shadow(0 0 3px rgba(255, 123, 172, 0.8)); } }
-@keyframes scrolling-dither { to { background-position: 0 0, -4px -4px; } }
-@keyframes shimmering-progress { to { background-position: -20px 0; } }
-@keyframes gentle-vibration { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
-@keyframes title-glow { 0% { text-shadow: 1px 1px 0 rgba(255,255,255,0.5); } 100% { text-shadow: 1px 1px 0 rgba(255,255,255,0.8), 0 0 8px rgba(255,133,178,0.3); } }
-@keyframes title-border-glow { 0%, 100% { opacity: 0; } 50% { opacity: 0.3; } }
-@keyframes rainbow-flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-@keyframes star-twinkle { 0% { opacity: 0.3; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1.1); } }`;
 
 const HEARTBEAT_LOADING_CSS = `
 @import url('https://cdn.jsdelivr.net/gh/SolidZORO/zpix-pixel-font@master/dist/zpix.css');
@@ -1923,12 +1839,6 @@ const themes = [
     id: "retro_pgear_style",
     name: "复古P-GEAR-美化",
     css: RETRO_PGEAR_CSS,
-    isBuiltIn: true,
-  },
-  {
-    id: "pixel_mint_green_style",
-    name: "像素薄荷绿-美化",
-    css: PIXEL_MINT_GREEN_CSS,
     isBuiltIn: true,
   },
   {
