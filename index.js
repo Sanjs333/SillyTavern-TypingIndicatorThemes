@@ -98,7 +98,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.3";
+const PLUGIN_VERSION = "3.4.6";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,59 +150,124 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.3": {
-    date: "2026-2-21",
+  "3.4.6": {
+    date: "2026-5-8",
     title: {
-      zh: "内置动画样式选择",
-      en: "Built-in Animation Styles",
-      th: "รูปแบบแอนิเมชันในตัว",
+      zh: "更新播放器与自动隐藏",
+      en: "Smooth Player & Auto Hide",
+      th: "เครื่องเล่นลื่นไหลและซ่อนอัตโนมัติ",
     },
     content: {
       zh: `
 ### 新增
-- **内置动画样式选择**：新增 4 种动画风格可选
-  - 渐隐三点（默认）、弹跳三点、脉冲三点、逐显三点
-  - 在「主设置 → 核心功能 → 内置动画」旁的下拉框中切换
+- **播放器随时拖动**：不再需要锁定位置，按住空白区域就能拖动
+- **自动隐藏开关**：开启后点击聊天区域可切换播放器显示/隐藏，隐藏期间音乐不中断
+- **测试按钮**：指示器位置标题后新增测试按钮，即使当前主题不处于自由拖拽模式下也可快速测试指示器效果
+
+### 优化
+- 拖动手感大幅提升：使用 GPU 加速 + RAF 节流，跟手丝滑
 
 ### ⚠️ 重要提示
+1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
 
-- **内置主题已更新！** 请前往：
-  > 设置 → 工具 → **恢复内置项**
+2. **内置主题已更新！** 请前往：
+> 设置 → 工具 → **恢复内置项**
 
 - 您自己创建的主题 **不受影响**
 - ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
-            `,
+- **请提问前务必确认已仔细查看过使用指南**
+    `,
       en: `
 ### Added
-- **Built-in Animation Styles**: 4 animation styles to choose from
-  - Fading Dots (default), Bouncing Dots, Pulsing Dots, Sequential Dots
-  - Switch in the dropdown next to "Built-in Animation" under Main Settings → Core Functions
+- **Drag Anytime**: No need to lock position—press and hold any empty area of the player to drag it around
+- **Auto Hide Toggle**: When enabled, clicking the chat area toggles player visibility. Music keeps playing while hidden
+- **Test Button**: Added a test button after the indicator position title, allowing quick preview of indicator effects even when the theme is not in free-drag mode
+
+### Improved
+- Massively improved drag responsiveness: GPU acceleration + RAF throttling for buttery-smooth feel
 
 ### ⚠️ Important
+1. **Backend plugin updated!** Please restart SillyTavern, the backend plugin will update automatically.
 
-- **Built-in themes have been updated!** Please go to:
-  > Settings → Tools → **Restore Built-in Items**
+2. **Built-in themes updated!** Please go to:
+> Settings → Tools → **Restore Built-in Items**
 
-- Your custom-created themes are **not affected**
-- ⚠️ If you modified any built-in themes, please **export a backup** before restoring
-            `,
+- Themes you created yourself are **not affected**
+- ⚠️ If you modified any built-in themes, **export a backup** before restoring
+- **Please carefully read the usage guide before asking questions**
+    `,
       th: `
 ### เพิ่ม
-- **รูปแบบแอนิเมชันในตัว**: เพิ่ม 4 รูปแบบแอนิเมชันให้เลือก
-  - จุดจางหาย (ค่าเริ่มต้น), จุดเด้ง, จุดเต้นเป็นจังหวะ, จุดแสดงทีละจุด
-  - สลับได้ที่เมนูดรอปดาวน์ข้าง "แอนิเมชันในตัว" ใน ตั้งค่าหลัก → ฟังก์ชันหลัก
+- **ลากได้ทุกเมื่อ**: ไม่ต้องล็อคตำแหน่งอีกต่อไป กดค้างที่พื้นที่ว่างของเครื่องเล่นเพื่อลาก
+- **สวิตช์ซ่อนอัตโนมัติ**: เมื่อเปิดใช้ คลิกพื้นที่แชทเพื่อสลับการแสดงเครื่องเล่น เพลงยังเล่นต่อขณะซ่อน
+- **ปุ่มทดสอบ**: เพิ่มปุ่มทดสอบหลังตำแหน่งตัวบ่งชี้ ให้ทดสอบเอฟเฟกต์ตัวบ่งชี้ได้รวดเร็วแม้ธีมไม่อยู่ในโหมดลากอิสระ
+
+### ปรับปรุง
+- ปรับปรุงการตอบสนองการลากอย่างมาก: เร่งด้วย GPU + RAF throttling ลื่นไหลตามนิ้ว
 
 ### ⚠️ สำคัญ
+1. **ปลั๊กอิน backend อัปเดตแล้ว!** กรุณารีสตาร์ท SillyTavern ปลั๊กอิน backend จะอัปเดตอัตโนมัติ
 
-- **ธีมในตัวได้รับการอัปเดต!** กรุณาไปที่:
-  > ตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
+2. **ธีมในตัวอัปเดตแล้ว!** กรุณาไปที่:
+> ตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
 
 - ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
-- ⚠️ หากคุณแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
-            `,
+- ⚠️ หากคุณเคยแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
+- **กรุณาอ่านคู่มือการใช้งานอย่างละเอียดก่อนถามคำถาม**
+    `,
     },
   },
 };
+function checkAndAutoRestoreBuiltIns() {
+  const settings = extension_settings[MODULE];
+  if (!settings) return false;
+
+  const lastSeenVersion = settings.lastSeenVersion;
+  if (!lastSeenVersion) return false;
+  if (lastSeenVersion === PLUGIN_VERSION) return false;
+  console.log(
+    `[TypingIndicator] 检测到版本升级 ${lastSeenVersion} → ${PLUGIN_VERSION}，自动恢复内置项...`,
+  );
+
+  const userCreatedPresets = (settings.textPresets || []).filter(
+    (p) => !p.isBuiltIn,
+  );
+  const userCreatedThemes = (settings.themes || []).filter((t) => !t.isBuiltIn);
+  const userCreatedBubbles = (settings.bubbleStyles || []).filter(
+    (s) => !s.isBuiltIn,
+  );
+
+  _needsSync = true;
+  settings.textPresets = [
+    ...userCreatedPresets,
+    ...structuredClone(defaultPresets),
+  ];
+  settings.themes = [...userCreatedThemes, ...structuredClone(defaultThemes)];
+  settings.bubbleStyles = [
+    ...userCreatedBubbles,
+    ...structuredClone(defaultBubbleStyles),
+  ];
+
+  if (
+    !settings.textPresets.some((p) => p.id === settings.selectedTextPresetId)
+  ) {
+    settings.selectedTextPresetId = "cat_default";
+  }
+  if (!settings.themes.some((t) => t.id === settings.selectedThemeId)) {
+    settings.selectedThemeId = "default";
+  }
+  if (
+    !settings.bubbleStyles.some((s) => s.id === settings.selectedBubbleStyleId)
+  ) {
+    settings.selectedBubbleStyleId = "bubble_default";
+  }
+
+  saveSettingsDebounced();
+  iframeCache.clear();
+
+  console.log("[TypingIndicator] ✓ 内置项已自动更新");
+  return true;
+}
 
 function checkAndShowChangelog() {
   const settings = getSettings();
@@ -583,6 +648,107 @@ async function createUnifiedIframeOriginal(
       /\{\{user_avatar\}\}/g,
       `<img class="typing-indicator-avatar" src="${avatarUrls.user}">`,
     );
+  const isPlayerTheme =
+    theme.name &&
+    (theme.name.startsWith("播放器") || theme.name.startsWith("Player"));
+  const dragInjection = isPlayerTheme
+    ? `
+        (function setupDragForwarding() {
+            let dragState = null;
+            let blockClick = false;
+            let pendingDrag = null;
+            let dragRaf = null;
+
+            document.addEventListener("dragstart", function(e) { e.preventDefault(); return false; }, true);
+
+            const dragStyle = document.createElement("style");
+            dragStyle.textContent = "html, body, body * { -webkit-user-drag: none !important; user-drag: none !important; }";
+            document.head.appendChild(dragStyle);
+
+            function shouldSkipDrag(target) {
+                return !!target.closest(
+                    "button, input, select, textarea, a[href], " +
+                    "[role='button'], [role='slider'], [role='menuitem'], " +
+                    "[type='range'], [contenteditable='true'], " +
+                    "li, [data-no-drag]"
+                );
+            }
+
+            function flushDrag() {
+                dragRaf = null;
+                if (pendingDrag) {
+                    ThemeUtils.sendMessage("theme-drag-move", pendingDrag);
+                    pendingDrag = null;
+                }
+            }
+
+            document.addEventListener("pointerdown", function(e) {
+                if (e.button !== undefined && e.button !== 0) return;
+                if (shouldSkipDrag(e.target)) return;
+                dragState = {
+                    startScreenX: e.screenX,
+                    startScreenY: e.screenY,
+                    moved: false,
+                    pointerId: e.pointerId,
+                    target: e.target
+                };
+                try {
+                    if (e.target.setPointerCapture) {
+                        e.target.setPointerCapture(e.pointerId);
+                    }
+                } catch(err) {}
+            }, true);
+
+            document.addEventListener("pointermove", function(e) {
+                if (!dragState) return;
+                const dx = e.screenX - dragState.startScreenX;
+                const dy = e.screenY - dragState.startScreenY;
+                if (!dragState.moved && Math.hypot(dx, dy) > 5) {
+                    dragState.moved = true;
+                    ThemeUtils.sendMessage("theme-drag-start", {});
+                    document.body.style.userSelect = "none";
+                }
+                if (dragState.moved) {
+                    if (e.cancelable) e.preventDefault();
+                    pendingDrag = { dx: dx, dy: dy };
+                    if (!dragRaf) dragRaf = requestAnimationFrame(flushDrag);
+                }
+            }, true);
+
+            function endDrag() {
+                if (!dragState) return;
+                document.body.style.userSelect = "";
+                try {
+                    if (dragState.target && dragState.target.releasePointerCapture && dragState.pointerId !== undefined) {
+                        dragState.target.releasePointerCapture(dragState.pointerId);
+                    }
+                } catch(err) {}
+                if (dragState.moved) {
+                    if (dragRaf) { cancelAnimationFrame(dragRaf); dragRaf = null; }
+                    if (pendingDrag) {
+                        ThemeUtils.sendMessage("theme-drag-move", pendingDrag);
+                        pendingDrag = null;
+                    }
+                    ThemeUtils.sendMessage("theme-drag-end", {});
+                    blockClick = true;
+                    setTimeout(function() { blockClick = false; }, 100);
+                }
+                dragState = null;
+            }
+
+            document.addEventListener("pointerup", endDrag, true);
+            document.addEventListener("pointercancel", endDrag, true);
+
+            document.addEventListener("click", function(e) {
+                if (blockClick) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    blockClick = false;
+                }
+            }, true);
+        })();
+    `
+    : "";
 
   const finalJS = `
         (function() {
@@ -599,6 +765,7 @@ async function createUnifiedIframeOriginal(
             const ThemeUtils = { getCharacterName: () => window.themeData.charName, getUserName: () => window.themeData.userName, getCharAvatar: () => window.themeData.charAvatarUrl, getUserAvatar: () => window.themeData.userAvatarUrl, getPlaylist: () => window.themeData.playlist, sendMessage: (type, data, themeId) => { try { const idToSend = themeId || window.themeData.id; window.parent.postMessage({ source: 'typing-indicator-theme', type: type, data: data, themeId: idToSend, containerId: window.themeData.containerId, }, '*'); } catch (e) { console.warn('Cannot send message to parent:', e); } }, $: (selector) => document.querySelector(selector), $$: (selector) => document.querySelectorAll(selector), animate: (callback) => { function loop() { callback(); requestAnimationFrame(loop); } requestAnimationFrame(loop); }, random: (min = 0, max = 1) => Math.random() * (max - min) + min, randomInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min, hsl: (h, s, l) => 'hsl(' + h + ', ' + s + '%, ' + l + '%)', rgba: (r, g, b, a) => 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')' };
             window.ThemeUtils = ThemeUtils;
             window.MusicCache = window.parent.MusicCache;
+            ${dragInjection}
             try { ${theme.iframeJS || ""} } catch(e) { console.error('[Theme User JS Error]:', e.stack); }
             try { ThemeUtils.sendMessage('theme-loaded', { themeId: '${jsEscape(theme.id || "preview")}', themeName: '${jsEscape(theme.name || "Preview")}' }); } catch (error) { console.error('[Theme Framework Error]:', error.stack); }
         })();
@@ -1504,6 +1671,8 @@ let listeningStatsUpdateCallback = null;
 let lyricsOverlayElement = null;
 let listeningStatsUpdateTimer = null;
 let lastSentPlaylist = null;
+let playerAutoHideVisible = true;
+let playerAutoHideHandlers = null;
 
 function fuzzyMatchTrack(bubbleTitle, bubbleArtist, track) {
   if (!track || !bubbleTitle || !bubbleArtist) return false;
@@ -1594,6 +1763,7 @@ function getSettings() {
     playerPosition: { x: 50, y: 50, locked: false },
     selectedPlayerThemeId: null,
     playerHidden: false,
+    playerAutoHide: false,
     // BGM气泡样式设置
     bubbleStyles: [],
     selectedBubbleStyleId: "bubble_default",
@@ -1659,7 +1829,7 @@ function getSettings() {
     settings.themes.forEach((theme) => {
       if (theme.isBuiltIn && !theme.readme) {
         const authorMatch = theme.name.match(/\(by\s+(.+?)\)/i);
-        const author = authorMatch ? authorMatch[1].trim() : "SANJ";
+        const author = authorMatch ? authorMatch[1].trim() : "ssssan_";
         const displayName = theme.name.replace(/\s*\(by\s+.+?\)/i, "").trim();
 
         const isPlayer =
@@ -1683,7 +1853,7 @@ function getSettings() {
     settings.textPresets.forEach((preset) => {
       if (preset.isBuiltIn && !preset.readme) {
         const authorMatch = preset.name.match(/\(by\s+(.+?)\)/i);
-        const author = authorMatch ? authorMatch[1].trim() : "SANJ";
+        const author = authorMatch ? authorMatch[1].trim() : "ssssan_";
         const displayName = preset.name.replace(/\s*\(by\s+.+?\)/i, "").trim();
 
         preset.readme = [
@@ -1702,7 +1872,7 @@ function getSettings() {
     settings.bubbleStyles.forEach((style) => {
       if (style.isBuiltIn && !style.readme) {
         const authorMatch = style.name.match(/\(by\s+(.+?)\)/i);
-        const author = authorMatch ? authorMatch[1].trim() : "SANJ";
+        const author = authorMatch ? authorMatch[1].trim() : "ssssan_";
         const displayName = style.name.replace(/\s*\(by\s+.+?\)/i, "").trim();
 
         style.readme = [
@@ -3309,6 +3479,10 @@ function makeDraggable(element, positionType = "indicator") {
     ".ti-drag-handle, .lyrics-drag-handle",
   );
   if (oldHandle) oldHandle.remove();
+  if (positionType === "player") {
+    element.style.cursor = "default";
+    return;
+  }
 
   if (positionSettings.locked) {
     element.style.cursor = "default";
@@ -3895,6 +4069,10 @@ function showPlayer() {
     musicPlayer.style.display = "block";
     $(musicPlayer).animate({ opacity: 1 }, 300);
   }
+
+  if (settings.playerAutoHide && !settings.playerHidden) {
+    setTimeout(() => setupPlayerAutoHide(), 400);
+  }
 }
 
 // ==================== 悬浮歌词功能 ====================
@@ -4368,7 +4546,179 @@ function getCurrentCharStats() {
   };
 }
 
+function applyPlayerAutoHideState() {
+  const player = document.getElementById("music_player");
+  if (!player) return;
+  const settings = getSettings();
+  // 如果是后台模式，不干扰它的 display:none
+  if (settings.playerHidden) return;
+
+  if (playerAutoHideVisible) {
+    player.style.visibility = "";
+    player.style.pointerEvents = "";
+    $(player).stop(true).animate({ opacity: 1 }, 200);
+  } else {
+    $(player)
+      .stop(true)
+      .animate({ opacity: 0 }, 150, function () {
+        if (!playerAutoHideVisible) {
+          player.style.visibility = "hidden";
+          player.style.pointerEvents = "none";
+        }
+      });
+  }
+}
+
+function togglePlayerAutoHide() {
+  const player = document.getElementById("music_player");
+  if (!player) return;
+  playerAutoHideVisible = !playerAutoHideVisible;
+  applyPlayerAutoHideState();
+}
+
+function setupPlayerAutoHide() {
+  if (playerAutoHideHandlers) return;
+
+  const chatEl = document.getElementById("chat");
+  if (!chatEl) return;
+
+  // 开启时默认隐藏播放器
+  playerAutoHideVisible = false;
+  applyPlayerAutoHideState();
+
+  let touchStartY = 0;
+  let touchMoved = false;
+  let ahTouchHandled = false;
+  let lastToggleTime = 0;
+
+  // 这些元素点击时不触发 toggle（保护正常交互）
+  const skipTarget = (target) => {
+    const $target = $(target);
+    if (
+      $target.is(
+        "a, button, input, textarea, select, label, video, audio, iframe",
+      ) ||
+      $target.is(
+        "[onclick], [contenteditable], [role='button'], [tabindex]:not([tabindex='-1'])",
+      )
+    ) {
+      return true;
+    }
+    if (
+      $target.closest(
+        ".mes_buttons, .swipe_left, .swipe_right, .mes_edit_buttons, " +
+          "#music_player, #floating_lyrics, " +
+          ".music-bubble-from-regex, " +
+          ".qr--button, .qr--buttons",
+      ).length
+    ) {
+      return true;
+    }
+    if ($target.is("summary") || $target.closest("summary").length) {
+      return true;
+    }
+    if (
+      $target.is(".reasoning-toggle-btn") ||
+      $target.closest(".reasoning-toggle-btn").length
+    ) {
+      return true;
+    }
+    if (
+      $target.is(".inline-drawer-toggle, .inline-drawer-header") ||
+      $target.closest(".inline-drawer-toggle, .inline-drawer-header").length
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const touchStart = (e) => {
+    touchStartY = e.touches[0].clientY;
+    touchMoved = false;
+  };
+
+  const touchMove = () => {
+    touchMoved = true;
+  };
+
+  const touchEnd = (e) => {
+    if (touchMoved) return;
+    if (skipTarget(e.target)) return;
+    if (Date.now() - lastToggleTime < 350) return;
+    ahTouchHandled = true;
+    setTimeout(() => {
+      ahTouchHandled = false;
+    }, 350);
+    lastToggleTime = Date.now();
+    togglePlayerAutoHide();
+  };
+
+  const chatClick = (e) => {
+    if (Date.now() - lastToggleTime < 350) return;
+    if (ahTouchHandled) return;
+    if (skipTarget(e.target)) return;
+    lastToggleTime = Date.now();
+    togglePlayerAutoHide();
+  };
+
+  const docClick = (e) => {
+    if (Date.now() - lastToggleTime < 350) return;
+    const $target = $(e.target);
+    if (
+      $target.closest(
+        "#music_player, #floating_lyrics, #chat, #send_form, #form_sheld, " +
+          "dialog[open], .popup, #shadow_popup, " +
+          ".ih-folder-dropdown-portal, .ih-dialog-overlay, " +
+          ".input-helper-settings, #extensions_settings, #extensions_settings2, " +
+          ".ih-find-bar, .ih-floating-ball, .ih-floating-panel, " +
+          ".music-bubble-from-regex, .drawer-content",
+      ).length
+    ) {
+      return;
+    }
+    if (skipTarget(e.target)) return;
+    lastToggleTime = Date.now();
+    togglePlayerAutoHide();
+  };
+
+  chatEl.addEventListener("touchstart", touchStart, { passive: true });
+  chatEl.addEventListener("touchmove", touchMove, { passive: true });
+  chatEl.addEventListener("touchend", touchEnd, { passive: true });
+  chatEl.addEventListener("click", chatClick);
+  document.addEventListener("click", docClick, true);
+
+  playerAutoHideHandlers = {
+    chatEl,
+    touchStart,
+    touchMove,
+    touchEnd,
+    chatClick,
+    docClick,
+  };
+}
+
+function removePlayerAutoHide() {
+  if (!playerAutoHideHandlers) return;
+  const h = playerAutoHideHandlers;
+  if (h.chatEl) {
+    h.chatEl.removeEventListener("touchstart", h.touchStart);
+    h.chatEl.removeEventListener("touchmove", h.touchMove);
+    h.chatEl.removeEventListener("touchend", h.touchEnd);
+    h.chatEl.removeEventListener("click", h.chatClick);
+  }
+  document.removeEventListener("click", h.docClick, true);
+  playerAutoHideHandlers = null;
+  playerAutoHideVisible = true;
+  const player = document.getElementById("music_player");
+  if (player) {
+    player.style.visibility = "";
+    player.style.pointerEvents = "";
+    player.style.opacity = "";
+  }
+}
+
 function hidePlayer() {
+  removePlayerAutoHide();
   settleListeningTime("player_closed");
   listeningSession.isPlaying = false;
   stopStatsUpdateTimer();
@@ -5226,7 +5576,10 @@ function addExtensionSettings() {
                         </div>
 
                         <div class="ti-section">
-                            <h4>${t`Indicator Position`}</h4>
+                            <h4 style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                <span>${t`Indicator Position`}</span>
+                                <button id="ti_test_position" class="menu_button fa-solid fa-crosshairs" title="${t`Test Display`}" style="display: none; padding: 4px 10px; min-width: unset;"></button>
+                            </h4>
                             <div style="display: flex; align-items: center; gap: 10px;"><select id="ti_position" class="text_pole" style="flex-grow: 1;"></select></div>
                             <div id="ti_draggable_controls" style="display: ${
                               settings.position === "draggable"
@@ -5398,6 +5751,15 @@ function addExtensionSettings() {
         }>
         ${t`Background Mode`}
     </label>
+    <div style="display: flex; flex-direction: column; gap: 2px;">
+        <label class="checkbox_label" style="margin-bottom: 0;">
+            <input type="checkbox" id="ti_player_auto_hide" ${
+              settings.playerAutoHide ? "checked" : ""
+            }>
+            ${t`Auto Hide`}
+        </label>
+        <small style="margin-left: 24px; opacity: 0.7;">${t`Click chat area to toggle show/hide`}</small>
+    </div>
     <div style="display: flex; flex-direction: column; gap: 2px;">
         <label class="checkbox_label" style="margin-bottom: 0;">
             <input type="checkbox" id="ti_player_locked" ${
@@ -5945,7 +6307,12 @@ function addExtensionSettings() {
       .addEventListener("change", (e) => {
         settings.persistentMode = e.target.checked;
         saveSettingsDebounced();
-
+        const testPosBtn = section.querySelector("#ti_test_position");
+        if (testPosBtn) {
+          const show =
+            settings.position !== "draggable" && !settings.persistentMode;
+          testPosBtn.style.display = show ? "inline-flex" : "none";
+        }
         if (settings.persistentMode) {
           isIndicatorPersisted = true;
           showTypingIndicator("persistent-start");
@@ -6016,10 +6383,7 @@ function addExtensionSettings() {
 
   function initializeIndicatorSettings() {
     const settings = getSettings();
-
-    // 位置设置
     updatePositionOptions();
-
     const positionSelect = section.querySelector("#ti_position");
     const draggableControls = section.querySelector("#ti_draggable_controls");
 
@@ -6030,6 +6394,35 @@ function addExtensionSettings() {
       saveSettingsDebounced();
       syncIndicatorInteractivity();
     });
+    const testPositionBtn = section.querySelector("#ti_test_position");
+    const updateTestPositionBtnVisibility = () => {
+      if (!testPositionBtn) return;
+      const show =
+        settings.position !== "draggable" && !settings.persistentMode;
+      testPositionBtn.style.display = show ? "inline-flex" : "none";
+    };
+    updateTestPositionBtnVisibility();
+    positionSelect.addEventListener("change", updateTestPositionBtnVisibility);
+
+    if (testPositionBtn) {
+      testPositionBtn.addEventListener("click", () => {
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator) {
+          isIndicatorPersisted = false;
+          hideTypingIndicator();
+          testPositionBtn.classList.remove("fa-eye-slash");
+          testPositionBtn.classList.add("fa-crosshairs");
+          testPositionBtn.title = t`Test Display`;
+          isTestIndicatorActive = false;
+        } else {
+          showTypingIndicator("test");
+          testPositionBtn.classList.remove("fa-crosshairs");
+          testPositionBtn.classList.add("fa-eye-slash");
+          testPositionBtn.title = t`Hide Test`;
+          isTestIndicatorActive = true;
+        }
+      });
+    }
 
     section
       .querySelector("#ti_position_locked")
@@ -6424,6 +6817,22 @@ function addExtensionSettings() {
           } else {
             player.style.setProperty("display", "block", "important");
           }
+        }
+      });
+    }
+    const autoHideCheckbox = section.querySelector("#ti_player_auto_hide");
+    if (autoHideCheckbox) {
+      autoHideCheckbox.addEventListener("change", (e) => {
+        const settings = getSettings();
+        settings.playerAutoHide = e.target.checked;
+        saveSettingsDebounced();
+
+        if (e.target.checked) {
+          if (settings.playerEnabled && !settings.playerHidden) {
+            setupPlayerAutoHide();
+          }
+        } else {
+          removePlayerAutoHide();
         }
       });
     }
@@ -9284,6 +9693,75 @@ function initializeObservers() {
       postContextWhenReady(containerId);
     }
     if (event.data.source === "typing-indicator-theme") {
+      if (type === "theme-drag-start") {
+        const player = document.getElementById("music_player");
+        if (player) {
+          const rect = player.getBoundingClientRect();
+          player.dataset._origTransition = player.style.transition || "";
+          player.style.transition = "none";
+          player.style.left = rect.left + "px";
+          player.style.top = rect.top + "px";
+          player.style.transform = "none";
+          void player.offsetHeight;
+          player._dragOrigin = {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+          };
+          player._pendingDrag = null;
+          player._dragRaf = null;
+        }
+        return;
+      }
+      if (type === "theme-drag-move") {
+        const player = document.getElementById("music_player");
+        if (player && player._dragOrigin && data) {
+          player._pendingDrag = data;
+          if (!player._dragRaf) {
+            player._dragRaf = requestAnimationFrame(() => {
+              player._dragRaf = null;
+              if (!player._pendingDrag || !player._dragOrigin) return;
+              const dx = player._pendingDrag.dx || 0;
+              const dy = player._pendingDrag.dy || 0;
+              const o = player._dragOrigin;
+              const maxX = window.innerWidth - o.width;
+              const maxY = window.innerHeight - o.height;
+              const finalLeft = Math.max(0, Math.min(maxX, o.left + dx));
+              const finalTop = Math.max(0, Math.min(maxY, o.top + dy));
+              const useDx = finalLeft - o.left;
+              const useDy = finalTop - o.top;
+              player.style.transform = `translate3d(${useDx}px, ${useDy}px, 0)`;
+            });
+          }
+        }
+        return;
+      }
+      if (type === "theme-drag-end") {
+        const player = document.getElementById("music_player");
+        if (player && player._dragOrigin) {
+          if (player._dragRaf) {
+            cancelAnimationFrame(player._dragRaf);
+            player._dragRaf = null;
+          }
+          const rect = player.getBoundingClientRect();
+          player.style.transform = "none";
+          player.style.left = rect.left + "px";
+          player.style.top = rect.top + "px";
+          const _settings = getSettings();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+          _settings.playerPosition.x = (centerX / window.innerWidth) * 100;
+          _settings.playerPosition.y = (centerY / window.innerHeight) * 100;
+          saveSettingsDebounced();
+          player._dragOrigin = null;
+          player._pendingDrag = null;
+          player.style.transition = player.dataset._origTransition || "";
+          delete player.dataset._origTransition;
+        }
+        return;
+      }
+
       if (type === "player-initialized") {
         isPlayerInitialized = true;
         debugLog("[TypingIndicator] ✓ 播放器已就绪");
@@ -10016,6 +10494,7 @@ function initializeObservers() {
     isInitialized = true;
     manualOverrideActive = false;
     setTimeout(async () => {
+      checkAndAutoRestoreBuiltIns();
       const renderSettings = addExtensionSettings();
       renderSettings(false);
       validateAndFixIconFonts();
@@ -10103,6 +10582,7 @@ function initializeObservers() {
   setTimeout(() => {
     if (isInitialized) return;
     isInitialized = true;
+    checkAndAutoRestoreBuiltIns();
     if (!document.getElementById("typing_indicator_settings")) {
       const renderFn = addExtensionSettings();
       renderFn(false);

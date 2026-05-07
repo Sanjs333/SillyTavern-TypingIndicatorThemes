@@ -240,5 +240,7 @@
   "Optional: description, author credits, notes, etc. Supports Markdown": "可選：說明、作者署名、備註等，支援 Markdown",
   "Interaction": "互動",
   "Click-Through Mode": "穿透模式",
-  "When enabled, clicks pass through to the chat. The theme itself cannot be interacted with. Recommended for decorative themes.": "開啟後點擊會穿透到聊天介面，主題本身不可互動。推薦純裝飾主題使用。"
+  "When enabled, clicks pass through to the chat. The theme itself cannot be interacted with. Recommended for decorative themes.": "開啟後點擊會穿透到聊天介面，主題本身不可互動。推薦純裝飾主題使用。",
+  "Auto Hide": "自動隱藏",
+  "Click chat area to toggle show/hide": "點擊聊天區域切換顯示/隱藏"
 }

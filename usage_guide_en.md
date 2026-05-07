@@ -112,7 +112,8 @@ You should see this message in the console on startup:
 
 ## Important: Lock Position
 
-Both indicator themes and the player require **locking position first** to enable interaction with internal elements (such as clicking buttons).
+Only the **indicator theme** requires **locking position first** to enable interaction with its internal elements (e.g., clicking buttons).
+*(Player dragging is always enabled and does not depend on this setting.)*
 
 ---
 
@@ -180,6 +181,17 @@ lyricsUrl: https://…….lrc
 - Separate multiple songs with `=====` (at least 3 equal signs)
 - Cover URL and Lyrics URL are optional
 
+### Auto-Hide
+
+When "Auto-Hide" is turned on, the player becomes invisible by default:
+
+- **Click an empty area in the chat** → toggle player visibility.
+- Clicking buttons, messages, or BGM bubbles won’t accidentally trigger it.
+- Music keeps playing while hidden, with no loss of progress.
+- Useful when you don’t want the player to block your view.
+
+> Do not enable "Auto-Hide" and "Background Mode" at the same time – they conflict logically.
+>
 ### Auto-Adding BGM (AI Output)
 
 After importing the indicator World Book and enabling it globally, BGM tags in AI responses will be automatically rendered as clickable bubbles and added to the playlist.
