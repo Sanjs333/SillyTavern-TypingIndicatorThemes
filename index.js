@@ -6537,6 +6537,13 @@ function addExtensionSettings() {
             playerIframe.contentWindow.postMessage(
               {
                 source: "typing-indicator-host",
+                type: "cache-cleared",
+              },
+              "*",
+            );
+            playerIframe.contentWindow.postMessage(
+              {
+                source: "typing-indicator-host",
                 type: "context-update",
                 data: {
                   ...getCurrentCharContext(),
@@ -9773,6 +9780,23 @@ function initializeObservers() {
     appendNewSongs(messageId).catch((err) =>
       console.error("[TypingIndicator] 追加新歌曲失败:", err),
     );
+    const settings = getSettings();
+    if (settings.enableBubbleReplacement) {
+      setTimeout(() => {
+        requestAnimationFrame(() => {
+          const messageElement = document.querySelector(
+            `#chat .mes[mesid="${messageId}"]`,
+          );
+          if (messageElement) {
+            const mesText = messageElement.querySelector(".mes_text");
+            if (mesText && mesText.textContent.includes("[bgm]")) {
+              bubbleRenderCache.delete(String(messageId));
+              renderBgmBubbles(messageElement);
+            }
+          }
+        });
+      }, 200);
+    }
   });
 
   eventSource.on(event_types.MESSAGE_EDITED, (messageId) => {

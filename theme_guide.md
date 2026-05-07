@@ -1956,6 +1956,47 @@ dom.audio.src = proxyUrl;
 }
 ```
 
+**【换源责任分工】**
+
+后端只负责**单源内**的 API 降级（如 tencent 源内的 vkeys 多档音质 → bugpk → gdstudio）。**跨源换源**（tencent → netease → kuwo）由前端自行处理：
+
+- 收到 `_needFallback: true` 时，前端应**主动切换音源**重新调用 `/search` 和 `/song`
+- 推荐的换源顺序：保留用户最初指定的源放最后试，其他源优先
+
+```javascript
+// 前端换源示例
+async function searchWithFallback(title, artist, excludeSource) {
+    const sources = [<q>"tencent"</q>, <q>"netease"</q>, <q>"kuwo"</q>];
+    const orderedSources = excludeSource
+        ? [...sources.filter(s => s !== excludeSource), excludeSource]
+        : sources;
+
+    for (const source of orderedSources) {
+        const result = await fetchSongFromSource(title, artist, source);
+        if (result?.audioUrl) return result;
+    }
+    return null;
+}
+```
+
+**【腾讯源 VIP 解锁说明】**
+
+vkeys 接口对腾讯 VIP 歌曲的解锁能力依赖于**正确的 mid（字符串）**而非 songid（数字）：
+
+- ✅ `mid=003VHaBb0wCHop` → 通常能拿到 flac 无损完整版
+- ❌ `id=9109354` → 大概率只返回 30 秒 mp4 试听片段
+
+后端会自动判断传入的 ID 是数字还是字符串，并选择正确的参数名调用 vkeys。前端调用时**直接传 mid 字符串**即可，无需特殊处理。
+
+**【vkeys 双成功码兼容】**
+
+vkeys 服务器是负载均衡的，会随机分配到两个后端节点：
+
+- 官方节点返回 `code: 200`
+- 落月节点返回 `code: 0`
+
+后端已做兼容处理，主题创作者无需关心此细节。
+
 **歌词 Fallback 机制**
 
 当 `id` + `source` 无法获取到歌词时，后端会尝试用 `title` 和 `artist` 参数去 Open Music (kuwo) 搜索歌词作为 fallback。因此建议在调用歌词接口时**始终传入歌名和歌手**：
@@ -1987,6 +2028,48 @@ const lyricData = await fetch(
 | -------- | -------------------------------- |
 | `/song`  | 音频 URL + 原文歌词 (`lrc`)      |
 | `/lyric` | 原文歌词 + **翻译** (`tlyric`) ✓ |
+
+#### 【铁律】调用 `/lyric` 接口必须传入 `title` 和 `artist` 参数
+
+- **问题根源**: 腾讯源的 VIP 解锁依赖于 **mid 字符串**（如 `003VHaBb0wCHop`），但 vkeys 和 gdstudio 的 lyric 接口只认**数字 id**。后端会自动用 `title` + `artist` 去反查数字 id，再去请求歌词。如果前端只传 mid 字符串不传歌名歌手，后端反查不出来，翻译歌词 (`tlyric`) 就会丢失。
+
+- **【错误示范】** ❌
+
+  ```javascript
+  // 只传 id 和 source，翻译会丢失
+  const response = await fetch(
+    `/api/plugins/g-player-proxy/lyric?id=${track.id}&source=tencent`
+  );
+  ```
+
+- **【正确示范】** ✅
+
+  ```javascript
+  const lyricTitle = track.originalTitle || track.name || "";
+  const lyricArtist = track.originalArtist ||
+    (Array.isArray(track.artist) ? track.artist[0] : track.artist) || "";
+
+  let lyricUrl = `/api/plugins/g-player-proxy/lyric?id=${track.id}&source=tencent`;
+  if (lyricTitle) lyricUrl += `&title=${encodeURIComponent(lyricTitle)}`;
+  if (lyricArtist) lyricUrl += `&artist=${encodeURIComponent(lyricArtist)}`;
+
+  const response = await fetch(lyricUrl);
+  ```
+
+- **【适用范围】**: 这条铁律适用于**所有音源**的 `/lyric` 调用（tencent / netease / kuwo），因为后端对所有源都有 fallback 反查机制。即使当前源拿不到歌词，只要传了 `title` + `artist`，后端会尝试去其他源搜歌词作为兜底。
+
+- **【推荐封装】**: 建议在播放器里封装一个统一的 `buildLyricUrl` 函数，避免重复写代码：
+
+  ```javascript
+  function buildLyricUrl(id, source, title, artist) {
+    const sourceMap = { Netease: "netease", Tencent: "tencent", Kuwo: "kuwo" };
+    const apiSource = sourceMap[source] || source.toLowerCase();
+    let url = `/api/plugins/g-player-proxy/lyric?id=${id}&source=${apiSource}`;
+    if (title) url += `&title=${encodeURIComponent(title)}`;
+    if (artist) url += `&artist=${encodeURIComponent(artist)}`;
+    return url;
+  }
+  ```
 
 - **【最佳实践代码模式】**:
   在你的主题代码中，获取完整信息时，必须遵循以下“双请求”模式：
