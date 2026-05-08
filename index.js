@@ -1676,6 +1676,7 @@ let dynamicThemeTimeoutId = null;
 let dynamicPrevLock = null;
 let isRendering = false;
 let isTestIndicatorActive = false;
+let messageSentCheckTimer = null;
 let currentActiveTab = "main";
 const themeShutdownTimeouts = {};
 const statefulThemes = new Set();
@@ -10278,6 +10279,29 @@ function initializeObservers() {
       }
       hideTypingIndicator();
     }
+  });
+  let messageSentCheckTimer = null;
+  eventSource.on(event_types.MESSAGE_SENT, (messageId) => {
+    clearTimeout(messageSentCheckTimer);
+    messageSentCheckTimer = setTimeout(() => {
+      const stopButton = document.getElementById("mes_stop");
+      const isGenerating =
+        stopButton && window.getComputedStyle(stopButton).display !== "none";
+
+      if (isGenerating) return;
+
+      const settings = getSettings();
+      if (settings.persistentMode) return;
+      if (dynamicThemeTimeoutId) return;
+      if (currentDynamicThemeId) return;
+      if (isTestIndicatorActive) return;
+      if (isIndicatorPersisted) return;
+
+      const indicator = document.getElementById("typing_indicator");
+      if (indicator) {
+        hideTypingIndicator();
+      }
+    }, 1500);
   });
 
   eventSource.on(event_types.MESSAGE_RECEIVED, (messageId) => {
