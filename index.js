@@ -5787,15 +5787,12 @@ function addExtensionSettings() {
         </label>
         <small style="margin-left: 24px; opacity: 0.7;">${t`Click chat area to toggle show/hide`}</small>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 2px;">
-        <label class="checkbox_label" style="margin-bottom: 0;">
-            <input type="checkbox" id="ti_player_locked" ${
-              settings.playerPosition.locked ? "checked" : ""
-            }>
-            ${t`Lock Position`}
-        </label>
-        <small style="margin-left: 24px; opacity: 0.7;">${t`Lock to enable player interaction.`}</small>
-    </div>
+    <label class="checkbox_label" style="margin-bottom: 0;">
+        <input type="checkbox" id="ti_player_locked" ${
+          settings.playerPosition.locked ? "checked" : ""
+        }>
+        ${t`Lock Position`}
+    </label>
 </div>
         <div style="display: flex; gap: 5px;">
             <button id="ti_player_reset" class="menu_button fa-solid fa-undo" title="${t`Reset Position`}"></button>
@@ -9723,6 +9720,9 @@ function initializeObservers() {
       if (type === "theme-drag-start") {
         const player = document.getElementById("music_player");
         if (player) {
+          if (getSettings().playerPosition.locked) {
+            return;
+          }
           const rect = player.getBoundingClientRect();
           player.dataset._origTransition = player.style.transition || "";
           player.style.transition = "none";
