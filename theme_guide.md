@@ -842,6 +842,14 @@ window.addEventListener("message", (event) => {
 
 **默认会跳过拖动判定的元素**（不需要你做任何事）：
 `button`、`input`、`select`、`textarea`、`a[href]`、`li`、`[role='button']`、`[role='slider']`、`[type='range']`、`[contenteditable='true']`、以及带 `data-no-drag` 属性的元素。
+**【自动识别】可滚动容器**：
+
+框架会自动检测**带有 `overflow-y: auto/scroll` 且内容超出的祖先元素**，并将其内部的触摸/拖拽视为滚动而非拖动播放器。这意味着：
+
+- ✅ 搜索结果列表、播放列表、歌词容器等可滚动区域**无需任何额外代码**，触摸滑动会正常滚动
+- ✅ 你只管按正常 CSS 写 `overflow-y: auto` 即可，框架会自动处理拖动冲突
+
+如果你的滚动容器仍然意外触发了拖动（极少数情况），可以手动给它加上 `data-no-drag` 属性强制跳过。
 
 ### 1. 命名规范
 

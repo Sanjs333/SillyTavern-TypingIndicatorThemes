@@ -99,7 +99,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.7";
+const PLUGIN_VERSION = "3.4.8";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -151,35 +151,29 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.7": {
-    date: "2026-5-9",
+  "3.4.8": {
+    date: "2026-5-10",
     title: {
-      zh: "删除功能优化",
-      en: "Deletion Optimization",
-      th: "การลบที่ปรับปรุงแล้ว",
+      zh: "兼容性修复",
+      en: "Compatibility Fixes",
+      th: "แก้ไขความเข้ากันได้",
     },
     content: {
       zh: `
-### 优化
-- **删除内置主题/预设/气泡**：现在删除内置项后刷新页面**不会自动复原**，你可以自由管理所有主题、预设和气泡样式
-- **重置方式**：如需恢复已删除的内置项，请前往 设置 → 工具 → **恢复内置项** 一键重置
-
-> 你自行创建的自定义项不受影响。
-    `,
+### 修复
+- **斜杠命令兼容**：修复了 \`/hide\`、\`/sys\`、\`/sendas\`、\`/comment\` 等不触发内容生成的斜杠命令，导致指示器持续显示无法消失的问题。
+- **播放器拖拽优化**：修复了播放器内的搜索结果列表、播放列表、歌词容器等可滚动区域被拖拽逻辑误判的问题。现在触摸滑动会正确触发滚动，而非错误地触发播放器拖拽。
+            `,
       en: `
-### Improved
-- **Deleting built‑in themes/presets/bubbles**: Deleted built‑in items will **no longer reappear** after refreshing the page, giving you full control over all themes, presets, and bubble styles
-- **Reset**: If you wish to restore deleted built‑ins, go to Settings → Tools → **Restore Built‑in Items** to bring them all back
-
-> Your own custom items are never affected.
-    `,
+### Fixed
+- **Slash command compatibility**: Fixed an issue where slash commands that don't trigger generation (such as \`/hide\`, \`/sys\`, \`/sendas\`, \`/comment\`) caused the indicator to remain visible indefinitely
+- **Player drag optimization**: Fixed scrollable areas inside the player (search results, playlist, lyrics container, etc.) being incorrectly captured by the drag logic. Touch swipes now correctly trigger scrolling instead of dragging the player
+            `,
       th: `
-### ปรับปรุง
-- **การลบธีม/พรีเซ็ต/ฟองอากาศในตัว**: รายการในตัวที่ถูกลบจะ**ไม่กลับมาเอง**หลังจากรีเฟรชหน้าอีกต่อไป คุณจัดการธีม พรีเซ็ต และรูปแบบฟองอากาศทั้งหมดได้อย่างอิสระ
-- **การรีเซ็ต**: หากต้องการกู้คืนรายการในตัวที่ลบไปแล้ว ให้ไปที่ ตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว** เพื่อเรียกคืนทั้งหมด
-
-> รายการที่คุณสร้างเองจะไม่ได้รับผลกระทบใด ๆ
-    `,
+### แก้ไข
+- **ความเข้ากันได้ของคำสั่ง slash**: แก้ไขปัญหาที่คำสั่ง slash ที่ไม่ทำให้เกิดการสร้าง (เช่น \`/hide\`, \`/sys\`, \`/sendas\`, \`/comment\`) ทำให้ตัวบ่งชี้ค้างอยู่และไม่หายไป
+- **ปรับปรุงการลากเครื่องเล่น**: แก้ไขปัญหาที่พื้นที่เลื่อนได้ภายในเครื่องเล่น (ผลการค้นหา, รายการเพลง, คอนเทนเนอร์เนื้อเพลง) ถูกตรรกะการลากดักจับอย่างไม่ถูกต้อง ตอนนี้การปัดสัมผัสจะทำให้เกิดการเลื่อนอย่างถูกต้องแทนการลากเครื่องเล่น
+            `,
     },
   },
 };
@@ -666,12 +660,29 @@ async function createUnifiedIframeOriginal(
             document.head.appendChild(dragStyle);
 
             function shouldSkipDrag(target) {
-                return !!target.closest(
+                if (target.closest(
                     "button, input, select, textarea, a[href], " +
                     "[role='button'], [role='slider'], [role='menuitem'], " +
                     "[type='range'], [contenteditable='true'], " +
                     "li, [data-no-drag]"
-                );
+                )) return true;
+                if (target.closest(
+                    ".search-results, .search-result-item, " +
+                    ".playlist-list, .lyrics-container, " +
+                    ".gmp-scroll-list, .gmp-list-item, .gmp-lyrics-container, " +
+                    ".gmp-search-item, .gmp-list-item-content"
+                )) return true;
+                let el = target;
+                while (el && el !== document.body) {
+                    const style = window.getComputedStyle(el);
+                    const overflowY = style.overflowY;
+                    if ((overflowY === "auto" || overflowY === "scroll") &&
+                        el.scrollHeight > el.clientHeight) {
+                        return true;
+                    }
+                    el = el.parentElement;
+                }
+                return false;
             }
 
             function flushDrag() {
@@ -10289,6 +10300,24 @@ function initializeObservers() {
     if (!settings.persistentMode) {
       updateAndApplyTheme("generation_start_display");
       showTypingIndicator(type, args, dryRun);
+      clearTimeout(messageSentCheckTimer);
+      messageSentCheckTimer = setTimeout(() => {
+        const stopButton = document.getElementById("mes_stop");
+        const isGenerating =
+          stopButton && window.getComputedStyle(stopButton).display !== "none";
+
+        if (isGenerating) return;
+        if (settings.persistentMode) return;
+        if (dynamicThemeTimeoutId) return;
+        if (currentDynamicThemeId) return;
+        if (isTestIndicatorActive) return;
+        if (isIndicatorPersisted) return;
+
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator) {
+          hideTypingIndicator();
+        }
+      }, 1500);
     }
   });
 
