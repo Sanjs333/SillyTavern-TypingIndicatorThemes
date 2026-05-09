@@ -8,6 +8,7 @@ import {
   isStreamingEnabled,
   name1,
   name2,
+  saveSettings,
   saveSettingsDebounced,
   this_chid,
 } from "../../../../script.js";
@@ -98,7 +99,7 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.6";
+const PLUGIN_VERSION = "3.4.7";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
@@ -150,70 +151,34 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.6": {
-    date: "2026-5-8",
+  "3.4.7": {
+    date: "2026-5-9",
     title: {
-      zh: "更新播放器与自动隐藏",
-      en: "Smooth Player & Auto Hide",
-      th: "เครื่องเล่นลื่นไหลและซ่อนอัตโนมัติ",
+      zh: "删除功能优化",
+      en: "Deletion Optimization",
+      th: "การลบที่ปรับปรุงแล้ว",
     },
     content: {
       zh: `
-### 新增
-- **播放器随时拖动**：不再需要锁定位置，按住空白区域就能拖动
-- **自动隐藏开关**：开启后点击聊天区域可切换播放器显示/隐藏，隐藏期间音乐不中断
-- **测试按钮**：指示器位置标题后新增测试按钮，即使当前主题不处于自由拖拽模式下也可快速测试指示器效果
-
 ### 优化
-- 拖动手感大幅提升：使用 GPU 加速 + RAF 节流，跟手丝滑
+- **删除内置主题/预设/气泡**：现在删除内置项后刷新页面**不会自动复原**，你可以自由管理所有主题、预设和气泡样式
+- **重置方式**：如需恢复已删除的内置项，请前往 设置 → 工具 → **恢复内置项** 一键重置
 
-### ⚠️ 重要提示
-1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
-
-2. **内置主题已更新！** 请前往：
-> 设置 → 工具 → **恢复内置项**
-
-- 您自己创建的主题 **不受影响**
-- ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
-- **请提问前务必确认已仔细查看过使用指南**
+> 你自行创建的自定义项不受影响。
     `,
       en: `
-### Added
-- **Drag Anytime**: No need to lock position—press and hold any empty area of the player to drag it around
-- **Auto Hide Toggle**: When enabled, clicking the chat area toggles player visibility. Music keeps playing while hidden
-- **Test Button**: Added a test button after the indicator position title, allowing quick preview of indicator effects even when the theme is not in free-drag mode
-
 ### Improved
-- Massively improved drag responsiveness: GPU acceleration + RAF throttling for buttery-smooth feel
+- **Deleting built‑in themes/presets/bubbles**: Deleted built‑in items will **no longer reappear** after refreshing the page, giving you full control over all themes, presets, and bubble styles
+- **Reset**: If you wish to restore deleted built‑ins, go to Settings → Tools → **Restore Built‑in Items** to bring them all back
 
-### ⚠️ Important
-1. **Backend plugin updated!** Please restart SillyTavern, the backend plugin will update automatically.
-
-2. **Built-in themes updated!** Please go to:
-> Settings → Tools → **Restore Built-in Items**
-
-- Themes you created yourself are **not affected**
-- ⚠️ If you modified any built-in themes, **export a backup** before restoring
-- **Please carefully read the usage guide before asking questions**
+> Your own custom items are never affected.
     `,
       th: `
-### เพิ่ม
-- **ลากได้ทุกเมื่อ**: ไม่ต้องล็อคตำแหน่งอีกต่อไป กดค้างที่พื้นที่ว่างของเครื่องเล่นเพื่อลาก
-- **สวิตช์ซ่อนอัตโนมัติ**: เมื่อเปิดใช้ คลิกพื้นที่แชทเพื่อสลับการแสดงเครื่องเล่น เพลงยังเล่นต่อขณะซ่อน
-- **ปุ่มทดสอบ**: เพิ่มปุ่มทดสอบหลังตำแหน่งตัวบ่งชี้ ให้ทดสอบเอฟเฟกต์ตัวบ่งชี้ได้รวดเร็วแม้ธีมไม่อยู่ในโหมดลากอิสระ
-
 ### ปรับปรุง
-- ปรับปรุงการตอบสนองการลากอย่างมาก: เร่งด้วย GPU + RAF throttling ลื่นไหลตามนิ้ว
+- **การลบธีม/พรีเซ็ต/ฟองอากาศในตัว**: รายการในตัวที่ถูกลบจะ**ไม่กลับมาเอง**หลังจากรีเฟรชหน้าอีกต่อไป คุณจัดการธีม พรีเซ็ต และรูปแบบฟองอากาศทั้งหมดได้อย่างอิสระ
+- **การรีเซ็ต**: หากต้องการกู้คืนรายการในตัวที่ลบไปแล้ว ให้ไปที่ ตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว** เพื่อเรียกคืนทั้งหมด
 
-### ⚠️ สำคัญ
-1. **ปลั๊กอิน backend อัปเดตแล้ว!** กรุณารีสตาร์ท SillyTavern ปลั๊กอิน backend จะอัปเดตอัตโนมัติ
-
-2. **ธีมในตัวอัปเดตแล้ว!** กรุณาไปที่:
-> ตั้งค่า → เครื่องมือ → **กู้คืนรายการในตัว**
-
-- ธีมที่คุณสร้างเอง **ไม่ได้รับผลกระทบ**
-- ⚠️ หากคุณเคยแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
-- **กรุณาอ่านคู่มือการใช้งานอย่างละเอียดก่อนถามคำถาม**
+> รายการที่คุณสร้างเองจะไม่ได้รับผลกระทบใด ๆ
     `,
     },
   },
@@ -238,14 +203,29 @@ function checkAndAutoRestoreBuiltIns() {
   );
 
   _needsSync = true;
+  const deleted = settings.deletedBuiltIns || {
+    themes: [],
+    textPresets: [],
+    bubbleStyles: [],
+  };
+
   settings.textPresets = [
     ...userCreatedPresets,
-    ...structuredClone(defaultPresets),
+    ...structuredClone(defaultPresets).filter(
+      (p) => !deleted.textPresets.includes(p.id),
+    ),
   ];
-  settings.themes = [...userCreatedThemes, ...structuredClone(defaultThemes)];
+  settings.themes = [
+    ...userCreatedThemes,
+    ...structuredClone(defaultThemes).filter(
+      (t) => !deleted.themes.includes(t.id),
+    ),
+  ];
   settings.bubbleStyles = [
     ...userCreatedBubbles,
-    ...structuredClone(defaultBubbleStyles),
+    ...structuredClone(defaultBubbleStyles).filter(
+      (s) => !deleted.bubbleStyles.includes(s.id),
+    ),
   ];
 
   if (
@@ -1804,6 +1784,7 @@ function getSettings() {
     lyricsFontSize: 18,
     lyricsShowNextLine: true,
     listeningStats: {},
+    deletedBuiltIns: { themes: [], textPresets: [], bubbleStyles: [] },
     clickThrough: false,
     showFpsMonitor: false,
   };
@@ -1815,11 +1796,14 @@ function getSettings() {
   const settings = extension_settings[MODULE];
 
   if (_needsSync) {
-    const syncList = (defaultList, userList) => {
+    const syncList = (defaultList, userList, deletedIds = []) => {
       if (!userList || !Array.isArray(userList)) {
-        return structuredClone(defaultList);
+        return structuredClone(defaultList).filter(
+          (item) => !deletedIds.includes(item.id),
+        );
       }
 
+      const deletedSet = new Set(deletedIds);
       const defaultMap = new Map(defaultList.map((item) => [item.id, item]));
       const userMap = new Map(userList.map((item) => [item.id, item]));
       const finalSyncedList = [];
@@ -1836,7 +1820,11 @@ function getSettings() {
       });
 
       defaultList.forEach((defaultItem) => {
-        if (defaultItem.isBuiltIn && !userMap.has(defaultItem.id)) {
+        if (
+          defaultItem.isBuiltIn &&
+          !userMap.has(defaultItem.id) &&
+          !deletedSet.has(defaultItem.id)
+        ) {
           finalSyncedList.push(structuredClone(defaultItem));
         }
       });
@@ -1844,14 +1832,28 @@ function getSettings() {
       return finalSyncedList;
     };
 
-    settings.themes = syncList(defaultSettings.themes, settings.themes);
+    if (!settings.deletedBuiltIns) {
+      settings.deletedBuiltIns = {
+        themes: [],
+        textPresets: [],
+        bubbleStyles: [],
+      };
+    }
+
+    settings.themes = syncList(
+      defaultSettings.themes,
+      settings.themes,
+      settings.deletedBuiltIns.themes,
+    );
     settings.textPresets = syncList(
       defaultSettings.textPresets,
       settings.textPresets,
+      settings.deletedBuiltIns.textPresets,
     );
     settings.bubbleStyles = syncList(
       defaultBubbleStyles,
       settings.bubbleStyles,
+      settings.deletedBuiltIns.bubbleStyles,
     );
 
     settings.themes.forEach((theme) => {
@@ -6689,11 +6691,20 @@ function addExtensionSettings() {
           const style = settings.bubbleStyles.find(
             (s) => s.id === settings.selectedBubbleStyleId,
           );
-          if (style && style.isBuiltIn) {
-            toastr.warning(t`Cannot delete built-in style.`);
-            return;
-          }
+          if (!style) return;
           if (confirm(t`Delete this style?`)) {
+            if (style.isBuiltIn) {
+              if (!settings.deletedBuiltIns) {
+                settings.deletedBuiltIns = {
+                  themes: [],
+                  textPresets: [],
+                  bubbleStyles: [],
+                };
+              }
+              if (!settings.deletedBuiltIns.bubbleStyles.includes(style.id)) {
+                settings.deletedBuiltIns.bubbleStyles.push(style.id);
+              }
+            }
             settings.bubbleStyles = settings.bubbleStyles.filter(
               (s) => s.id !== settings.selectedBubbleStyleId,
             );
@@ -7645,6 +7656,11 @@ function addExtensionSettings() {
           );
           const userCreatedThemes = settings.themes.filter((t) => !t.isBuiltIn);
           _needsSync = true;
+          settings.deletedBuiltIns = {
+            themes: [],
+            textPresets: [],
+            bubbleStyles: [],
+          };
           settings.textPresets = [
             ...userCreatedPresets,
             ...structuredClone(defaultPresets),
@@ -8597,6 +8613,18 @@ function addExtensionSettings() {
       if (
         confirm(t`Are you sure you want to delete the preset "${p?.name}"?`)
       ) {
+        if (p?.isBuiltIn) {
+          if (!settings.deletedBuiltIns) {
+            settings.deletedBuiltIns = {
+              themes: [],
+              textPresets: [],
+              bubbleStyles: [],
+            };
+          }
+          if (!settings.deletedBuiltIns.textPresets.includes(p.id)) {
+            settings.deletedBuiltIns.textPresets.push(p.id);
+          }
+        }
         settings.textPresets = settings.textPresets.filter(
           (pr) => pr.id !== p.id,
         );
@@ -8905,6 +8933,18 @@ function addExtensionSettings() {
           t`Are you sure you want to delete the theme "${themeToDelete?.name}"?`,
         )
       ) {
+        if (themeToDelete?.isBuiltIn) {
+          if (!settings.deletedBuiltIns) {
+            settings.deletedBuiltIns = {
+              themes: [],
+              textPresets: [],
+              bubbleStyles: [],
+            };
+          }
+          if (!settings.deletedBuiltIns.themes.includes(themeToDelete.id)) {
+            settings.deletedBuiltIns.themes.push(themeToDelete.id);
+          }
+        }
         settings.themes = settings.themes.filter(
           (th) => th.id !== themeToDelete.id,
         );
@@ -8912,6 +8952,9 @@ function addExtensionSettings() {
         populateThemes();
         applyTheme("default");
         saveSettingsDebounced();
+        if (typeof saveSettings === "function") {
+          saveSettings();
+        }
       }
     });
 
@@ -9316,6 +9359,18 @@ function addExtensionSettings() {
             t`Are you sure you want to delete the player theme "${themeToDelete?.name}"?`,
           )
         ) {
+          if (themeToDelete?.isBuiltIn) {
+            if (!settings.deletedBuiltIns) {
+              settings.deletedBuiltIns = {
+                themes: [],
+                textPresets: [],
+                bubbleStyles: [],
+              };
+            }
+            if (!settings.deletedBuiltIns.themes.includes(themeToDelete.id)) {
+              settings.deletedBuiltIns.themes.push(themeToDelete.id);
+            }
+          }
           settings.themes = settings.themes.filter(
             (th) => th.id !== themeToDelete.id,
           );
