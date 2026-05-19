@@ -107,6 +107,8 @@ npm install
 
 **方式二：手动下载 ZIP**
 
+> ⚠️ **重要**：手动下载 ZIP 不会自带 `node_modules`，**重启酒馆也不会自动帮你装依赖**，必须手动执行下面第 3 步的 `npm install`，否则插件无法工作。
+
 | 源            | 下载地址                                                                         |
 | ------------- | -------------------------------------------------------------------------------- |
 | GitHub        | [github.com/Sanjs333/g-player-proxy](https://github.com/Sanjs333/g-player-proxy) |
@@ -114,7 +116,7 @@ npm install
 
 1. 点击绿色的 `Code` / `克隆/下载` 按钮 → `Download ZIP` / `下载 ZIP`
 2. 解压后将文件夹重命名为 `g-player-proxy`，放入 `SillyTavern/plugins/` 目录
-3. 在插件目录内打开终端，执行 `npm install`
+3. 在插件目录内打开终端，执行 `npm install`（**这一步不能省**）
 
 **第四步：重启 SillyTavern**
 
@@ -299,6 +301,16 @@ A: 请确认：
 1. `config.yaml` 中 `enableServerPlugins: true`
 2. 插件路径正确：`SillyTavern/plugins/g-player-proxy/index.js`
 3. 已在插件目录执行过 `npm install`
+
+**Q: 重启后没有看到插件启动信息？**
+A: 请确认：
+
+1. `config.yaml` 中 `enableServerPlugins: true`
+2. 插件路径正确：`SillyTavern/plugins/g-player-proxy/index.js`
+3. 已在插件目录执行过 `npm install`
+
+**Q: 手动下载 ZIP 装的，重启酒馆它会自动装依赖吗？**
+A: 不会。SillyTavern 启动时**不会**自动给 plugins 目录里的子项目跑 `npm install`，必须自己进 `g-player-proxy` 文件夹打开终端执行一次 `npm install`。如果之前用 git clone 装的话也是一样，git 不会自动装依赖。
 
 ### 指示器相关
 

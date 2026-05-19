@@ -77,10 +77,12 @@ npm install
 
 **Option B: Manual ZIP Download**
 
+> ⚠️ **Important**: ZIP downloads do NOT include `node_modules`. **SillyTavern will NOT auto-install dependencies on restart**. You must manually run `npm install` in step 4 below, or the plugin will not work.
+
 1. Go to [github.com/Sanjs333/g-player-proxy](https://github.com/Sanjs333/g-player-proxy)
 2. Click the green `Code` button → `Download ZIP`
 3. Extract and rename the folder to `g-player-proxy`, place it in `SillyTavern/plugins/`
-4. Open terminal in the plugin directory and run `npm install`
+4. Open terminal in the plugin directory and run `npm install` (**this step is required**)
 
 **Step 4: Restart SillyTavern**
 
@@ -240,6 +242,9 @@ A: Please verify:
 2. Correct plugin path: `SillyTavern/plugins/g-player-proxy/index.js`
 3. `npm install` was run in the plugin directory
 
+**Q: I installed via ZIP. Will SillyTavern auto-install dependencies on restart?**
+A: No. SillyTavern does **not** automatically run `npm install` on plugins when starting up. You must enter the `g-player-proxy` folder manually and run `npm install` once. The same applies to git clone installs—git does not auto-install npm packages either.
+
 ### Indicator
 
 **Q: Why can't I click buttons inside the theme?**
@@ -283,3 +288,6 @@ A: Bubbles use fuzzy matching to identify the current track. If control fails, t
 
 **Q: Why doesn't my player have search functionality?**
 A: Use the Tools page to restore built-in items to update the player. If you modified built-in themes and want to keep them, remember to export a backup first.
+
+**Q: Do I need to manually restore built-in items after updating the plugin?**
+A: Starting from 3.4.6, the plugin will **automatically restore built-in themes/presets/bubble styles** to the latest version when upgrading. If you've modified built-in items and want to preserve your changes, please **export a backup** from the Tools page before upgrading.

@@ -13,7 +13,7 @@ import {
   this_chid,
 } from "../../../../script.js";
 import { extension_settings } from "../../../extensions.js";
-import { selected_group } from "../../../group-chats.js";
+import { groups, selected_group } from "../../../group-chats.js";
 import { t } from "../../../i18n.js";
 import { user_avatar } from "../../../personas.js";
 import { power_user } from "../../../power-user.js";
@@ -99,12 +99,12 @@ let acornPromise = null;
 let messageFlushScheduled = false;
 const iframeCache = new Map();
 const MAX_CACHE_SIZE = 10;
-const PLUGIN_VERSION = "3.4.8";
+const PLUGIN_VERSION = "4.0";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const failedSearches = new Map();
 const FAILED_SEARCH_COOLDOWN = 5 * 60 * 1000;
-const BGM_REGEX = /\[bgm\](.+)-(.+?)\[\/bgm\]/g;
+const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
 
 function playlistsAreDifferent(oldList, newList) {
   if (oldList === newList) return false;
@@ -151,28 +151,238 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "3.4.8": {
-    date: "2026-5-10",
+  "4.0": {
+    date: "2026-5-19",
     title: {
-      zh: "兼容性修复",
-      en: "Compatibility Fixes",
-      th: "แก้ไขความเข้ากันได้",
+      zh: "音乐播放器与歌单系统大更新",
+      en: "Music Player and Playlist System Update",
+      th: "อัปเดตระบบเครื่องเล่นเพลงและเพลย์ลิสต์",
     },
     content: {
       zh: `
-### 修复
-- **斜杠命令兼容**：修复了 \`/hide\`、\`/sys\`、\`/sendas\`、\`/comment\` 等不触发内容生成的斜杠命令，导致指示器持续显示无法消失的问题。
-- **播放器拖拽优化**：修复了播放器内的搜索结果列表、播放列表、歌词容器等可滚动区域被拖拽逻辑误判的问题。现在触摸滑动会正确触发滚动，而非错误地触发播放器拖拽。
+## v4.0.0 · 音乐播放器与歌单系统大更新
+
+### ✨ 新增功能
+- **新增歌单管理系统**：设置中新增独立的「歌单」标签页，支持创建、重命名、删除、同步歌单。
+- **新增后端歌单支持**：歌单数据现在由后端插件管理，支持长期保存、跨主题调用和播放器联动。
+- **新增歌单导入 / 导出**：支持将歌单导出为 JSON 备份，也可以重新导入恢复。
+- **新增网易云 / QQ 音乐歌单链接导入**：可直接粘贴歌单分享链接批量导入歌曲，短链接也会尝试自动解析。
+- **新增在线搜歌**：歌单页支持在 QQ 音乐、网易云音乐、酷我音乐中搜索歌曲。
+- **新增在线搜索结果操作**：搜索结果可直接播放、加入当前歌单，或添加到其他歌单。
+- **新增播放源模式**：播放器现在支持「混合模式」「仅歌单」「角色歌单」「仅聊天」四种播放来源。
+- **新增角色专属歌单**：可以为当前角色绑定专属歌单，切换角色时可自动切换对应歌单。
+- **新增播放进度记忆**：可记住每个歌单或角色的上次播放歌曲，并在歌单列表中提示继续播放。
+- **新增播放器收藏功能**：播放器主题可以调用收藏面板，将当前歌曲加入已有歌单，或新建歌单后加入。
+- **新增歌单内歌曲管理**：支持歌单内搜索、分页、多选、批量删除、播放整个歌单、添加到播放队列。
+- **新增播放器自动隐藏**：开启后可点击聊天区域显示或隐藏播放器，适合想保留播放但减少界面占用的场景。
+- **新增底部浮动额外偏移**：底部浮动指示器现在可以手动调整额外高度，方便适配输入框、移动端键盘和其他布局。
+- **新增浮动指示器自动跟随输入框**：输入框高度变化时，底部浮动指示器会自动重新定位。
+- **新增播放器主题创作指南**：工具页新增播放器主题指南下载，与指示器主题指南分开管理。
+- **新增主题 / 预设 / 气泡样式说明信息**：支持为主题、文本预设、播放器主题、BGM 气泡样式填写 Markdown 说明，并可直接预览。
+
+### 🎵 音乐播放器优化
+- **优化搜歌匹配逻辑**：改进歌曲名、歌手名、多歌手歌曲的匹配，减少搜到错误歌曲或错误歌手的情况。
+- **优化版本过滤**：搜索时会降低 Live、翻唱、Remix、伴奏、Demo 等版本的优先级。
+- **新增试听版过滤**：会检测音频时长，自动跳过过短的试听片段。
+- **优化跨源换源**：当前音源播放失败时，会尝试跨源重新搜索可播放版本，并尽量保持播放不中断。
+- **优化歌词获取**：缓存中缺少翻译歌词时会主动补齐；网易云歌词不理想时会尝试使用酷我或 QQ 音乐歌词。
+- **优化换源后的歌词同步**：播放失败换源后，悬浮歌词也会同步刷新。
+- **优化封面获取**：自动过滤无效封面、空封面和默认占位封面，并尝试为歌单中缺失封面的歌曲补图。
+- **优化 QQ 音乐封面兼容**：修复部分 QQ 音乐封面链接无法正常显示的问题。
+- **优化音乐缓存系统**：缓存现在区分搜索、音频、歌词、封面，并支持查看数量、大小、清理过期缓存和清空缓存。
+- **优化 BGM 气泡播放**：点击正在播放的 BGM 气泡时，会直接暂停或继续播放当前歌曲。
+- **优化聊天 BGM 追加逻辑**：新消息里的 BGM 会自动追加到播放器队列，并避免重复追加同一首歌。
+
+### 🎨 界面与体验优化
+- **新增完整歌单界面**：包含歌曲列表、搜索框、搜索源切换、分页、批量操作和播放状态显示。
+- **新增播放状态标记**：歌单中会显示正在播放、暂停、加载中、上次播放等状态。
+- **优化悬浮歌词设置**：歌词背景支持颜色选择器，颜色、字号和背景调整后会更及时刷新。
+- **优化主题信息弹窗**：Markdown 说明支持更完整的预览样式，方便主题作者写说明和署名。
+- **优化更多菜单布局**：主题、预设、气泡、歌单等管理按钮改为更紧凑的更多菜单。
+- **优化调试设置**：详细日志选项只在开启调试日志后显示，减少普通用户误开大量控制台日志。
+- **优化使用说明弹窗**：使用说明支持中文、英文、泰文切换，并改进弹窗显示和关闭逻辑。
+- **优化 FPS 监视器**：工具页可直接开启或关闭 FPS 显示，用于检查主题性能。
+
+### 🛠️ 修复与改进
+- **修复动态主题锁定状态恢复问题**：动态主题临时锁定拖拽位置后，现在会在主题回退时恢复原本设置。
+- **修复指示器渲染锁异常问题**：部分提前返回场景现在会正确释放渲染锁，避免后续指示器无法显示。
+- **修复群聊头像兼容问题**：群聊中会尝试使用群头像或活跃成员头像，减少头像显示异常。
+- **修复错误音乐缓存反复命中的问题**：当缓存中的歌手与当前歌曲不匹配时，会删除错误缓存并重新搜索。
+- **修复播放失败后恢复能力不足的问题**：播放失败时会清理旧缓存并尝试跨源换源，而不是反复使用失效链接。
+- **修复无效封面被写入缓存的问题**：空壳封面、默认封面、无效 meting 封面现在会被拒绝缓存。
+- **修复歌单切换后播放器列表不同步的问题**：切换播放源、角色或歌单后，会重建播放器播放列表。
+- **修复切换聊天后旧歌曲追加记录残留的问题**：切换聊天时会清理旧的追加记录，避免新聊天被旧状态影响。
+- **修复 BGM 气泡跨节点渲染不稳定的问题**：对被格式化拆开的 BGM 标签增加了修复模式。
+- **修复播放器内部滚动区域拖拽冲突**：播放器内搜索结果、播放列表、歌词区域等可滚动内容现在不会被误判为拖拽播放器。
+- **修复部分斜杠命令导致指示器不消失的问题**：兼容不触发生成流程的命令，避免指示器卡住。
+
+### ⚙️ 开发者相关
+- **新增 PlaylistAPI**：开放歌单列表、读取、创建、更新、删除、导入、添加歌曲、移除歌曲等接口。
+- **新增 MusicUtils 工具方法**：提供音频时长检测、试听版判断、歌曲匹配、最佳结果选择等能力。
+- **新增播放器收藏通信能力**：播放器主题可查询收藏状态、打开收藏面板、添加或移除歌单收藏。
+- **新增主题说明字段 readme**：主题、文本预设、播放器主题和 BGM 气泡样式都可以附带 Markdown 说明。
+- **优化 iframe 通信队列**：部分高频消息会合并到下一帧发送，降低频繁 postMessage 带来的性能压力。
+- **新增播放器拖拽转发逻辑**：播放器主题内部可更稳定地把拖拽行为转发给宿主容器处理。
+
+## ⚠️ 重要提示
+1. **后端插件已更新！** 请重启酒馆，后端插件将自动更新
+
+2. **内置主题已更新！** 请前往：
+> 设置 → 工具 → **恢复内置项**
+
+- 您自己创建的主题 **不受影响**
+- ⚠️ 如果您修改过内置主题，恢复前请先 **导出备份**
+- **请提问前务必确认已仔细查看过使用指南**
             `,
       en: `
-### Fixed
-- **Slash command compatibility**: Fixed an issue where slash commands that don't trigger generation (such as \`/hide\`, \`/sys\`, \`/sendas\`, \`/comment\`) caused the indicator to remain visible indefinitely
-- **Player drag optimization**: Fixed scrollable areas inside the player (search results, playlist, lyrics container, etc.) being incorrectly captured by the drag logic. Touch swipes now correctly trigger scrolling instead of dragging the player
+## v4.0.0 · Music Player and Playlist System Update
+
+### ✨ Added
+- **Playlist management system**: Added a dedicated Playlist tab for creating, renaming, deleting and syncing playlists.
+- **Backend playlist support**: Playlists are now managed by the backend plugin and can be used across player themes.
+- **Playlist import / export**: Playlists can be exported as JSON backups and imported again later.
+- **NetEase / QQ Music playlist URL import**: Paste shared playlist links to batch import songs. Short links will also be resolved when possible.
+- **Online song search**: Search songs from QQ Music, NetEase Music and Kuwo directly inside the playlist page.
+- **Online search actions**: Search results can be played directly, added to the current playlist, or added to another playlist.
+- **Playback source modes**: Added Mixed Mode, Playlist Only, Character Playlist and Chat Only.
+- **Character-specific playlists**: Bind a dedicated playlist to the current character and switch automatically when changing characters.
+- **Playback progress memory**: Remember the last played song for each playlist or character, and show a continue-playing hint.
+- **Favorite support for player themes**: Player themes can open a favorite dialog, add songs to playlists, or create a new playlist.
+- **Playlist song management**: Added search, pagination, multi-select, batch removal, play-all and queue actions.
+- **Player auto-hide**: Click the chat area to show or hide the player while keeping music playback available.
+- **Extra offset for floating indicator**: The bottom floating indicator can now be manually shifted to fit different layouts.
+- **Auto-adjust floating indicator**: The floating indicator follows input bar height changes automatically.
+- **Player theme creation guide**: Added a separate guide for creating player themes.
+- **Markdown info for items**: Themes, presets, player themes and BGM bubble styles can now include Markdown descriptions.
+
+### 🎵 Music Improvements
+- **Improved song matching**: Better title, artist and multi-artist matching to reduce wrong search results.
+- **Improved version filtering**: Live, cover, remix, instrumental and demo versions are deprioritized.
+- **Preview clip filtering**: Very short preview clips are detected and skipped automatically.
+- **Cross-source fallback**: When playback fails, the player tries to search another source and recover playback.
+- **Improved lyrics fetching**: Missing translated lyrics are refetched when possible, and lyrics from Kuwo or QQ Music may be preferred.
+- **Lyrics refresh after fallback**: Floating lyrics will refresh after a successful source fallback.
+- **Improved cover handling**: Invalid, empty and placeholder covers are filtered out, and missing covers are filled when possible.
+- **Improved QQ Music cover compatibility**.
+- **Improved music cache**: Search, audio, lyrics and cover cache are managed separately with stats and cleanup tools.
+- **Improved BGM bubbles**: Clicking the currently playing BGM bubble toggles playback.
+- **Improved chat BGM appending**: New BGM tags from messages are appended to the queue with duplicate protection.
+
+### 🎨 UI and UX
+- **New playlist interface** with song list, search, source tabs, pagination, batch actions and playback status.
+- **Playback status indicators** for playing, paused, loading and last played songs.
+- **Improved floating lyrics settings** with color picker and faster style refresh.
+- **Improved theme info popup** with Markdown preview.
+- **More compact management menus** for themes, presets, bubbles and playlists.
+- **Improved debug settings**: verbose logs are only shown after debug logs are enabled.
+- **Improved usage guide popup** with Chinese, English and Thai switching.
+- **FPS monitor toggle** is available in the tools page.
+
+### 🛠️ Fixed and Improved
+- Fixed dynamic theme position lock not being restored correctly.
+- Fixed rendering lock issues that could prevent the indicator from showing again.
+- Improved group chat avatar compatibility.
+- Fixed wrong music cache hits when the cached artist does not match.
+- Improved recovery after playback failure by clearing invalid cache and trying another source.
+- Fixed invalid covers being written into cache.
+- Fixed playlist synchronization after switching source mode, character or playlist.
+- Fixed stale appended-song records after changing chats.
+- Improved BGM bubble rendering for split or formatted tags.
+- Fixed player drag conflicts with scrollable areas inside the player.
+- Fixed indicator stuck issues caused by slash commands that do not trigger generation.
+
+### ⚙️ Developer
+- Added PlaylistAPI for playlist list, read, create, update, delete, import, add songs and remove songs.
+- Added MusicUtils helpers for duration checking, preview clip detection and better song matching.
+- Added favorite-related messages for player themes.
+- Added Markdown readme support for themes, presets and bubble styles.
+- Improved iframe postMessage batching.
+- Added player drag forwarding support for iframe player themes.
+
+## ⚠️ Important Notice
+1. **The backend plugin has been updated!** Please restart SillyTavern. The backend plugin will update automatically.
+
+2. **Built-in themes have been updated!** Please go to:
+> Settings → Tools → **Restore Built-in Items**
+
+- Your own custom themes **will not be affected**
+- ⚠️ If you modified built-in themes, please **export a backup** before restoring
+- **Please make sure you have carefully read the usage guide before asking questions**
             `,
       th: `
-### แก้ไข
-- **ความเข้ากันได้ของคำสั่ง slash**: แก้ไขปัญหาที่คำสั่ง slash ที่ไม่ทำให้เกิดการสร้าง (เช่น \`/hide\`, \`/sys\`, \`/sendas\`, \`/comment\`) ทำให้ตัวบ่งชี้ค้างอยู่และไม่หายไป
-- **ปรับปรุงการลากเครื่องเล่น**: แก้ไขปัญหาที่พื้นที่เลื่อนได้ภายในเครื่องเล่น (ผลการค้นหา, รายการเพลง, คอนเทนเนอร์เนื้อเพลง) ถูกตรรกะการลากดักจับอย่างไม่ถูกต้อง ตอนนี้การปัดสัมผัสจะทำให้เกิดการเลื่อนอย่างถูกต้องแทนการลากเครื่องเล่น
+## v4.0.0 · อัปเดตระบบเครื่องเล่นเพลงและเพลย์ลิสต์
+
+### ✨ เพิ่มใหม่
+- **ระบบจัดการเพลย์ลิสต์**: เพิ่มแท็บ Playlist สำหรับสร้าง เปลี่ยนชื่อ ลบ และซิงค์เพลย์ลิสต์
+- **รองรับเพลย์ลิสต์ผ่านปลั๊กอินฝั่งหลังบ้าน**: ข้อมูลเพลย์ลิสต์จะถูกจัดการโดยปลั๊กอิน backend และใช้งานร่วมกับธีมเครื่องเล่นได้
+- **นำเข้า / ส่งออกเพลย์ลิสต์**: รองรับการสำรองและกู้คืนเพลย์ลิสต์ด้วยไฟล์ JSON
+- **นำเข้าลิงก์เพลย์ลิสต์ NetEase / QQ Music**: วางลิงก์แชร์เพื่อนำเข้าเพลงแบบชุดได้
+- **ค้นหาเพลงออนไลน์**: ค้นหาเพลงจาก QQ Music, NetEase Music และ Kuwo ได้ในหน้าเพลย์ลิสต์
+- **จัดการผลการค้นหาออนไลน์**: เล่นเพลง เพิ่มเข้ารายการปัจจุบัน หรือเพิ่มไปยังเพลย์ลิสต์อื่นได้
+- **โหมดแหล่งเล่นเพลง**: เพิ่ม Mixed Mode, Playlist Only, Character Playlist และ Chat Only
+- **เพลย์ลิสต์เฉพาะตัวละคร**: ผูกเพลย์ลิสต์กับตัวละคร และสลับอัตโนมัติเมื่อเปลี่ยนตัวละคร
+- **จดจำความคืบหน้าการเล่น**: จำเพลงล่าสุดของแต่ละเพลย์ลิสต์หรือตัวละคร และแสดงคำแนะนำให้เล่นต่อ
+- **ระบบรายการโปรดสำหรับธีมเครื่องเล่น**: ธีมเครื่องเล่นสามารถเพิ่มเพลงลงเพลย์ลิสต์หรือสร้างเพลย์ลิสต์ใหม่ได้
+- **จัดการเพลงในเพลย์ลิสต์**: รองรับการค้นหา แบ่งหน้า เลือกหลายรายการ ลบแบบชุด เล่นทั้งเพลย์ลิสต์ และเพิ่มเข้าคิว
+- **ซ่อนเครื่องเล่นอัตโนมัติ**: คลิกพื้นที่แชทเพื่อแสดงหรือซ่อนเครื่องเล่นได้
+- **ปรับระยะเสริมของตัวบ่งชี้แบบลอยล่าง**: สามารถปรับตำแหน่งให้เหมาะกับเลย์เอาต์ต่าง ๆ ได้
+- **ตัวบ่งชี้ปรับตามช่องพิมพ์อัตโนมัติ**: เมื่อตัวช่องพิมพ์เปลี่ยนความสูง ตัวบ่งชี้จะปรับตำแหน่งตาม
+- **เพิ่มคู่มือสร้างธีมเครื่องเล่น**: แยกจากคู่มือธีมตัวบ่งชี้
+- **รองรับคำอธิบาย Markdown**: ธีม พรีเซ็ต ธีมเครื่องเล่น  และสไตล์บับเบิล BGM สามารถเพิ่มคำอธิบาย Markdown และเปิดดูตัวอย่างได้
+
+### 🎵 ปรับปรุงเครื่องเล่นเพลง
+- **ปรับปรุงการจับคู่เพลง**: จับคู่ชื่อเพลง ศิลปิน และเพลงที่มีหลายศิลปินได้แม่นยำขึ้น เพื่อลดผลการค้นหาที่ไม่ถูกต้อง
+- **ปรับปรุงการกรองเวอร์ชันเพลง**: ลดลำดับความสำคัญของเวอร์ชัน Live, Cover, Remix, Instrumental และ Demo
+- **เพิ่มการกรองคลิปตัวอย่าง**: ตรวจจับเพลงที่มีความยาวสั้นผิดปกติและข้ามโดยอัตโนมัติ
+- **ปรับปรุงการเปลี่ยนแหล่งเพลง**: เมื่อเล่นเพลงล้มเหลว เครื่องเล่นจะลองค้นหาเพลงจากแหล่งอื่นและพยายามเล่นต่อให้ราบรื่น
+- **ปรับปรุงการดึงเนื้อเพลง**: หากไม่มีคำแปล จะพยายามดึงคำแปลเพิ่ม และอาจเลือกใช้เนื้อเพลงจาก Kuwo หรือ QQ Music แทน
+- **รีเฟรชเนื้อเพลงหลังเปลี่ยนแหล่งเพลง**: เนื้อเพลงลอยจะอัปเดตตามหลังจากเปลี่ยนแหล่งเพลงสำเร็จ
+- **ปรับปรุงการจัดการปกเพลง**: กรองปกที่ใช้ไม่ได้ ปกว่าง และปกเริ่มต้น พร้อมพยายามเติมปกที่หายไปในเพลย์ลิสต์
+- **ปรับปรุงความเข้ากันได้ของปก QQ Music**
+- **ปรับปรุงแคชเพลง**: แยกแคชการค้นหา เสียง เนื้อเพลง และปก พร้อมเครื่องมือดูสถิติและล้างแคช
+- **ปรับปรุงบับเบิล BGM**: คลิกบับเบิลของเพลงที่กำลังเล่นเพื่อหยุดชั่วคราวหรือเล่นต่อได้
+- **ปรับปรุงการเพิ่ม BGM จากแชท**: แท็ก BGM ใหม่ในข้อความจะถูกเพิ่มเข้าคิว พร้อมระบบป้องกันเพลงซ้ำ
+
+### 🎨 UI และประสบการณ์ใช้งาน
+- **เพิ่มหน้าเพลย์ลิสต์แบบเต็ม**: มีรายการเพลง ช่องค้นหา แท็บแหล่งค้นหา การแบ่งหน้า การจัดการแบบชุด และสถานะการเล่น
+- **เพิ่มสถานะการเล่นในรายการเพลง**: แสดงสถานะกำลังเล่น หยุดชั่วคราว กำลังโหลด และเพลงที่เล่นล่าสุด
+- **ปรับปรุงการตั้งค่าเนื้อเพลงลอย**: เพิ่มตัวเลือกสีพื้นหลัง และรีเฟรชสไตล์ได้ไวขึ้น
+- **ปรับปรุงหน้าต่างข้อมูลธีม**: รองรับตัวอย่าง Markdown ที่อ่านง่ายขึ้น
+- **ปรับปรุงเมนูจัดการ**: เมนูของธีม พรีเซ็ต บับเบิล และเพลย์ลิสต์กะทัดรัดขึ้น
+- **ปรับปรุงการตั้งค่าดีบัก**: ตัวเลือก verbose logs จะแสดงเฉพาะเมื่อเปิด debug logs แล้ว
+- **ปรับปรุงหน้าต่างคู่มือการใช้งาน**: รองรับการสลับภาษา จีน อังกฤษ และไทย
+- **เพิ่มปุ่มเปิด / ปิด FPS Monitor** ในหน้าเครื่องมือ
+
+### 🛠️ แก้ไขและปรับปรุง
+- แก้ไขปัญหาการล็อกตำแหน่งของธีมไดนามิกไม่ถูกกู้คืนอย่างถูกต้อง
+- แก้ไขปัญหา rendering lock ที่อาจทำให้ตัวบ่งชี้ไม่แสดงอีกครั้ง
+- ปรับปรุงความเข้ากันได้ของอวตารในแชทกลุ่ม
+- แก้ไขปัญหาแคชเพลงผิดพลาดเมื่อศิลปินในแคชไม่ตรงกับเพลงปัจจุบัน
+- ปรับปรุงการกู้คืนหลังเล่นเพลงล้มเหลว โดยล้างแคชที่ใช้ไม่ได้และลองแหล่งอื่น
+- แก้ไขปัญหาปกเพลงที่ใช้ไม่ได้ถูกบันทึกลงแคช
+- แก้ไขการซิงค์เพลย์ลิสต์หลังเปลี่ยนโหมดแหล่งเพลง ตัวละคร หรือเพลย์ลิสต์
+- แก้ไขข้อมูลเพลงที่เพิ่มจากแชทเก่ายังค้างหลังเปลี่ยนแชท
+- ปรับปรุงการเรนเดอร์บับเบิล BGM สำหรับแท็กที่ถูกแยกด้วยฟอร์แมตข้อความ
+- แก้ไขปัญหาการลากเครื่องเล่นชนกับพื้นที่เลื่อนภายในเครื่องเล่น
+- แก้ไขปัญหาตัวบ่งชี้ค้างจากคำสั่ง slash ที่ไม่เริ่มการสร้างข้อความ
+
+### ⚙️ สำหรับนักพัฒนา
+- เพิ่ม PlaylistAPI สำหรับรายการเพลย์ลิสต์ อ่าน สร้าง อัปเดต ลบ นำเข้า เพิ่มเพลง และลบเพลง
+- เพิ่มเครื่องมือ MusicUtils สำหรับตรวจสอบความยาวเสียง ตรวจจับคลิปตัวอย่าง และจับคู่เพลงให้ดีขึ้น
+- เพิ่มข้อความสื่อสารเกี่ยวกับรายการโปรดสำหรับธีมเครื่องเล่น
+- เพิ่มการรองรับ readme แบบ Markdown สำหรับธีม พรีเซ็ต และสไตล์บับเบิล
+- ปรับปรุงการรวม postMessage ของ iframe เพื่อลดภาระจากข้อความถี่ ๆ
+- เพิ่มการส่งต่อการลากสำหรับธีมเครื่องเล่นแบบ iframe
+
+## ⚠️ ประกาศสำคัญ
+1. **ปลั๊กอินฝั่งหลังบ้านได้รับการอัปเดตแล้ว!** กรุณารีสตาร์ท SillyTavern แล้วปลั๊กอินฝั่งหลังบ้านจะอัปเดตโดยอัตโนมัติ
+
+2. **ธีมในตัวได้รับการอัปเดตแล้ว!** กรุณาไปที่:
+> Settings → Tools → **Restore Built-in Items**
+
+- ธีมที่คุณสร้างเอง **จะไม่ได้รับผลกระทบ**
+- ⚠️ หากคุณเคยแก้ไขธีมในตัว กรุณา **ส่งออกสำรอง** ก่อนกู้คืน
+- **กรุณาอ่านคู่มือการใช้งานอย่างละเอียดก่อนสอบถาม**
             `,
     },
   },
@@ -767,7 +977,171 @@ async function createUnifiedIframeOriginal(
         })();
     `
     : "";
-
+  const favoriteInjection = isPlayerTheme
+    ? `
+        (function setupFavoriteDialog() {
+            let favDialog = null;
+            let currentFavTrack = null;
+            const ensureStyle = () => {
+                if (document.getElementById("ti-fav-style")) return;
+                const s = document.createElement("style");
+                s.id = "ti-fav-style";
+                s.textContent =
+                    ".ti-fav-dialog{position:absolute;inset:0;z-index:300;display:flex;align-items:center;justify-content:center}" +
+                    ".ti-fav-dialog.hidden{display:none}" +
+                    ".ti-fav-backdrop{position:absolute;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px)}" +
+                    ".ti-fav-content{position:relative;background:linear-gradient(180deg,rgba(50,50,50,0.96),rgba(28,28,28,0.98));border-radius:14px;padding:14px 12px;width:84%;max-width:280px;max-height:74%;display:flex;flex-direction:column;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,0.55);animation:ti-fav-pop .22s ease;font-family:inherit}" +
+                    "@keyframes ti-fav-pop{from{transform:scale(.9);opacity:0}to{transform:scale(1);opacity:1}}" +
+                    ".ti-fav-title{font-size:13px;font-weight:600;text-align:center;margin-bottom:10px;opacity:.85}" +
+                    ".ti-fav-list{flex:1;overflow-y:auto;margin:0 -2px;padding:0 2px;scrollbar-width:none}" +
+                    ".ti-fav-list::-webkit-scrollbar{display:none}" +
+                    ".ti-fav-item{display:flex;align-items:center;width:100%;padding:10px 10px;border-radius:8px;border:none;background:transparent;color:#fff;font-size:13px;text-align:left;cursor:pointer;font-family:inherit;transition:background .2s}" +
+                    ".ti-fav-item:hover{background:rgba(255,255,255,.08)}" +
+                    ".ti-fav-item.in{color:#ff8a8a}" +
+                    ".ti-fav-item-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+                    ".ti-fav-item-count{font-size:11px;opacity:.5;margin-left:8px}" +
+                    ".ti-fav-item-mark{font-size:14px;margin-left:6px}" +
+                    ".ti-fav-new{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;padding:10px;border-radius:8px;background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.22);color:#fff;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s}" +
+                    ".ti-fav-new:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.4)}" +
+                    ".ti-fav-empty,.ti-fav-loading{text-align:center;padding:24px 10px;font-size:13px;opacity:.6}" +
+                    ".ti-fav-name-input{flex:1;min-width:0;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:13px;outline:none;font-family:inherit}" +
+                    ".ti-fav-name-input:focus{border-color:rgba(255,255,255,.5)}" +
+                    ".ti-fav-name-actions{display:flex;gap:4px;margin-left:6px}" +
+                    ".ti-fav-name-ok,.ti-fav-name-cancel{width:26px;height:26px;border-radius:6px;border:none;cursor:pointer;font-size:14px;font-family:inherit;display:flex;align-items:center;justify-content:center}" +
+                    ".ti-fav-name-ok{background:rgba(255,255,255,.15);color:#fff}" +
+                    ".ti-fav-name-cancel{background:rgba(255,255,255,.08);color:#fff}";
+                document.head.appendChild(s);
+            };
+            const escapeHtml = (s) => {
+                const d = document.createElement("div");
+                d.textContent = s == null ? "" : s;
+                return d.innerHTML;
+            };
+            const closeDialog = () => {
+                if (favDialog) {
+                    favDialog.classList.add("hidden");
+                    const newBtn = favDialog.querySelector(".ti-fav-new");
+                    if (newBtn && newBtn.dataset.editing === "1") {
+                        newBtn.dataset.editing = "0";
+                        newBtn.innerHTML = '<span style="font-size:16px;line-height:1">+</span><span>新建歌单</span>';
+                    }
+                }
+                currentFavTrack = null;
+            };
+            const ensureDialog = () => {
+                if (favDialog) return favDialog;
+                ensureStyle();
+                favDialog = document.createElement("div");
+                favDialog.className = "ti-fav-dialog hidden";
+                favDialog.innerHTML =
+                    '<div class="ti-fav-backdrop"></div>' +
+                    '<div class="ti-fav-content">' +
+                        '<div class="ti-fav-title">添加到歌单</div>' +
+                        '<div class="ti-fav-list"><div class="ti-fav-loading">加载中...</div></div>' +
+                        '<button class="ti-fav-new" type="button"><span style="font-size:16px;line-height:1">+</span><span>新建歌单</span></button>' +
+                    '</div>';
+                document.body.appendChild(favDialog);
+                favDialog.querySelector(".ti-fav-backdrop").addEventListener("click", closeDialog);
+                favDialog.querySelector(".ti-fav-new").addEventListener("click", () => {
+                    const newBtn = favDialog.querySelector(".ti-fav-new");
+                    if (newBtn.dataset.editing === "1") return;
+                    if (!currentFavTrack) return;
+                    newBtn.dataset.editing = "1";
+                    newBtn.innerHTML =
+                        '<input type="text" class="ti-fav-name-input" placeholder="歌单名称" maxlength="30">' +
+                        '<span class="ti-fav-name-actions">' +
+                            '<button class="ti-fav-name-ok" type="button">✓</button>' +
+                            '<button class="ti-fav-name-cancel" type="button">✕</button>' +
+                        '</span>';
+                    const input = newBtn.querySelector(".ti-fav-name-input");
+                    setTimeout(() => input.focus(), 50);
+                    const reset = () => {
+                        newBtn.dataset.editing = "0";
+                        newBtn.innerHTML = '<span style="font-size:16px;line-height:1">+</span><span>新建歌单</span>';
+                    };
+                    const submit = () => {
+                        const name = input.value.trim();
+                        if (!name) return;
+                        ThemeUtils.sendMessage("favorite-create-playlist", {
+                            name: name,
+                            track: currentFavTrack
+                        });
+                        closeDialog();
+                    };
+                    input.addEventListener("keydown", (ev) => {
+                        ev.stopPropagation();
+                        if (ev.key === "Enter") { ev.preventDefault(); submit(); }
+                        if (ev.key === "Escape") { ev.preventDefault(); reset(); }
+                    });
+                    input.addEventListener("click", (ev) => ev.stopPropagation());
+                    newBtn.querySelector(".ti-fav-name-ok").addEventListener("click", (ev) => {
+                        ev.stopPropagation();
+                        submit();
+                    });
+                    newBtn.querySelector(".ti-fav-name-cancel").addEventListener("click", (ev) => {
+                        ev.stopPropagation();
+                        reset();
+                    });
+                });
+                return favDialog;
+            };
+            const renderList = (playlists, statusMap) => {
+                if (!favDialog) return;
+                const list = favDialog.querySelector(".ti-fav-list");
+                if (!playlists || playlists.length === 0) {
+                    list.innerHTML = '<div class="ti-fav-empty">还没有歌单，点下面新建一个吧~</div>';
+                    return;
+                }
+                list.innerHTML = playlists.map((p) => {
+                    const isIn = !!(statusMap && statusMap[p.id]);
+                    return '<button class="ti-fav-item ' + (isIn ? "in" : "") + '" type="button" data-id="' + p.id + '">' +
+                        '<span class="ti-fav-item-name">' + escapeHtml(p.name) + '</span>' +
+                        '<span class="ti-fav-item-count">' + (p.songCount || 0) + '</span>' +
+                        '<span class="ti-fav-item-mark">' + (isIn ? "♥" : "♡") + '</span>' +
+                        '</button>';
+                }).join("");
+                list.querySelectorAll(".ti-fav-item").forEach((btn) => {
+                    btn.addEventListener("click", () => {
+                        const id = btn.dataset.id;
+                        const isIn = btn.classList.contains("in");
+                        ThemeUtils.sendMessage("favorite-toggle-playlist", {
+                            playlistId: id,
+                            track: currentFavTrack,
+                            isCurrentlyIn: isIn
+                        });
+                        closeDialog();
+                    });
+                });
+            };
+            window.ThemeUtils.toggleFavorite = function(track) {
+                if (!track) return;
+                const title = track.originalTitle || track.title || track.name || "";
+                const artistRaw = track.originalArtist || track.artist || "";
+                const artist = Array.isArray(artistRaw) ? artistRaw.join(" / ") : artistRaw;
+                if (!title) return;
+                currentFavTrack = { title: title, artist: artist, coverUrl: track.coverUrl || "" };
+                const dialog = ensureDialog();
+                dialog.classList.remove("hidden");
+                dialog.querySelector(".ti-fav-list").innerHTML = '<div class="ti-fav-loading">加载中...</div>';
+                ThemeUtils.sendMessage("favorite-query-list", { track: currentFavTrack });
+            };
+            window.ThemeUtils.queryFavoriteStatus = function(track) {
+                if (!track) return;
+                const title = track.originalTitle || track.title || track.name || "";
+                const artistRaw = track.originalArtist || track.artist || "";
+                const artist = Array.isArray(artistRaw) ? artistRaw.join(" / ") : artistRaw;
+                if (!title) return;
+                ThemeUtils.sendMessage("favorite-query-status", { track: { title: title, artist: artist } });
+            };
+            window.addEventListener("message", (event) => {
+                if (event.data && event.data.source === "typing-indicator-host" && event.data.type === "favorite-list-response") {
+                    const d = event.data.data || {};
+                    renderList(d.playlists || [], d.statusMap || {});
+                }
+            });
+        })();
+    `
+    : "";
   const finalJS = `
         (function() {
             window.addEventListener('error', function(e) { console.error('[Theme Error]:', e.error ? e.error.stack : e.message); });
@@ -784,6 +1158,7 @@ async function createUnifiedIframeOriginal(
             window.ThemeUtils = ThemeUtils;
             window.MusicCache = window.parent.MusicCache;
             ${dragInjection}
+            ${favoriteInjection}
             try { ${theme.iframeJS || ""} } catch(e) { console.error('[Theme User JS Error]:', e.stack); }
             try { ThemeUtils.sendMessage('theme-loaded', { themeId: '${jsEscape(theme.id || "preview")}', themeName: '${jsEscape(theme.name || "Preview")}' }); } catch (error) { console.error('[Theme Framework Error]:', error.stack); }
         })();
@@ -1135,6 +1510,51 @@ function getAnimationHTML(style) {
 }
 
 const MusicUtils = {
+  // 试听版判定阈值：音频时长 ≤ 此值（秒）视为试听版，需换源
+  MIN_PLAYABLE_DURATION: 60,
+
+  /**
+   * 集中的音频时长检测（供所有播放器主题调用）
+   * 用法：await window.parent.MusicUtils.checkAudioDuration(url)
+   */
+  checkAudioDuration(audioUrl, timeoutMs = 3000) {
+    return new Promise((resolve) => {
+      if (!audioUrl) return resolve(null);
+      const needProxyDomains = ["music.126.net", "qq.com", "kuwo.cn"];
+      const needProxy = needProxyDomains.some((d) => audioUrl.includes(d));
+      const finalUrl = needProxy
+        ? `/api/plugins/g-player-proxy/stream?url=${encodeURIComponent(audioUrl)}`
+        : audioUrl;
+      const audio = new Audio();
+      audio.preload = "metadata";
+      const timer = setTimeout(() => {
+        audio.src = "";
+        resolve(null);
+      }, timeoutMs);
+      audio.onloadedmetadata = () => {
+        clearTimeout(timer);
+        const dur = audio.duration;
+        audio.src = "";
+        resolve(isFinite(dur) ? dur : null);
+      };
+      audio.onerror = () => {
+        clearTimeout(timer);
+        audio.src = "";
+        resolve(null);
+      };
+      audio.src = finalUrl;
+    });
+  },
+
+  /**
+   * 一步到位的试听版判定（推荐播放器使用）
+   * 用法：if (await window.parent.MusicUtils.isPreviewClip(url)) continue;
+   */
+  async isPreviewClip(audioUrl) {
+    const dur = await this.checkAudioDuration(audioUrl);
+    return dur !== null && dur <= this.MIN_PLAYABLE_DURATION;
+  },
+
   CHAR_MAP: {
     愛: "爱",
     樂: "乐",
@@ -1205,13 +1625,18 @@ const MusicUtils = {
     if (!b) return true;
     if (a === b) return true;
 
-    const candidateArtists = candidate
+    const queryArtists = String(query)
       .split(/[\/\,、&]/)
       .map((s) => this.normalize(s.trim()))
       .filter(Boolean);
-
-    return candidateArtists.some(
-      (ca) => ca === a || ca.includes(a) || a.includes(ca),
+    const candidateArtists = String(candidate)
+      .split(/[\/\,、&]/)
+      .map((s) => this.normalize(s.trim()))
+      .filter(Boolean);
+    return queryArtists.some((qa) =>
+      candidateArtists.some(
+        (ca) => ca === qa || ca.includes(qa) || qa.includes(ca),
+      ),
     );
   },
 
@@ -1224,6 +1649,76 @@ const MusicUtils = {
       this.isTitleMatch(queryTitle, trackTitle) &&
       this.isArtistMatch(queryArtist, trackArtist)
     );
+  },
+
+  selectBestMatch(queryTitle, queryArtist, candidates) {
+    if (!candidates || candidates.length === 0) return null;
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (const item of candidates) {
+      const itemTitle = item.song || item.name || item.title || "";
+      const itemArtist = item.singer || item.artist || "";
+
+      if (!this.isTitleMatch(queryTitle, itemTitle)) continue;
+      if (!this.isArtistMatch(queryArtist, itemArtist)) continue;
+
+      let score = 0;
+
+      if (itemTitle.trim() === (queryTitle || "").trim()) {
+        score += 100;
+      }
+
+      if (
+        /[\(\（\[\【]\s*(Live|LIVE|live|现场|翻唱|Cover|cover|COVER|Remix|remix|REMIX|伴奏|inst|Inst|INST|纯音乐|Demo|demo|DEMO|加长版|Extended|live版|演唱会)/i.test(
+          itemTitle,
+        )
+      ) {
+        score -= 80;
+      }
+
+      if (
+        /(Live|live|现场|翻唱|Cover|cover|演唱会)/i.test(itemTitle) &&
+        !/[\(\（\[\【]/.test(itemTitle)
+      ) {
+        score -= 40;
+      }
+
+      const normQ = this.normalize(queryArtist || "");
+      const normI = this.normalize(itemArtist || "");
+      if (normQ && normQ === normI) {
+        score += 80;
+      } else if (normQ && normI.includes(normQ)) {
+        score += 30;
+      }
+      const qArtists = String(queryArtist || "")
+        .split(/[\/\,、&]/)
+        .map((s) => this.normalize(s.trim()))
+        .filter(Boolean);
+      const cArtists = String(itemArtist || "")
+        .split(/[\/\,、&]/)
+        .map((s) => this.normalize(s.trim()))
+        .filter(Boolean);
+      if (qArtists.length > 1) {
+        const matchedCount = qArtists.filter((qa) =>
+          cArtists.some(
+            (ca) => ca === qa || ca.includes(qa) || qa.includes(ca),
+          ),
+        ).length;
+        score += matchedCount * 35;
+        if (cArtists.length >= qArtists.length) {
+          score += 20;
+        }
+      }
+
+      score -= normI.length * 0.3;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = item;
+      }
+    }
+    return best;
   },
 };
 
@@ -1384,6 +1879,17 @@ const MusicCache = {
 
     this._enforceLimit("search");
     const key = this._searchKey(title, artist);
+    let coverUrl = data.coverUrl || data.cover || data.pic || "";
+    if (coverUrl) {
+      const midMatch = coverUrl.match(/M([0-9a-zA-Z]+)\.jpg/i);
+      const isEmptyShell = midMatch && /^0+$/.test(midMatch[1]);
+      const isEmptyMeting =
+        coverUrl.includes("meting") && /[?&]id=(&|$)/.test(coverUrl);
+      if (isEmptyShell || isEmptyMeting || coverUrl.includes("default_cover")) {
+        verboseLog(`[MusicCache] setSearch: 拒绝写入无效封面URL: ${coverUrl}`);
+        coverUrl = "";
+      }
+    }
 
     this._memoryCache.search[key] = {
       data: {
@@ -1391,7 +1897,7 @@ const MusicCache = {
         source: data.source,
         title: data.title || data.name || title,
         artist: this._normalizeArtist(data.artist || artist),
-        coverUrl: data.coverUrl || data.cover || data.pic || "",
+        coverUrl: coverUrl,
       },
       ts: Date.now(),
     };
@@ -1450,6 +1956,12 @@ const MusicCache = {
 
   setCover(id, source, url) {
     if (!url || !id || !source) return;
+    const midMatch = url.match(/M([0-9a-zA-Z]+)\.jpg/i);
+    const isEmptyShell = midMatch && /^0+$/.test(midMatch[1]);
+    if (isEmptyShell || url.includes("default_cover")) {
+      console.warn(`[MusicCache] 拒绝写入无效封面: ${url}`);
+      return;
+    }
     this._enforceLimit("cover");
     const key = this._detailKey(id, source);
     this._memoryCache.cover[key] = { url, ts: Date.now() };
@@ -1608,6 +2120,118 @@ const MusicCache = {
 
 MusicCache.init();
 window.MusicCache = MusicCache;
+
+// ==================== 歌单模块状态和 API ====================
+
+let _playlistState = {
+  all: [],
+  currentId: null,
+  current: null,
+  isLoading: false,
+  songCurrentPage: 1,
+  songPageSize: 50,
+  songFilter: "",
+  multiSelectMode: false,
+  selectedSongIndices: new Set(),
+  searchMode: "local",
+  onlineResults: [],
+  onlineSearching: false,
+  onlineCurrentPage: 1,
+  onlineHasMore: false,
+};
+let _updatePlaylistPlayingState = null;
+let _loadingSongKey = null;
+let _loadingSongTimeout = null;
+
+const PlaylistAPI = {
+  baseUrl: "/api/plugins/g-player-proxy/playlists",
+
+  async list() {
+    const resp = await fetch(this.baseUrl, {
+      headers: getRequestHeaders(),
+    });
+    if (!resp.ok) throw new Error("加载歌单列表失败");
+    const data = await resp.json();
+    return data.playlists || [];
+  },
+
+  async get(id) {
+    const resp = await fetch(`${this.baseUrl}/${id}`, {
+      headers: getRequestHeaders(),
+    });
+    if (!resp.ok) throw new Error("加载歌单失败");
+    return await resp.json();
+  },
+
+  async create(name, cover = "") {
+    const resp = await fetch(this.baseUrl, {
+      method: "POST",
+      headers: getRequestHeaders(),
+      body: JSON.stringify({ name, cover }),
+    });
+    if (!resp.ok) throw new Error("创建歌单失败");
+    return await resp.json();
+  },
+
+  async update(id, data) {
+    const resp = await fetch(`${this.baseUrl}/${id}`, {
+      method: "PUT",
+      headers: getRequestHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!resp.ok) throw new Error("更新歌单失败");
+    return await resp.json();
+  },
+
+  async remove(id) {
+    const resp = await fetch(`${this.baseUrl}/${id}`, {
+      method: "DELETE",
+      headers: getRequestHeaders(),
+    });
+    if (!resp.ok) throw new Error("删除歌单失败");
+    return await resp.json();
+  },
+
+  async addSongs(id, songs) {
+    const resp = await fetch(`${this.baseUrl}/${id}/songs`, {
+      method: "POST",
+      headers: getRequestHeaders(),
+      body: JSON.stringify({ songs }),
+    });
+    if (!resp.ok) throw new Error("添加歌曲失败");
+    return await resp.json();
+  },
+
+  async removeSongs(id, payload) {
+    const resp = await fetch(`${this.baseUrl}/${id}/songs`, {
+      method: "DELETE",
+      headers: getRequestHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error("移除歌曲失败");
+    return await resp.json();
+  },
+
+  async importFromUrl(url, name = "") {
+    const resp = await fetch(`${this.baseUrl}/import`, {
+      method: "POST",
+      headers: getRequestHeaders(),
+      body: JSON.stringify({ url, name }),
+    });
+    if (!resp.ok) {
+      let msg = "导入失败";
+      try {
+        const err = await resp.json();
+        msg = err.error || msg;
+      } catch (e) {}
+      throw new Error(msg);
+    }
+    return await resp.json();
+  },
+};
+
+window.PlaylistAPI = PlaylistAPI;
+
 window.addEventListener("beforeunload", () => {
   settleListeningTime("page_unload");
   try {
@@ -1667,7 +2291,6 @@ let dynamicThemeTimeoutId = null;
 let dynamicPrevLock = null;
 let isRendering = false;
 let isTestIndicatorActive = false;
-let messageSentCheckTimer = null;
 let currentActiveTab = "main";
 const themeShutdownTimeouts = {};
 const statefulThemes = new Set();
@@ -1697,13 +2320,7 @@ function fuzzyMatchTrack(bubbleTitle, bubbleArtist, track) {
   if (!track || !bubbleTitle || !bubbleArtist) return false;
   const normalize = (str) => {
     if (!str) return "";
-    return str
-      .toLowerCase()
-      .replace(/\s*[\(\（].*?[\)\）]\s*/g, "")
-      .replace(/\s*\[.*?\]\s*/g, "")
-      .replace(/[-_]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    return str.toLowerCase().replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
   };
 
   const normalizedBubbleTitle = normalize(bubbleTitle);
@@ -1718,12 +2335,7 @@ function fuzzyMatchTrack(bubbleTitle, bubbleArtist, track) {
   const trackArtists = artistSources
     .filter(Boolean)
     .map((a) => normalize(String(a)));
-  const titleMatch = trackTitles.some(
-    (t) =>
-      t === normalizedBubbleTitle ||
-      t.includes(normalizedBubbleTitle) ||
-      normalizedBubbleTitle.includes(t),
-  );
+  const titleMatch = trackTitles.some((t) => t === normalizedBubbleTitle);
   const artistMatch = trackArtists.some(
     (a) =>
       a === normalizedBubbleArtist ||
@@ -1767,6 +2379,7 @@ function getSettings() {
     debugLogs: false,
     verboseLogs: false,
     position: "floating_bottom",
+    floatingBottomOffset: 0,
     customPosition: { x: 50, y: 50, locked: false },
     selectedTextPresetId: "cat_default",
     textPresets: defaultPresets,
@@ -1798,6 +2411,13 @@ function getSettings() {
     deletedBuiltIns: { themes: [], textPresets: [], bubbleStyles: [] },
     clickThrough: false,
     showFpsMonitor: false,
+    playlistSourceMode: "mixed",
+    selectedPlaylistId: null,
+    enableCharacterPlaylist: false,
+    autoSwitchCharacterPlaylist: true,
+    rememberPlaybackProgress: true,
+    characterPlaylists: {},
+    lastPlaybackProgress: {},
   };
 
   if (!extension_settings[MODULE]) {
@@ -2096,7 +2716,34 @@ function getAvatarUrls() {
       }
     }
   } catch (error) {
-    console.warn("[TypingIndicator] 从核心变量获取角色头像失败:", error);
+    console.warn("[TypingIndicator] 从 characters 获取头像失败:", error);
+  }
+  if (!charAvatarFound && selected_group && groups && groups.length > 0) {
+    try {
+      const groupData = groups.find((g) => g.id === selected_group);
+      if (groupData) {
+        if (groupData.avatar_url && groupData.avatar_url !== "none") {
+          charAvatarUrl = groupData.avatar_url.startsWith("/")
+            ? groupData.avatar_url
+            : `/${groupData.avatar_url}`;
+          charAvatarFound = true;
+        } else if (
+          Array.isArray(groupData.members) &&
+          groupData.members.length > 0
+        ) {
+          const disabled = groupData.disabled_members || [];
+          const activeMember =
+            groupData.members.find((m) => !disabled.includes(m)) ||
+            groupData.members[0];
+          if (activeMember && activeMember !== "none") {
+            charAvatarUrl = `/characters/${encodeURIComponent(activeMember)}`;
+            charAvatarFound = true;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("[TypingIndicator] 从群组获取头像失败:", error);
+    }
   }
 
   if (
@@ -2105,9 +2752,6 @@ function getAvatarUrls() {
     typeof window.TavernHelper.getCharAvatarPath === "function"
   ) {
     try {
-      debugLog(
-        "[TypingIndicator] 核心变量方案失败，尝试使用 TavernHelper 作为备用...",
-      );
       const pathFromHelper = window.TavernHelper.getCharAvatarPath("current");
       if (pathFromHelper) {
         charAvatarUrl = pathFromHelper.startsWith("/")
@@ -2116,7 +2760,7 @@ function getAvatarUrls() {
         charAvatarFound = true;
       }
     } catch (error) {
-      console.warn("[TypingIndicator] 调用 TavernHelper 备用方案失败:", error);
+      console.warn("[TypingIndicator] TavernHelper 兜底失败:", error);
     }
   }
 
@@ -2475,9 +3119,7 @@ function renderBgmBubbles(messageElement) {
   });
 
   if (processedCount >= allMatches.length) {
-    console.log(
-      `[Typing Indicator Music] 已渲染 ${processedCount} 个 BGM 气泡`,
-    );
+    verboseLog(`[Typing Indicator Music] 已渲染 ${processedCount} 个 BGM 气泡`);
     return;
   }
 
@@ -2490,7 +3132,7 @@ function renderBgmBubbles(messageElement) {
   const remainingMatches = [...currentNonCodeText.matchAll(BGM_REGEX)];
 
   if (remainingMatches.length === 0) {
-    console.log(`[Typing Indicator Music] 所有标签已处理完成`);
+    verboseLog(`[Typing Indicator Music] 所有标签已处理完成`);
     return;
   }
 
@@ -2545,7 +3187,7 @@ function renderBgmBubbles(messageElement) {
 
   if (hasChanges) {
     mesText.innerHTML = html;
-    console.log(
+    verboseLog(
       `[Typing Indicator Music] 已修复 ${remainingMatches.length} 个跨节点 BGM 气泡`,
     );
   }
@@ -2614,7 +3256,7 @@ function refreshAllBubbles() {
     }
   });
 
-  console.log("[Typing Indicator Music] 已刷新所有BGM气泡样式");
+  verboseLog("[Typing Indicator Music] 已刷新所有BGM气泡样式");
 }
 
 async function searchSongWithDedup(title, artist) {
@@ -2634,16 +3276,13 @@ async function searchSongWithDedup(title, artist) {
   }
   const cached = MusicCache.getSearch(title, artist);
   if (cached) {
-    const cachedArtist = MusicCache._normalizeArtist(
-      cached.artist || "",
-    ).toLowerCase();
-    const requestedArtist = (artist || "").toLowerCase().trim();
-
     const isMatch =
-      !requestedArtist ||
-      !cachedArtist ||
-      cachedArtist.includes(requestedArtist) ||
-      requestedArtist.includes(cachedArtist);
+      !artist ||
+      !cached.artist ||
+      MusicUtils.isArtistMatch(
+        artist,
+        MusicCache._normalizeArtist(cached.artist || ""),
+      );
 
     if (isMatch) {
       console.log(`[搜索] ✓ 缓存命中: ${title} - ${artist}`);
@@ -2662,16 +3301,13 @@ async function searchSongWithDedup(title, artist) {
     const result = await searchSong(title, artist);
 
     if (result) {
-      const resultArtist = MusicCache._normalizeArtist(
-        result.artist || "",
-      ).toLowerCase();
-      const requestedArtist = (artist || "").toLowerCase().trim();
-
       const isMatch =
-        !requestedArtist ||
-        !resultArtist ||
-        resultArtist.includes(requestedArtist) ||
-        requestedArtist.includes(resultArtist);
+        !artist ||
+        !result.artist ||
+        MusicUtils.isArtistMatch(
+          artist,
+          MusicCache._normalizeArtist(result.artist || ""),
+        );
 
       if (!isMatch) {
         console.warn(
@@ -2698,7 +3334,7 @@ async function searchSongWithDedup(title, artist) {
 
 async function searchSong(title, artist = "") {
   const query = artist ? `${title} ${artist}` : title;
-  const sources = ["tencent", "netease", "kuwo"];
+  const sources = ["netease", "kuwo", "tencent"];
   console.log(
     `[搜索] 开始搜索: "${query}" (歌曲: ${title}, 歌手: ${artist || "未指定"})`,
   );
@@ -2787,7 +3423,7 @@ async function searchSong(title, artist = "") {
         }[source] || source;
       const coverUrl = track.cover || track.pic || "";
 
-      console.log(
+      verboseLog(
         `[搜索] ${source} 选中: id=${trackId}, 歌名=${track.song || track.name}, 歌手=${track.singer || track.artist}`,
       );
 
@@ -2795,12 +3431,44 @@ async function searchSong(title, artist = "") {
       let lyricsData = MusicCache.getLyrics(trackId, sourceLabel);
       let cachedCover = MusicCache.getCover(trackId, sourceLabel);
 
-      console.log(
+      verboseLog(
         `[搜索] 缓存检查: audioUrl=${audioUrl ? "有" : "无"}, lyrics=${lyricsData ? "有" : "无"}, cover=${cachedCover ? "有" : "无"}`,
       );
 
       if (audioUrl && lyricsData) {
-        console.log(`[搜索] ✓ ${source} 缓存完全命中，直接返回`);
+        verboseLog(`[搜索] ✓ ${source} 缓存完全命中`);
+        let finalTlyric = lyricsData.tlyric || "";
+        if (lyricsData.content && !finalTlyric) {
+          console.log(
+            `[搜索] ⚠️ ${source} 主歌词在但翻译缺失，主动补翻译中...`,
+          );
+          try {
+            const lyricRes = await fetch(
+              `/api/plugins/g-player-proxy/lyric?id=${trackId}&source=${source}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
+            );
+            if (lyricRes.ok) {
+              const lyricJson = await lyricRes.json();
+              const newTlyric =
+                lyricJson?.data?.tlyric || lyricJson?.data?.trans || "";
+              if (newTlyric && newTlyric.trim() !== "") {
+                finalTlyric = newTlyric;
+                MusicCache.setLyrics(
+                  trackId,
+                  sourceLabel,
+                  lyricsData.content,
+                  newTlyric,
+                );
+                console.log(
+                  `[搜索] ✓ ${source} 翻译已补齐并写回缓存: ${title}`,
+                );
+              } else {
+                console.log(`[搜索] ${source} /lyric 接口也没返回翻译`);
+              }
+            }
+          } catch (e) {
+            console.warn(`[搜索] 补翻译失败:`, e.message);
+          }
+        }
         return {
           id: trackId,
           name: track.song || track.name,
@@ -2810,12 +3478,15 @@ async function searchSong(title, artist = "") {
           source: sourceLabel,
           audioUrl: audioUrl,
           lyricsContent: lyricsData.content || "",
-          tlyricContent: lyricsData.tlyric || "",
+          tlyricContent: finalTlyric,
         };
       }
 
       debugLog(`[搜索] ${source} 获取音频URL...`);
-      const songData = await fetchAndValidateSong(trackId, source);
+      const songData = await fetchAndValidateSong(trackId, source, {
+        title: title,
+        artist: artist,
+      });
 
       if (songData && songData.audioUrl) {
         MusicCache.setAudio(trackId, sourceLabel, songData.audioUrl);
@@ -2856,7 +3527,7 @@ async function searchSong(title, artist = "") {
   return null;
 }
 
-async function fetchAndValidateSong(id, source) {
+async function fetchAndValidateSong(id, source, queryInfo = null) {
   try {
     const [songResponse, lyricResponse] = await Promise.all([
       fetch(`/api/plugins/g-player-proxy/song?id=${id}&source=${source}`),
@@ -2903,7 +3574,7 @@ async function fetchAndValidateSong(id, source) {
       }
     }
 
-    if (!lyricsContent && lyricResponse.ok) {
+    if ((!lyricsContent || !tlyricContent) && lyricResponse.ok) {
       try {
         const lyricData = await lyricResponse.json();
         if (lyricData?.data) {
@@ -2918,11 +3589,59 @@ async function fetchAndValidateSong(id, source) {
         }
       } catch (e) {}
     }
+    if (source === "netease" && lyricsContent && queryInfo?.title) {
+      const backupLrc = lyricsContent;
+      const backupTlyric = tlyricContent;
+      const preferSources = ["kuwo", "tencent"];
+
+      for (const preferSrc of preferSources) {
+        try {
+          const q = `${queryInfo.title} ${queryInfo.artist || ""}`.trim();
+          const sRes = await fetch(
+            `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(q)}&source=${preferSrc}`,
+          );
+          if (!sRes.ok) continue;
+          const sData = await sRes.json();
+          if (!sData?.data || sData.data.length === 0) continue;
+
+          const matched = MusicUtils.selectBestMatch
+            ? MusicUtils.selectBestMatch(
+                queryInfo.title,
+                queryInfo.artist,
+                sData.data,
+              )
+            : sData.data[0];
+          if (!matched) continue;
+
+          const matchId = matched.id || matched.rid;
+          const lRes = await fetch(
+            `/api/plugins/g-player-proxy/lyric?id=${matchId}&source=${preferSrc}`,
+          );
+          if (!lRes.ok) continue;
+          const lJson = await lRes.json();
+          const newLrc = lJson?.data?.lrc || lJson?.data?.lyric || "";
+          const newTlyric = lJson?.data?.tlyric || lJson?.data?.trans || "";
+
+          if (newLrc && newLrc.trim().length > 30) {
+            lyricsContent = newLrc;
+            tlyricContent = newTlyric;
+            console.log(`[歌词偏好] ✓ 用 ${preferSrc} 的歌词替换了 netease 的`);
+            break;
+          }
+        } catch (e) {
+          console.warn(`[歌词偏好] ${preferSrc} 失败:`, e.message);
+        }
+      }
+
+      if (!lyricsContent || lyricsContent.trim().length < 30) {
+        lyricsContent = backupLrc;
+        tlyricContent = backupTlyric;
+        console.log(`[歌词偏好] 跨源失败，回退到 netease 原歌词`);
+      }
+    }
 
     if (!audioUrl) return null;
-
-    const duration = await getAudioDuration(audioUrl);
-    if (duration !== null && duration < 35) return null;
+    if (await MusicUtils.isPreviewClip(audioUrl)) return null;
 
     return { audioUrl, lyricsContent, tlyricContent };
   } catch (error) {
@@ -2990,21 +3709,56 @@ async function findSongsInMessage(messageId) {
   if (message.is_hidden) return [];
 
   const content = message.mes;
-  BGM_REGEX.lastIndex = 0;
-  let match;
   const songsToAdd = [];
+  const allMatches = [...content.matchAll(BGM_REGEX)];
 
-  while ((match = BGM_REGEX.exec(content)) !== null) {
+  for (const match of allMatches) {
     const title = match[1].trim();
     const artist = match[2].trim();
     if (!title || !artist) continue;
 
     const cached = MusicCache.getSearch(title, artist);
     if (cached) {
-      console.log(`[Player] ✓ 缓存命中: ${title} - ${artist}`);
+      verboseLog(`[Player] ✓ 缓存命中: ${title} - ${artist}`);
       const audioUrl = MusicCache.getAudio(cached.id, cached.source);
       const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
       const coverUrl = MusicCache.getCover(cached.id, cached.source);
+
+      let finalTlyric = lyricsData?.tlyric || "";
+      if (lyricsData?.content && !finalTlyric) {
+        console.log(`[Player] ⚠️ 缓存里翻译缺失，主动补一下: ${title}`);
+        try {
+          const sourceMap = {
+            Netease: "netease",
+            Tencent: "tencent",
+            Kuwo: "kuwo",
+          };
+          const apiSource =
+            sourceMap[cached.source] || cached.source.toLowerCase();
+          const lyricRes = await fetch(
+            `/api/plugins/g-player-proxy/lyric?id=${cached.id}&source=${apiSource}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
+          );
+          if (lyricRes.ok) {
+            const lyricJson = await lyricRes.json();
+            const newTlyric =
+              lyricJson?.data?.tlyric || lyricJson?.data?.trans || "";
+            if (newTlyric && newTlyric.trim() !== "") {
+              finalTlyric = newTlyric;
+              MusicCache.setLyrics(
+                cached.id,
+                cached.source,
+                lyricsData.content,
+                newTlyric,
+              );
+              console.log(`[Player] ✓ 翻译已补齐: ${title}`);
+            } else {
+              console.log(`[Player] /lyric 接口也没翻译: ${title}`);
+            }
+          }
+        } catch (e) {
+          console.warn(`[Player] 补翻译失败:`, e.message);
+        }
+      }
 
       songsToAdd.push({
         id: cached.id,
@@ -3012,10 +3766,20 @@ async function findSongsInMessage(messageId) {
         name: cached.title,
         title: cached.title,
         artist: cached.artist,
-        coverUrl: coverUrl || cached.coverUrl || "",
+        coverUrl: (() => {
+          const isEmptyShell = (u) => {
+            if (!u) return true;
+            const m = u.match(/M([0-9a-zA-Z]+)\.jpg/i);
+            return m && /^0+$/.test(m[1]);
+          };
+          if (coverUrl && !isEmptyShell(coverUrl)) return coverUrl;
+          if (cached.coverUrl && !isEmptyShell(cached.coverUrl))
+            return cached.coverUrl;
+          return "";
+        })(),
         audioUrl: audioUrl || "",
         lyricsContent: lyricsData?.content || "",
-        tlyricContent: lyricsData?.tlyric || "",
+        tlyricContent: finalTlyric,
         originalTitle: title,
         originalArtist: artist,
         sourceMessageId: messageId,
@@ -3024,7 +3788,7 @@ async function findSongsInMessage(messageId) {
       continue;
     }
 
-    console.log(`[Player] 搜索: ${title} - ${artist}`);
+    debugLog(`[Player] 搜索: ${title} - ${artist}`);
     const trackData = await searchSongWithDedup(title, artist);
 
     if (trackData) {
@@ -3043,7 +3807,7 @@ async function findSongsInMessage(messageId) {
   return songsToAdd;
 }
 
-async function scanChatForSongs() {
+async function scanChatForSongs(scanAll = false) {
   if (!chat || chat.length === 0) return [];
   const validMessages = chat
     .map((msg, index) => ({ msg, index }))
@@ -3053,9 +3817,13 @@ async function scanChatForSongs() {
       if (!msg.mes || !msg.mes.includes("[bgm]")) return false;
       return true;
     });
-  const messagesToScan = validMessages.slice(-SCAN_CONFIG.MAX_MESSAGES_TO_SCAN);
+  const messagesToScan = scanAll
+    ? validMessages
+    : validMessages.slice(-SCAN_CONFIG.MAX_MESSAGES_TO_SCAN);
 
-  console.log(`[Player] 扫描 ${messagesToScan.length}/${chat.length} 条消息`);
+  console.log(
+    `[Player] 扫描 ${messagesToScan.length}/${chat.length} 条消息${scanAll ? "（全部）" : ""}`,
+  );
 
   if (messagesToScan.length === 0) return [];
   const results = await asyncPool(
@@ -3077,6 +3845,16 @@ async function scanChatForSongs() {
   debugLog(`[Player] 找到 ${finalPlaylist.length} 首不重复的歌`);
   return finalPlaylist;
 }
+function getProgressKey(mode, fallbackPlaylistId) {
+  if (mode === "mixed" || mode === "chat_only") {
+    const charAvatar =
+      this_chid !== undefined && characters[this_chid]
+        ? characters[this_chid].avatar
+        : null;
+    return charAvatar ? `${mode}:${charAvatar}` : null;
+  }
+  return fallbackPlaylistId || null;
+}
 
 let _playlistBuildPromise = null;
 
@@ -3096,52 +3874,130 @@ async function buildAndSetInitialPlaylist() {
   }
 }
 
+async function _loadPlaylistSongsAsTracks(playlistId) {
+  if (!playlistId) return [];
+  try {
+    const resp = await fetch(
+      `/api/plugins/g-player-proxy/playlists/${playlistId}`,
+    );
+    if (!resp.ok) return [];
+    const pl = await resp.json();
+    if (!Array.isArray(pl.songs)) return [];
+    return pl.songs.map((s) => ({
+      title: s.title || "未知歌曲",
+      name: s.title || "未知歌曲",
+      artist: s.artist || "",
+      coverUrl: s.cover || "",
+      sourceMessageId: `playlist-${playlistId}`,
+    }));
+  } catch (e) {
+    console.warn("[Playlist] 加载歌单歌曲失败:", e);
+    return [];
+  }
+}
+
 async function _doBuildAndSetInitialPlaylist() {
+  const settings = getSettings();
   isPlaylistReady = false;
   try {
-    const [chatSongs, worldInfoSongsRaw] = await Promise.all([
-      scanChatForSongs(),
-      getBgmPlaylistAsync(),
-    ]);
+    let finalPlaylist = [];
+    const mode = settings.playlistSourceMode || "mixed";
 
-    let finalPlaylist = [...chatSongs];
-    if (worldInfoSongsRaw && worldInfoSongsRaw.length > 0) {
-      const worldInfoSongs = worldInfoSongsRaw.map((track) => ({
-        name:
-          track.name ||
-          track.song ||
-          track.title ||
-          track.歌曲名 ||
-          t`Unknown Title`,
-        artist: Array.isArray(track.artist)
-          ? track.artist
-          : track.artist
-            ? [track.artist]
-            : [t`Unknown Artist`],
-        audioUrl: track.audioUrl || track.url || track.音频链接,
-        lyricsUrl: track.lyricsUrl || track.lrc || track.歌词链接,
-        coverUrl: track.coverUrl || track.cover || track.pic || track.封面链接,
-        sourceMessageId: "world-info",
-        ...track,
-      }));
+    if (mode === "playlist_only") {
+      finalPlaylist = await _loadPlaylistSongsAsTracks(
+        settings.selectedPlaylistId,
+      );
+      debugLog(`[Playlist] 纯歌单模式，加载 ${finalPlaylist.length} 首`);
+    } else if (mode === "character_playlist") {
+      const charAvatar =
+        this_chid !== undefined && characters[this_chid]
+          ? characters[this_chid].avatar
+          : null;
+      const boundId =
+        charAvatar && settings.characterPlaylists
+          ? settings.characterPlaylists[charAvatar]
+          : null;
+      if (boundId) {
+        finalPlaylist = await _loadPlaylistSongsAsTracks(boundId);
+        debugLog(`[Playlist] 角色歌单模式，加载 ${finalPlaylist.length} 首`);
+      } else {
+        debugLog("[Playlist] 角色歌单模式但无绑定，播放列表为空");
+      }
+    } else if (mode === "chat_only") {
+      finalPlaylist = await scanChatForSongs(true);
+      debugLog(
+        `[Playlist] 纯聊天模式，扫描全部消息，加载 ${finalPlaylist.length} 首`,
+      );
+    } else {
+      const [chatSongs, worldInfoSongsRaw] = await Promise.all([
+        scanChatForSongs(),
+        getBgmPlaylistAsync(),
+      ]);
 
-      const makeDedupKey = (s) => {
+      finalPlaylist = [];
+      const existingKeys = new Set();
+      const existingTitleArtist = new Set();
+
+      const idSourceKey = (s) => {
         if (s.id && s.source) return `${s.id}-${s.source}`;
         if (s.audioUrl) return `url:${s.audioUrl}`;
-        const title = s.title || s.name || "";
+        return null;
+      };
+      const titleArtistKey = (s) => {
+        const title = (s.title || s.name || "").toLowerCase();
         const artist = Array.isArray(s.artist)
-          ? s.artist.join(",")
-          : s.artist || "";
+          ? s.artist.join(",").toLowerCase()
+          : (s.artist || "").toLowerCase();
         return `info:${title}-${artist}`;
       };
+      const tryAdd = (song) => {
+        const k1 = idSourceKey(song);
+        const k2 = titleArtistKey(song);
+        if (k1 && existingKeys.has(k1)) return;
+        if (existingTitleArtist.has(k2)) return;
+        finalPlaylist.push(song);
+        if (k1) existingKeys.add(k1);
+        existingTitleArtist.add(k2);
+      };
 
-      const chatSongIds = new Set(chatSongs.map((s) => makeDedupKey(s)));
-      worldInfoSongs.forEach((ws) => {
-        if (!chatSongIds.has(makeDedupKey(ws))) {
-          finalPlaylist.push(ws);
-        }
-      });
+      if (worldInfoSongsRaw && worldInfoSongsRaw.length > 0) {
+        worldInfoSongsRaw.forEach((track) => {
+          tryAdd({
+            name:
+              track.name ||
+              track.song ||
+              track.title ||
+              track.歌曲名 ||
+              t`Unknown Title`,
+            artist: Array.isArray(track.artist)
+              ? track.artist
+              : track.artist
+                ? [track.artist]
+                : [t`Unknown Artist`],
+            audioUrl: track.audioUrl || track.url || track.音频链接,
+            lyricsUrl: track.lyricsUrl || track.lrc || track.歌词链接,
+            coverUrl:
+              track.coverUrl || track.cover || track.pic || track.封面链接,
+            sourceMessageId: "world-info",
+            ...track,
+          });
+        });
+      }
+
+      if (settings.selectedPlaylistId) {
+        const playlistSongs = await _loadPlaylistSongsAsTracks(
+          settings.selectedPlaylistId,
+        );
+        playlistSongs.forEach(tryAdd);
+      }
+
+      chatSongs.forEach(tryAdd);
+
+      debugLog(
+        `[Playlist] 混合模式，最终 ${finalPlaylist.length} 首（世界书→歌单→聊天）`,
+      );
     }
+
     const avatarUrls = getAvatarUrls();
 
     const playerIframe = document.querySelector("#music_player .theme-iframe");
@@ -3149,6 +4005,13 @@ async function _doBuildAndSetInitialPlaylist() {
       if (finalPlaylist.length > 0) {
         if (playlistsAreDifferent(lastSentPlaylist, finalPlaylist)) {
           lastSentPlaylist = finalPlaylist;
+          let resumeTrack = null;
+          if (settings.rememberPlaybackProgress) {
+            const rKey = getProgressKey(mode, settings.selectedPlaylistId);
+            if (rKey && settings.lastPlaybackProgress?.[rKey]) {
+              resumeTrack = settings.lastPlaybackProgress[rKey];
+            }
+          }
           playerIframe.contentWindow.postMessage(
             {
               source: "typing-indicator-host",
@@ -3157,6 +4020,7 @@ async function _doBuildAndSetInitialPlaylist() {
                 playlist: finalPlaylist,
                 charAvatarUrl: avatarUrls.char,
                 userAvatarUrl: avatarUrls.user,
+                resumeTrack: resumeTrack,
               },
             },
             "*",
@@ -3178,8 +4042,8 @@ async function _doBuildAndSetInitialPlaylist() {
             source: "typing-indicator-host",
             type: "context-update",
             data: {
-              charAvatarUrl: avatarUrls.char,
-              userAvatarUrl: avatarUrls.user,
+              ...getCurrentCharContext(),
+              playlist: [],
             },
           },
           "*",
@@ -3255,16 +4119,10 @@ async function handleSongPlayRequest(songData) {
   await new Promise((resolve) => setTimeout(resolve, 150));
   const cached = MusicCache.getSearch(songData.title, songData.artist);
   if (cached) {
-    const cachedArtist = MusicCache._normalizeArtist(cached.artist)
-      .toLowerCase()
-      .trim();
-    const requestedArtist = MusicCache._normalizeArtist(songData.artist)
-      .toLowerCase()
-      .trim();
-    const isValidMatch =
-      cachedArtist.includes(requestedArtist) ||
-      requestedArtist.includes(cachedArtist) ||
-      cachedArtist === requestedArtist;
+    const isValidMatch = MusicUtils.isArtistMatch(
+      songData.artist,
+      MusicCache._normalizeArtist(cached.artist || ""),
+    );
 
     if (!isValidMatch) {
       console.warn(
@@ -3297,6 +4155,37 @@ async function handleSongPlayRequest(songData) {
       console.log(
         `[Typing Indicator Music] ✓ 缓存完全命中: ${songData.title} - ${songData.artist}`,
       );
+      const cachedLyrics = MusicCache.getLyrics(cached.id, cached.source);
+      if (cachedLyrics && cachedLyrics.content && !cachedLyrics.tlyric) {
+        try {
+          const sourceMap = {
+            Netease: "netease",
+            Tencent: "tencent",
+            Kuwo: "kuwo",
+          };
+          const apiSource =
+            sourceMap[cached.source] || cached.source.toLowerCase();
+          let lyricUrl = `/api/plugins/g-player-proxy/lyric?id=${cached.id}&source=${apiSource}`;
+          lyricUrl += `&title=${encodeURIComponent(songData.title)}&artist=${encodeURIComponent(songData.artist)}`;
+          const lyricRes = await fetch(lyricUrl);
+          const lyricJson = await lyricRes.json();
+          const newTlyric =
+            lyricJson?.data?.tlyric || lyricJson?.data?.trans || "";
+          if (newTlyric && newTlyric.trim() !== "") {
+            MusicCache.setLyrics(
+              cached.id,
+              cached.source,
+              cachedLyrics.content,
+              newTlyric,
+            );
+            console.log(
+              `[Typing Indicator Music] ✓ 补齐翻译: ${songData.title}`,
+            );
+          }
+        } catch (e) {
+          console.warn(`[Typing Indicator Music] 补翻译失败:`, e);
+        }
+      }
       sendPlayNow(playerIframe, cached, audioUrl, songData);
       showPlayerFeedback();
       return;
@@ -3398,6 +4287,55 @@ function sendPlayNow(iframe, cached, audioUrl, originalData) {
     },
     "*",
   );
+}
+
+async function getFavoriteSnapshot(track) {
+  const all = await PlaylistAPI.list();
+  const details = await Promise.all(
+    all.map((p) => PlaylistAPI.get(p.id).catch(() => null)),
+  );
+  const statusMap = {};
+  let isFavorited = false;
+  const trackArtistStr = Array.isArray(track.artist)
+    ? track.artist.join(",")
+    : track.artist || "";
+  details.forEach((pl, idx) => {
+    if (!pl || !Array.isArray(pl.songs)) return;
+    const inList = pl.songs.some((s) => {
+      const sArtist = Array.isArray(s.artist)
+        ? s.artist.join(",")
+        : s.artist || "";
+      return (
+        MusicUtils.isTitleMatch(track.title, s.title) &&
+        MusicUtils.isArtistMatch(trackArtistStr, sArtist)
+      );
+    });
+    if (inList) {
+      statusMap[all[idx].id] = true;
+      isFavorited = true;
+    }
+  });
+  return { all, statusMap, isFavorited };
+}
+
+function broadcastFavoriteStatus(track) {
+  getFavoriteSnapshot(track)
+    .then((snap) => {
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (playerIframe && playerIframe.contentWindow) {
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "favorite-status-update",
+            data: { track, isFavorited: snap.isFavorited },
+          },
+          "*",
+        );
+      }
+    })
+    .catch((e) => console.error("[Favorite] 广播失败:", e));
 }
 
 function showPlayerFeedback() {
@@ -3650,6 +4588,72 @@ function syncIndicatorInteractivity() {
   }
 }
 
+// ==================== 浮动指示器自动跟随输入框 ====================
+
+let _floatingIndicatorResizeObserver = null;
+let _floatingIndicatorWatcherSetup = false;
+
+function setupFloatingIndicatorAutoAdjust() {
+  if (_floatingIndicatorWatcherSetup) return;
+  _floatingIndicatorWatcherSetup = true;
+
+  const updatePosition = () => {
+    const indicator = document.getElementById("typing_indicator");
+    if (!indicator) return;
+    if (!indicator.classList.contains("typing_indicator_floating")) return;
+
+    const settings = getSettings();
+    const sendForm = document.getElementById("send_form");
+    const memoryTable = document.getElementById("tableStatusContainer");
+    let bottomOffset = 5; /* 基础间距，可自定义 */
+    if (sendForm) bottomOffset += sendForm.offsetHeight;
+    if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
+      bottomOffset += memoryTable.offsetHeight;
+    }
+    bottomOffset += settings.floatingBottomOffset || 0;
+    indicator.style.bottom = `${bottomOffset}px`;
+  };
+
+  const attachSendFormObserver = () => {
+    const sendForm = document.getElementById("send_form");
+    if (!sendForm || typeof ResizeObserver === "undefined") return;
+    if (_floatingIndicatorResizeObserver) {
+      _floatingIndicatorResizeObserver.disconnect();
+    }
+    _floatingIndicatorResizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(updatePosition);
+    });
+    _floatingIndicatorResizeObserver.observe(sendForm);
+  };
+
+  attachSendFormObserver();
+
+  // 手机端：监听 visualViewport 变化（输入法弹起/收起会触发）
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      requestAnimationFrame(updatePosition);
+    });
+    window.visualViewport.addEventListener("scroll", () => {
+      requestAnimationFrame(updatePosition);
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    requestAnimationFrame(updatePosition);
+  });
+
+  // 如果 send_form 一开始还没渲染出来，延迟重试
+  if (!document.getElementById("send_form")) {
+    const retryTimer = setInterval(() => {
+      if (document.getElementById("send_form")) {
+        clearInterval(retryTimer);
+        attachSendFormObserver();
+      }
+    }, 500);
+    setTimeout(() => clearInterval(retryTimer), 10000);
+  }
+}
+
 // ==================== 指示器显示和隐藏 ====================
 
 function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
@@ -3718,6 +4722,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
         type !== "test" &&
         (!charName || (!settings.streaming && isStreamingEnabled()))
       ) {
+        isRendering = false;
         return;
       }
     }
@@ -3842,6 +4847,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
         if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
           bottomOffset += memoryTable.offsetHeight;
         }
+        bottomOffset += settings.floatingBottomOffset || 0; // 加上用户自定义偏移
         typingIndicator.style.bottom = `${bottomOffset}px`;
         typingIndicator.style.position = "fixed";
         parentContainer = document.body;
@@ -5005,6 +6011,7 @@ function refreshIndicatorContent(indicator) {
       if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
         bottomOffset += memoryTable.offsetHeight;
       }
+      bottomOffset += settings.floatingBottomOffset || 0;
       indicator.style.bottom = `${bottomOffset}px`;
       indicator.style.position = "fixed";
     },
@@ -5143,6 +6150,14 @@ function revertDynamicTheme(source = "unknown") {
 
   const settings = getSettings();
 
+  if (dynamicPrevLock !== null) {
+    settings.customPosition.locked = dynamicPrevLock;
+    saveSettingsDebounced();
+    const lockCb = document.querySelector("#ti_position_locked");
+    if (lockCb) lockCb.checked = dynamicPrevLock;
+    dynamicPrevLock = null;
+  }
+
   if (revertingFromThemeId && statefulThemes.has(revertingFromThemeId)) {
     isStatefulThemeLocked = false;
     debugLog(`[TypingIndicator] 回退：解锁 ${revertingFromThemeId}`);
@@ -5179,6 +6194,9 @@ function applyDynamicTheme(themeName) {
     settings.position === "draggable" && !settings.customPosition.locked;
 
   if (needLock) {
+    if (dynamicPrevLock === null) {
+      dynamicPrevLock = settings.customPosition.locked;
+    }
     settings.customPosition.locked = true;
     saveSettingsDebounced();
     const lockCb = document.querySelector("#ti_position_locked");
@@ -5505,6 +6523,9 @@ function addExtensionSettings() {
                       currentActiveTab === "player" ? "active" : ""
                     }" data-tab="player">${t`Player`}</button>
                     <button class="tab-button ${
+                      currentActiveTab === "playlist" ? "active" : ""
+                    }" data-tab="playlist">${t`Playlist`}</button>
+                    <button class="tab-button ${
                       currentActiveTab === "tools" ? "active" : ""
                     }" data-tab="tools">${t`Tools`}</button>
                 </div>
@@ -5622,6 +6643,17 @@ function addExtensionSettings() {
                                 <button id="ti_test_position" class="menu_button fa-solid fa-crosshairs" title="${t`Test Display`}" style="display: none; padding: 4px 10px; min-width: unset;"></button>
                             </h4>
                             <div style="display: flex; align-items: center; gap: 10px;"><select id="ti_position" class="text_pole" style="flex-grow: 1;"></select></div>
+                            <div id="ti_floating_bottom_controls" style="display: ${
+                              settings.position === "floating_bottom"
+                                ? "block"
+                                : "none"
+                            }; margin-top: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <label for="ti_floating_bottom_offset" style="white-space: nowrap;">${t`Extra Offset (px)`}:</label>
+                                    <input type="number" id="ti_floating_bottom_offset" class="text_pole" value="${settings.floatingBottomOffset || 0}" style="width: 80px;" min="-500" max="500">
+                                </div>
+                                <small style="opacity: 0.7;">${t`Positive = move up, Negative = move down`}</small>
+                            </div>
                             <div id="ti_draggable_controls" style="display: ${
                               settings.position === "draggable"
                                 ? "flex"
@@ -5681,15 +6713,13 @@ function addExtensionSettings() {
 
                             <details class="ti-readme-details" id="ti_preset_editor_details">
     <summary><i class="fa-solid fa-code"></i> ${t`Editor`}</summary>
-    <div class="ti-readme-textarea-wrapper">
+    <div class="ti-readme-textarea-wrapper" style="display: flex; flex-direction: column; gap: 10px;">
         <textarea id="ti_preset_text" class="text_pole" rows="5"></textarea>
-    </div>
-</details>
-<details class="ti-readme-details" id="ti_preset_readme_details">
-    <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
-    <div class="ti-readme-textarea-wrapper">
-        <textarea id="ti_preset_readme" class="text_pole" rows="4"
-            placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
+        <div id="ti_preset_readme_details">
+            <label for="ti_preset_readme" style="font-weight: bold; display: block; margin-bottom: 5px;">${t`Theme Info`} (Markdown):</label>
+            <textarea id="ti_preset_readme" class="text_pole" rows="4"
+                placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
+        </div>
     </div>
 </details>
                         </div>
@@ -5752,13 +6782,11 @@ function addExtensionSettings() {
                                         <div id="ti_theme_iframe_sizes_error"></div><small>${t`Set width and height for different positions. If left empty, default sizes and positions will be used.`}</small>
                                     </div>
                                 </div>
-                                <details class="ti-readme-details" id="ti_theme_readme_details">
-                                    <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
-                                    <div class="ti-readme-textarea-wrapper">
-                                        <textarea id="ti_theme_readme" class="text_pole" rows="4"
-                                            placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
-                                    </div>
-                                                                </details>
+                                <div id="ti_theme_readme_details">
+                                    <label for="ti_theme_readme" style="font-weight: bold; margin-bottom: 5px; display: block;">${t`Theme Info`} (Markdown):</label>
+                                    <textarea id="ti_theme_readme" class="text_pole" rows="4"
+                                        placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
+                                </div>
                             </div>
 </details>
                         </div>
@@ -5775,9 +6803,10 @@ function addExtensionSettings() {
                       currentActiveTab === "player" ? "active" : ""
                     }" data-tab="player">
                         <div class="ti-section">
-                            <div class="ti-checkbox-container"><label class="checkbox_label"><input type="checkbox" id="ti_player_enabled" ${
+                            <h4>${t`Music Player`}</h4>
+                            <label class="checkbox_label" style="margin-bottom: 0;"><input type="checkbox" id="ti_player_enabled" ${
                               settings.playerEnabled ? "checked" : ""
-                            }>${t`Enable Player`}</label></div>
+                            }>${t`Enable Player`}</label>
                         </div>
 
                         <div id="ti_player_controls" class="ti-section" style="display: ${
@@ -5814,9 +6843,9 @@ function addExtensionSettings() {
     </div>
 
     <!-- 听歌统计部分 -->
-    <div style="border-top: 1px solid var(--SmartThemeBorderColor); padding-top: 12px; margin-top: 12px;">
+    <div style="margin-top: 12px;">
         <h4 style="margin-bottom: 8px;">${t`Listening Stats`}</h4>
-        <div id="ti_listening_stats" style="margin-bottom: 10px; padding: 12px; background: var(--SmartThemeBlurTintColor); border-radius: 8px;">
+        <div id="ti_listening_stats" style="margin-bottom: 10px; padding: 12px; background: rgba(var(--background-color-secondary-rgb), 0.25); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px;">
             <div style="text-align: center; color: var(--SmartThemeBodyColor); opacity: 0.6;">
                 ${t`Select a character to view stats`}
             </div>
@@ -5824,9 +6853,9 @@ function addExtensionSettings() {
     </div>
 
     <!-- 音乐缓存部分 -->
-    <div style="border-top: 1px solid var(--SmartThemeBorderColor); padding-top: 12px; margin-top: 5px;">
+    <div style="margin-top: 12px;">
         <h4 style="margin-bottom: 8px;">${t`Music Cache`}</h4>
-        <div id="ti_cache_stats" style="margin-bottom: 10px; padding: 10px; background: var(--SmartThemeBlurTintColor); border-radius: 6px; font-size: 0.9em;">
+        <div id="ti_cache_stats" style="margin-bottom: 10px; padding: 10px; background: rgba(var(--background-color-secondary-rgb), 0.25); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 14px; font-size: 0.9em;">
             ${t`Loading...`}
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
@@ -5892,13 +6921,11 @@ function addExtensionSettings() {
                                     <textarea id="ti_player_theme_iframe_sizes" class="text_pole" rows="8" placeholder="${t`Configure sizes for the player theme. The player only supports draggable mode.`}"></textarea>
                                     <div id="ti_player_theme_iframe_sizes_error"></div><small>${t`Player themes only support the draggable position.`}</small>
                                 </div>
-                                <details class="ti-readme-details" id="ti_player_theme_readme_details">
-                                    <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
-                                    <div class="ti-readme-textarea-wrapper">
-                                        <textarea id="ti_player_theme_readme" class="text_pole" rows="4"
-                                            placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
-                                    </div>
-                                                                </details>
+                                <div id="ti_player_theme_readme_details">
+                                    <label for="ti_player_theme_readme" style="font-weight: bold; margin-bottom: 5px; display: block;">${t`Theme Info`} (Markdown):</label>
+                                    <textarea id="ti_player_theme_readme" class="text_pole" rows="4"
+                                        placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
+                                </div>
                             </div>
 </details>
                         </div>
@@ -5917,26 +6944,37 @@ function addExtensionSettings() {
                             <div id="ti_lyrics_controls" style="display: ${
                               settings.lyricsEnabled ? "block" : "none"
                             };">
-                                <div class="ti-grid-2-col" style="gap: 10px; margin-bottom: 15px;">
-                                    <label style="text-align: right;">${t`Sung Color`}:</label>
-                                    <input type="color" id="ti_lyrics_sung_color" value="${
-                                      settings.lyricsSungColor
-                                    }" style="width: 60px; height: 30px;">
+                                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px;">
+                                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <label style="margin: 0;">${t`Sung Color`}:</label>
+                                            <input type="color" id="ti_lyrics_sung_color" value="${
+                                              settings.lyricsSungColor
+                                            }" style="width: 45px; height: 28px; padding: 0; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer;">
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <label style="margin: 0;">${t`Unsung Color`}:</label>
+                                            <input type="color" id="ti_lyrics_unsung_color" value="${
+                                              settings.lyricsUnsungColor
+                                            }" style="width: 45px; height: 28px; padding: 0; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer;">
+                                        </div>
+                                    </div>
 
-                                    <label style="text-align: right;">${t`Unsung Color`}:</label>
-                                    <input type="color" id="ti_lyrics_unsung_color" value="${
-                                      settings.lyricsUnsungColor
-                                    }" style="width: 60px; height: 30px;">
-
-                                    <label style="text-align: right;">${t`Background`}:</label>
-                                    <input type="text" id="ti_lyrics_background" class="text_pole" value="${
-                                      settings.lyricsBackground
-                                    }" style="width: 150px;" placeholder="rgba(0,0,0,0.6)">
-
-                                    <label style="text-align: right;">${t`Font Size`}:</label>
-                                    <input type="number" id="ti_lyrics_font_size" class="text_pole" value="${
-                                      settings.lyricsFontSize
-                                    }" min="12" max="36" style="width: 80px;">
+                                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <label style="margin: 0;">${t`Background`}:</label>
+                                            <input type="color" id="ti_lyrics_background_picker" value="#000000" style="width: 45px; height: 28px; padding: 0; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer;" title="${t`Pick color`}">
+                                            <input type="text" id="ti_lyrics_background" class="text_pole" value="${
+                                              settings.lyricsBackground
+                                            }" style="width: 140px;" placeholder="rgba(0,0,0,0.6)">
+                                        </div>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <label style="margin: 0;">${t`Font Size`}:</label>
+                                            <input type="number" id="ti_lyrics_font_size" class="text_pole" value="${
+                                              settings.lyricsFontSize
+                                            }" min="12" max="36" style="width: 70px;">
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -6025,13 +7063,11 @@ function addExtensionSettings() {
                 <label for="ti_bubble_css" style="font-weight: bold; display: block; margin-bottom: 5px;">${t`CSS Style`}:</label>
                 <textarea id="ti_bubble_css" class="text_pole" rows="8" placeholder="${t`CSS styles for .music-bubble`}"></textarea>
             </div>
-            <details class="ti-readme-details" id="ti_bubble_readme_details">
-                <summary><i class="fa-solid fa-circle-info"></i> ${t`Theme Info`} (Markdown)</summary>
-                <div class="ti-readme-textarea-wrapper">
-                    <textarea id="ti_bubble_readme" class="text_pole" rows="4"
-                        placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
-                </div>
-            </details>
+            <div id="ti_bubble_readme_details">
+                <label for="ti_bubble_readme" style="font-weight: bold; display: block; margin-bottom: 5px;">${t`Theme Info`} (Markdown):</label>
+                <textarea id="ti_bubble_readme" class="text_pole" rows="4"
+                    placeholder="${t`Optional: description, author credits, notes, etc. Supports Markdown`}"></textarea>
+            </div>
         </div>
 </details>
 
@@ -6042,6 +7078,155 @@ function addExtensionSettings() {
 </div>
                     </div>
 
+                    <!-- 歌单标签页 -->
+                    <div class="tab-panel ${
+                      currentActiveTab === "playlist" ? "active" : ""
+                    }" data-tab="playlist">
+
+                        <div class="ti-section">
+                            <h4>${t`Playback Source`}</h4>
+                            <select id="ti_playlist_source_mode_select" class="text_pole">
+                                <option value="mixed" ${settings.playlistSourceMode === "mixed" ? "selected" : ""}>${t`Mixed Mode`}</option>
+                                <option value="playlist_only" ${settings.playlistSourceMode === "playlist_only" ? "selected" : ""}>${t`Playlist Only`}</option>
+                                <option value="character_playlist" ${settings.playlistSourceMode === "character_playlist" ? "selected" : ""}>${t`Character Playlist`}</option>
+                                <option value="chat_only" ${settings.playlistSourceMode === "chat_only" ? "selected" : ""}>${t`Chat Only`}</option>
+                            </select>
+                            <small id="ti_source_mode_desc" class="ti-source-mode-desc"></small>
+                        </div>
+
+                        <div class="ti-section">
+                            <h4>${t`Character Specific Playlist`}</h4>
+                            <div class="ti-checkbox-container">
+                                <label class="checkbox_label">
+                                    <input type="checkbox" id="ti_enable_character_playlist" ${settings.enableCharacterPlaylist ? "checked" : ""}>
+                                    ${t`Bind a dedicated playlist to the current character`}
+                                </label>
+                                <label class="checkbox_label">
+                                    <input type="checkbox" id="ti_auto_switch_character_playlist" ${settings.autoSwitchCharacterPlaylist ? "checked" : ""}>
+                                    ${t`Auto-switch playlist when changing characters`}
+                                </label>
+                                <label class="checkbox_label">
+                                    <input type="checkbox" id="ti_remember_playback_progress" ${settings.rememberPlaybackProgress ? "checked" : ""}>
+                                    ${t`Remember last playback progress for each playlist`}
+                                </label>
+                            </div>
+                            <div id="ti_character_playlist_row" class="ti-grid-2-col" style="margin-top: 12px; display: ${settings.enableCharacterPlaylist ? "grid" : "none"};">
+                                <label for="ti_character_playlist_select" style="font-weight: bold; text-align: right;">${t`Current Character Playlist`}:</label>
+                                <select id="ti_character_playlist_select" class="text_pole">
+                                    <option value="">-- ${t`None`} --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="ti-section">
+                            <h4>${t`Playlist Management`}</h4>
+                            <div class="ti-playlist-header">
+                                <select id="ti_playlist_select" class="text_pole" style="flex: 1; min-width: 0;">
+                                    <option value="">-- ${t`No playlists yet`} --</option>
+                                </select>
+                                <button id="ti_playlist_play_all" class="menu_button" title="${t`Play Entire Playlist`}">
+                                    <i class="fa-solid fa-play"></i>
+                                </button>
+                                <button id="ti_playlist_info" class="menu_button" title="${t`Playlist Info`}">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                                <button id="ti_playlist_add" class="menu_button fa-solid fa-plus" title="${t`New Playlist`}"></button>
+                                <button id="ti_playlist_save" class="menu_button fa-solid fa-save" title="${t`Save`}"></button>
+                                <div class="ti-more-menu">
+                                    <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
+                                    <div class="ti-more-dropdown">
+                                        <button id="ti_playlist_rename" class="menu_button" title="${t`Rename`}">
+                                            <i class="fa-solid fa-pencil"></i>
+                                            <span>${t`Rename`}</span>
+                                        </button>
+                                        <button id="ti_playlist_delete" class="menu_button" title="${t`Delete`}">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                            <span>${t`Delete`}</span>
+                                        </button>
+                                        <button id="ti_playlist_import_json" class="menu_button" title="${t`Import`}">
+                                            <i class="fa-solid fa-file-import"></i>
+                                            <span>${t`Import`}</span>
+                                        </button>
+                                        <button id="ti_playlist_export_json" class="menu_button" title="${t`Export`}">
+                                            <i class="fa-solid fa-file-export"></i>
+                                            <span>${t`Export`}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ti-song-list-container">
+                                <div class="ti-song-list-header">
+                                    <div class="ti-song-search-wrapper">
+                                        <button type="button" class="ti-song-search-btn" id="ti_song_search_btn" title="${t`Search`}">
+                                            <i class="fa-solid fa-magnifying-glass"></i>
+                                        </button>
+                                        <input type="text" id="ti_song_search" class="ti-song-search" placeholder="${t`Search songs or artists...`}">
+                                        <button type="button" class="ti-song-search-clear" id="ti_song_search_clear" title="${t`Clear`}">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+<div class="ti-song-search-tabs">
+                                        <button class="ti-search-tab active" data-search-mode="local" type="button">${t`In Playlist`}</button>
+                                        <button class="ti-search-tab" data-search-mode="tencent" type="button">${t`QQ Music`}</button>
+                                        <button class="ti-search-tab" data-search-mode="netease" type="button">${t`NetEase`}</button>
+                                        <button class="ti-search-tab" data-search-mode="kuwo" type="button">${t`Kuwo`}</button>
+                                    </div>
+                                    <div class="ti-song-list-meta">
+                                        <span id="ti_song_count">0 ${t`songs`}</span>
+                                        <div class="ti-song-meta-actions">
+                                            <button id="ti_song_multi_select" class="ti-icon-btn" type="button" title="${t`Multi-select`}">
+                                                <i class="fa-solid fa-list-check"></i>
+                                            </button>
+                                            <div id="ti_song_multi_actions" class="ti-song-multi-actions-inline">
+                                                <span id="ti_song_selected_count" class="ti-song-selected-count">0</span>
+                                                <button id="ti_song_select_all" class="ti-icon-btn" type="button" title="${t`Select All`}">
+                                                    <i class="fa-solid fa-check-double"></i>
+                                                </button>
+                                                <button id="ti_song_multi_remove" class="ti-icon-btn danger" type="button" title="${t`Remove`}">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                                <button id="ti_song_multi_cancel" class="ti-icon-btn" type="button" title="${t`Cancel`}">
+                                                    <i class="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="ti_song_list" class="ti-song-list">
+                                    <div class="ti-song-list-empty">${t`Select a playlist to view songs`}</div>
+                                </div>
+                                <div id="ti_song_list_footer" class="ti-song-list-footer" style="display:none;">
+                                    <button id="ti_song_page_prev" class="ti-icon-btn" type="button" title="${t`Previous Page`}">
+                                        <i class="fa-solid fa-chevron-left"></i>
+                                    </button>
+                                    <div class="ti-pagination-info">
+                                        <input type="number" id="ti_song_page_input" min="1" value="1" class="ti-pagination-input">
+                                        <span class="ti-pagination-total">/ <span id="ti_song_page_total">1</span></span>
+                                    </div>
+                                    <button id="ti_song_page_next" class="ti-icon-btn" type="button" title="${t`Next Page`}">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </button>
+                                    <span id="ti_song_list_progress" class="ti-pagination-progress"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="ti-section">
+                            <h4>${t`Batch Import`}</h4>
+                            <div class="ti-import-url-row">
+                                <input type="text" id="ti_import_url" class="text_pole" placeholder="${t`Paste NetEase / QQ Music playlist URL...`}">
+                                <button id="ti_import_url_btn" class="menu_button ti-url-submit-btn" title="${t`Import playlist from URL`}">
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <small style="opacity: 0.7; display: block; margin-top: 8px;">
+                                ${t`Supports NetEase Music and QQ Music playlist share links. Short links will be resolved automatically.`}
+                            </small>
+                        </div>
+
+                    </div>
+
                     <!-- 工具标签页 -->
                     <div class="tab-panel ${
                       currentActiveTab === "tools" ? "active" : ""
@@ -6050,7 +7235,8 @@ function addExtensionSettings() {
                             <h4>${t`Utilities`}</h4>
                             <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px;">
                             <button id="ti_usage_guide_btn" class="menu_button"><i class="fa-solid fa-circle-question"></i><span>${t`Usage Guide`}</span></button>
-                                <button id="ti_download_guide_btn" class="menu_button"><i class="fa-solid fa-book-open"></i><span>${t`Theme Creation Guide`}</span></button>
+                                <button id="ti_download_indicator_guide_btn" class="menu_button"><i class="fa-solid fa-palette"></i><span>${t`Indicator Theme Guide`}</span></button>
+<button id="ti_download_player_guide_btn" class="menu_button"><i class="fa-solid fa-music"></i><span>${t`Player Theme Guide`}</span></button>
                                 <button id="ti_restore_defaults_btn" class="menu_button"><i class="fa-solid fa-arrows-rotate"></i><span>${t`Restore Built-in Items`}</span></button>
                                 <button id="ti_import_worldbook_btn" class="menu_button">
                                 <i class="fa-solid fa-book-atlas"></i>
@@ -6074,8 +7260,8 @@ function addExtensionSettings() {
                             <label class="checkbox_label" style="color: var(--text-color-secondary);"><input type="checkbox" id="ti_debug_logs" ${
                               settings.debugLogs ? "checked" : ""
                             }>${t`Debug: Show detailed logs`}</label>
-                            <label class="checkbox_label" style="color: var(--text-color-secondary); margin-left: 20px;">
-    <input type="checkbox" id="ti_verbose_logs" ${settings.verboseLogs ? "checked" : ""} ${!settings.debugLogs ? "disabled" : ""}>
+                            <label class="checkbox_label" id="ti_verbose_logs_label" style="color: var(--text-color-secondary); margin-left: 20px; display: ${settings.debugLogs ? "flex" : "none"};">
+    <input type="checkbox" id="ti_verbose_logs" ${settings.verboseLogs ? "checked" : ""}>
     ${t`Verbose: Show all internal logs`}
 </label>
                         </div>
@@ -6125,6 +7311,7 @@ function addExtensionSettings() {
     initializeMainSettings();
     initializeIndicatorSettings();
     initializePlayerSettings();
+    initializePlaylistSettings();
     initializeToolsSettings();
 
     section.querySelectorAll(".ti-more-toggle").forEach((toggle) => {
@@ -6429,9 +7616,39 @@ function addExtensionSettings() {
       settings.position = e.target.value;
       draggableControls.style.display =
         settings.position === "draggable" ? "flex" : "none";
+      const floatingControls = section.querySelector(
+        "#ti_floating_bottom_controls",
+      );
+      if (floatingControls) {
+        floatingControls.style.display =
+          settings.position === "floating_bottom" ? "block" : "none";
+      }
       saveSettingsDebounced();
       syncIndicatorInteractivity();
     });
+
+    const floatingOffsetInput = section.querySelector(
+      "#ti_floating_bottom_offset",
+    );
+    if (floatingOffsetInput) {
+      floatingOffsetInput.addEventListener("input", (e) => {
+        settings.floatingBottomOffset = parseInt(e.target.value) || 0;
+        saveSettingsDebounced();
+        const indicator = document.getElementById("typing_indicator");
+        if (indicator && settings.position === "floating_bottom") {
+          const sendForm = document.getElementById("send_form");
+          const memoryTable = document.getElementById("tableStatusContainer");
+          let bottomOffset = 5;
+          if (sendForm) bottomOffset += sendForm.offsetHeight;
+          if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
+            bottomOffset += memoryTable.offsetHeight;
+          }
+          bottomOffset += settings.floatingBottomOffset || 0;
+          indicator.style.bottom = `${bottomOffset}px`;
+        }
+        refreshLiveIndicators("floating_offset_change");
+      });
+    }
     const testPositionBtn = section.querySelector("#ti_test_position");
     const updateTestPositionBtnVisibility = () => {
       if (!testPositionBtn) return;
@@ -7098,7 +8315,23 @@ function addExtensionSettings() {
           refreshLyricsOverlay();
         });
       }
-
+      const backgroundPicker = section.querySelector(
+        "#ti_lyrics_background_picker",
+      );
+      if (backgroundPicker && backgroundInput) {
+        backgroundPicker.addEventListener("input", (e) => {
+          const hex = e.target.value;
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          const newValue = `rgba(${r}, ${g}, ${b}, 0.6)`;
+          backgroundInput.value = newValue;
+          const settings = getSettings();
+          settings.lyricsBackground = newValue;
+          saveSettingsDebounced();
+          refreshLyricsOverlay();
+        });
+      }
       const fontSizeInput = section.querySelector("#ti_lyrics_font_size");
       if (fontSizeInput) {
         fontSizeInput.addEventListener("change", (e) => {
@@ -7287,6 +8520,1998 @@ function addExtensionSettings() {
     }
   }
 
+  function initializePlaylistSettings() {
+    const settings = getSettings();
+
+    const modeSelect = section.querySelector("#ti_playlist_source_mode_select");
+    const sourceModeDescEl = section.querySelector("#ti_source_mode_desc");
+    const charEnableCb = section.querySelector("#ti_enable_character_playlist");
+    const charAutoSwitchCb = section.querySelector(
+      "#ti_auto_switch_character_playlist",
+    );
+    const rememberProgressCb = section.querySelector(
+      "#ti_remember_playback_progress",
+    );
+    const charPlaylistSelect = section.querySelector(
+      "#ti_character_playlist_select",
+    );
+    const charPlaylistRow = section.querySelector("#ti_character_playlist_row");
+    const playlistSelect = section.querySelector("#ti_playlist_select");
+    const playAllBtn = section.querySelector("#ti_playlist_play_all");
+    const infoBtn = section.querySelector("#ti_playlist_info");
+    const addBtn = section.querySelector("#ti_playlist_add");
+    const saveBtn = section.querySelector("#ti_playlist_save");
+    const renameBtn = section.querySelector("#ti_playlist_rename");
+    const deleteBtn = section.querySelector("#ti_playlist_delete");
+    const importJsonBtn = section.querySelector("#ti_playlist_import_json");
+    const exportJsonBtn = section.querySelector("#ti_playlist_export_json");
+    const importUrlBtn = section.querySelector("#ti_import_url_btn");
+    const importUrlInput = section.querySelector("#ti_import_url");
+    const songListEl = section.querySelector("#ti_song_list");
+    const songCountEl = section.querySelector("#ti_song_count");
+    const songSearchInput = section.querySelector("#ti_song_search");
+    const songFooter = section.querySelector("#ti_song_list_footer");
+    const songProgressEl = section.querySelector("#ti_song_list_progress");
+    const pagePrevBtn = section.querySelector("#ti_song_page_prev");
+    const pageNextBtn = section.querySelector("#ti_song_page_next");
+    const pageInput = section.querySelector("#ti_song_page_input");
+    const pageTotalEl = section.querySelector("#ti_song_page_total");
+    const multiToggleBtn = section.querySelector("#ti_song_multi_select");
+    const multiActions = section.querySelector("#ti_song_multi_actions");
+    const multiSelectedCount = section.querySelector("#ti_song_selected_count");
+    const multiSelectAllBtn = section.querySelector("#ti_song_select_all");
+    const multiRemoveBtn = section.querySelector("#ti_song_multi_remove");
+    const multiCancelBtn = section.querySelector("#ti_song_multi_cancel");
+
+    if (!playlistSelect) return;
+
+    function updateSourceModeDesc() {
+      const mode = settings.playlistSourceMode || "mixed";
+      const descMap = {
+        mixed: t`World book + chat BGM + current playlist combined. Recommended for daily use.`,
+        playlist_only: t`Only play the selected playlist. Ignores world book and chat BGM.`,
+        character_playlist: t`Follow the playlist bound to the current character.`,
+        chat_only: t`Only play BGM tags from chat history. Scans all non-hidden messages.`,
+      };
+      if (sourceModeDescEl) {
+        sourceModeDescEl.textContent = descMap[mode] || "";
+      }
+    }
+    updateSourceModeDesc();
+
+    function refreshPlaylistSelect() {
+      const list = _playlistState.all;
+      const currentId = _playlistState.currentId;
+      if (list.length === 0) {
+        playlistSelect.innerHTML = `<option value="">-- ${t`No playlists yet`} --</option>`;
+      } else {
+        playlistSelect.innerHTML = list
+          .map(
+            (p) =>
+              `<option value="${p.id}" ${p.id === currentId ? "selected" : ""}>${escapeHtml(p.name)} (${p.songCount || 0})</option>`,
+          )
+          .join("");
+      }
+    }
+
+    function refreshCharPlaylistSelect() {
+      const list = _playlistState.all;
+      const charAvatar =
+        this_chid !== undefined && characters[this_chid]
+          ? characters[this_chid].avatar
+          : null;
+      const boundId =
+        charAvatar && settings.characterPlaylists
+          ? settings.characterPlaylists[charAvatar] || ""
+          : "";
+      charPlaylistSelect.innerHTML =
+        `<option value="">-- ${t`None`} --</option>` +
+        list
+          .map(
+            (p) =>
+              `<option value="${p.id}" ${p.id === boundId ? "selected" : ""}>${escapeHtml(p.name)}</option>`,
+          )
+          .join("");
+    }
+
+    function updateMultiSelectCount() {
+      const n = _playlistState.selectedSongIndices.size;
+      multiSelectedCount.textContent = String(n);
+    }
+
+    function renderSongList() {
+      if (!_playlistState.current) {
+        songListEl.innerHTML = `<div class="ti-song-list-empty">${t`Select a playlist to view songs`}</div>`;
+        songCountEl.textContent = `0 ${t`songs`}`;
+        songFooter.style.display = "none";
+        return;
+      }
+      // 在线搜索模式分支
+      if (_playlistState.searchMode !== "local") {
+        const results = _playlistState.onlineResults || [];
+        const kw = (songSearchInput?.value || "").trim();
+
+        if (_playlistState.onlineSearching) {
+          songCountEl.textContent = t`Searching...`;
+          songListEl.innerHTML = `<div class="ti-song-list-empty"><span class="ti-spinner"></span>${t`Searching...`}</div>`;
+          songFooter.style.display = "none";
+          return;
+        }
+
+        if (results.length === 0) {
+          songCountEl.textContent = kw
+            ? t`Click search to look up`
+            : t`Enter keywords`;
+          const searchIconHtml = `<i class="fa-solid fa-magnifying-glass" style="opacity:0.7;margin:0 2px;"></i>`;
+          const emptyTextHtml = kw
+            ? t`Click ${searchIconHtml} to search "${kw}"`
+            : t`Type keywords, then click ${searchIconHtml} to search online`;
+          songListEl.innerHTML = `<div class="ti-song-list-empty">${emptyTextHtml}</div>`;
+          songFooter.style.display = "none";
+          return;
+        }
+
+        songCountEl.textContent = `${results.length} ${t`results`}`;
+
+        const html = results
+          .map((s, i) => {
+            const cover = s.cover || "/img/ai4.png";
+            const artistLine = s.artist || t`Unknown Artist`;
+            const isPlayingThis =
+              currentPlayerTrack &&
+              fuzzyMatchTrack(
+                s.title || "",
+                s.artist || "",
+                currentPlayerTrack,
+              );
+            const isPaused = isPlayingThis && !listeningSession.isPlaying;
+            const onlineKey = `${(s.title || "").toLowerCase()}|${(s.artist || "").toLowerCase()}`;
+            const isLoading = !isPlayingThis && _loadingSongKey === onlineKey;
+            let stateCls = "";
+            if (isLoading) stateCls = " loading";
+            else if (isPlayingThis)
+              stateCls = isPaused ? " playing paused" : " playing";
+            const prefixHtml = isLoading
+              ? `<span class="ti-song-loading-dot"></span>`
+              : isPlayingThis
+                ? `<span class="ti-song-playing-bars"><span></span><span></span><span></span></span>`
+                : "";
+            return `
+                        <div class="ti-song-item ti-song-item-online${stateCls}" data-online-index="${i}">
+                            <img class="ti-song-item-cover" src="${escapeHtml(cover)}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/img/ai4.png'">
+                            <div class="ti-song-item-info">
+                                <div class="ti-song-item-title">${prefixHtml}${escapeHtml(s.title || t`Unknown Title`)}</div>
+                                <div class="ti-song-item-artist">${escapeHtml(artistLine)} · ${escapeHtml(s.sourceLabel || "")}</div>
+                            </div>
+                            <div class="ti-song-item-actions">
+                                <button class="ti-song-btn" data-online-action="add" data-online-index="${i}" title="${t`Add to current playlist`}">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                                <button class="ti-song-btn" data-online-action="more" data-online-index="${i}" title="${t`More`}">
+                                    <i class="fa-solid fa-ellipsis"></i>
+                                </button>
+                            </div>
+                        </div>`;
+          })
+          .join("");
+
+        songListEl.innerHTML = html;
+        const curPage = _playlistState.onlineCurrentPage || 1;
+        const hasMore = !!_playlistState.onlineHasMore;
+        if (curPage > 1 || hasMore) {
+          songFooter.style.display = "flex";
+          if (pageInput) {
+            pageInput.value = curPage;
+            pageInput.max = hasMore ? curPage + 1 : curPage;
+          }
+          if (pageTotalEl) {
+            pageTotalEl.textContent = hasMore ? `${curPage}+` : curPage;
+          }
+          if (pagePrevBtn) pagePrevBtn.disabled = curPage <= 1;
+          if (pageNextBtn) pageNextBtn.disabled = !hasMore;
+          if (songProgressEl) songProgressEl.textContent = "";
+        } else {
+          songFooter.style.display = "none";
+        }
+        return;
+      }
+
+      const songs = _playlistState.current.songs || [];
+      const filter = _playlistState.songFilter.toLowerCase().trim();
+      const settingsForBadge = getSettings();
+      const progressKeyForBadge = getProgressKey(
+        settingsForBadge.playlistSourceMode,
+        _playlistState.currentId,
+      );
+      const lastPlayedForList =
+        settingsForBadge.rememberPlaybackProgress && progressKeyForBadge
+          ? settingsForBadge.lastPlaybackProgress?.[progressKeyForBadge]
+          : null;
+
+      let filteredSongs = songs;
+      let filteredIndexMap = null;
+      if (filter) {
+        filteredIndexMap = [];
+        filteredSongs = [];
+        songs.forEach((s, idx) => {
+          const title = (s.title || "").toLowerCase();
+          const artist = (s.artist || "").toLowerCase();
+          if (title.includes(filter) || artist.includes(filter)) {
+            filteredSongs.push(s);
+            filteredIndexMap.push(idx);
+          }
+        });
+      }
+
+      songCountEl.textContent = filter
+        ? `${filteredSongs.length} / ${songs.length} ${t`songs`}`
+        : `${songs.length} ${t`songs`}`;
+
+      if (filteredSongs.length === 0) {
+        songListEl.innerHTML = `<div class="ti-song-list-empty">${filter ? t`No matching songs` : t`This playlist is empty`}</div>`;
+        songFooter.style.display = "none";
+        return;
+      }
+
+      const pageSize = _playlistState.songPageSize;
+      const totalPages = Math.max(
+        1,
+        Math.ceil(filteredSongs.length / pageSize),
+      );
+      if (_playlistState.songCurrentPage > totalPages)
+        _playlistState.songCurrentPage = totalPages;
+      if (_playlistState.songCurrentPage < 1)
+        _playlistState.songCurrentPage = 1;
+
+      const startIdx = (_playlistState.songCurrentPage - 1) * pageSize;
+      const endIdx = Math.min(startIdx + pageSize, filteredSongs.length);
+      const visible = filteredSongs.slice(startIdx, endIdx);
+      const selectedSet = _playlistState.selectedSongIndices;
+
+      const html = visible
+        .map((s, i) => {
+          const originalIdx = filteredIndexMap
+            ? filteredIndexMap[startIdx + i]
+            : startIdx + i;
+          const isSelected = selectedSet.has(originalIdx);
+          const sArtistStr = Array.isArray(s.artist)
+            ? s.artist.join(",")
+            : s.artist || "";
+          const isInvalidCover = (url) => {
+            if (!url) return true;
+            if (!url.startsWith("http")) return true;
+            const midMatch = url.match(/M([0-9a-zA-Z]+)\.jpg/i);
+            if (midMatch && /^0+$/.test(midMatch[1])) return true;
+            if (url.includes("default_cover")) return true;
+            if (url.includes("meting") && /[?&]id=(&|$)/.test(url)) return true;
+            return false;
+          };
+
+          const normalizeCoverUrl = (url) => {
+            if (!url || typeof url !== "string") return url;
+            return url.replace(
+              /^https?:\/\/y\.qq\.com\//i,
+              "https://y.gtimg.cn/",
+            );
+          };
+
+          let cover = normalizeCoverUrl(s.cover);
+          if (isInvalidCover(cover)) {
+            cover = "";
+            const cached = MusicCache.getSearch(s.title || "", sArtistStr);
+            if (cached && cached.id && cached.source) {
+              const cachedCover = normalizeCoverUrl(
+                MusicCache.getCover(cached.id, cached.source),
+              );
+              if (cachedCover && !isInvalidCover(cachedCover)) {
+                cover = cachedCover;
+              } else if (cached.coverUrl) {
+                const fixedCachedCoverUrl = normalizeCoverUrl(cached.coverUrl);
+                if (!isInvalidCover(fixedCachedCoverUrl)) {
+                  cover = fixedCachedCoverUrl;
+                }
+              }
+            }
+          }
+          cover = cover || "/img/ai4.png";
+          const isPlayingThis =
+            currentPlayerTrack &&
+            fuzzyMatchTrack(s.title || "", sArtistStr, currentPlayerTrack);
+          const isPaused = isPlayingThis && !listeningSession.isPlaying;
+          const songKey = `${(s.title || "").toLowerCase()}|${(sArtistStr || "").toLowerCase()}`;
+          const isLoading =
+            !isPlayingThis && _loadingSongKey && _loadingSongKey === songKey;
+          const isLastPlayed =
+            !isPlayingThis &&
+            !isLoading &&
+            lastPlayedForList &&
+            MusicUtils.isTitleMatch(
+              lastPlayedForList.title || "",
+              s.title || "",
+            ) &&
+            MusicUtils.isArtistMatch(
+              lastPlayedForList.artist || "",
+              sArtistStr,
+            );
+          let stateCls = "";
+          if (isLoading) stateCls = " loading";
+          else if (isPlayingThis)
+            stateCls = isPaused ? " playing paused" : " playing";
+          else if (isLastPlayed) stateCls = " last-played";
+          const prefixHtml = isLoading
+            ? `<span class="ti-song-loading-dot"></span>`
+            : isPlayingThis
+              ? `<span class="ti-song-playing-bars"><span></span><span></span><span></span></span>`
+              : "";
+          return `
+                    <div class="ti-song-item${isSelected ? " selected" : ""}${stateCls}" data-index="${originalIdx}">
+                        <img class="ti-song-item-cover" src="${escapeHtml(cover)}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='/img/ai4.png'">
+                        <div class="ti-song-item-info">
+                            <div class="ti-song-item-title">${prefixHtml}${escapeHtml(s.title || t`Unknown Title`)}</div>
+                            <div class="ti-song-item-artist">${escapeHtml(s.artist || t`Unknown Artist`)}</div>
+                        </div>
+                        <div class="ti-song-item-actions">
+                            <button class="ti-song-btn" data-action="queue-next" data-index="${originalIdx}" title="${t`Play Next`}">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h8v-2H3v2zm0-7v2h12V6H3v2zm13 3v2h-2v2h2v2h2v-2h2v-2h-2V9h-2z"/></svg>
+                            </button>
+                            <button class="ti-song-btn" data-action="more" data-index="${originalIdx}" title="${t`More`}">
+                                <i class="fa-solid fa-ellipsis"></i>
+                            </button>
+                            <button class="ti-song-btn danger" data-action="remove" data-index="${originalIdx}" title="${t`Remove from playlist`}">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>`;
+        })
+        .join("");
+
+      let resumeBarHtml = "";
+      let resumeIdx = -1;
+      const lastPlayedIsCurrent =
+        lastPlayedForList &&
+        currentPlayerTrack &&
+        MusicUtils.isTitleMatch(
+          lastPlayedForList.title || "",
+          currentPlayerTrack.title || currentPlayerTrack.name || "",
+        ) &&
+        MusicUtils.isArtistMatch(
+          lastPlayedForList.artist || "",
+          Array.isArray(currentPlayerTrack.artist)
+            ? currentPlayerTrack.artist.join(",")
+            : currentPlayerTrack.artist || "",
+        );
+      const dismissedInThisSession =
+        _playlistState._dismissedResumeFor === _playlistState.currentId;
+      if (
+        lastPlayedForList &&
+        !filter &&
+        !lastPlayedIsCurrent &&
+        !dismissedInThisSession
+      ) {
+        resumeIdx = songs.findIndex((s) => {
+          const sArt = Array.isArray(s.artist)
+            ? s.artist.join(",")
+            : s.artist || "";
+          return (
+            MusicUtils.isTitleMatch(
+              lastPlayedForList.title || "",
+              s.title || "",
+            ) && MusicUtils.isArtistMatch(lastPlayedForList.artist || "", sArt)
+          );
+        });
+        if (resumeIdx >= 0) {
+          const resumeSong = songs[resumeIdx];
+          const resumeArtist = Array.isArray(resumeSong.artist)
+            ? resumeSong.artist.join(" / ")
+            : resumeSong.artist || "";
+          resumeBarHtml = `
+                        <div class="ti-song-resume-bar" data-action="resume-play" data-index="${resumeIdx}" title="${t`Click to jump to last played song`}">
+                            <span class="ti-song-resume-bar-icon">▶</span>
+                            <span class="ti-song-resume-bar-label">${t`Continue Playing`}</span>
+                            <span class="ti-song-resume-bar-title">${escapeHtml(resumeSong.title || "")}</span>
+                            <span class="ti-song-resume-bar-artist">${escapeHtml(resumeArtist)}</span>
+                        </div>
+                    `;
+        }
+      }
+
+      songListEl.innerHTML = resumeBarHtml + html;
+
+      if (filteredSongs.length > pageSize) {
+        songFooter.style.display = "flex";
+        if (pageInput) {
+          pageInput.value = _playlistState.songCurrentPage;
+          pageInput.max = totalPages;
+        }
+        if (pageTotalEl) pageTotalEl.textContent = totalPages;
+        if (pagePrevBtn)
+          pagePrevBtn.disabled = _playlistState.songCurrentPage <= 1;
+        if (pageNextBtn)
+          pageNextBtn.disabled = _playlistState.songCurrentPage >= totalPages;
+        if (songProgressEl) {
+          songProgressEl.textContent = `${filteredSongs.length} ${t`songs`}`;
+        }
+      } else {
+        songFooter.style.display = "none";
+      }
+
+      if (typeof fetchMissingCovers === "function") {
+        setTimeout(() => fetchMissingCovers(), 100);
+      }
+      requestAnimationFrame(() => {
+        const targetItem =
+          songListEl?.querySelector(".ti-song-item.playing") ||
+          songListEl?.querySelector(".ti-song-item.last-played");
+        if (targetItem && songListEl) {
+          const containerRect = songListEl.getBoundingClientRect();
+          const itemRect = targetItem.getBoundingClientRect();
+          if (
+            itemRect.top < containerRect.top ||
+            itemRect.bottom > containerRect.bottom
+          ) {
+            targetItem.scrollIntoView({
+              block: "center",
+              behavior: "smooth",
+            });
+          }
+        }
+      });
+    }
+    let _coverFetchSeq = 0;
+    async function fetchMissingCovers() {
+      if (!_playlistState.current) return;
+      const mySeq = ++_coverFetchSeq;
+      const songs = _playlistState.current.songs || [];
+      const items = Array.from(songListEl.querySelectorAll(".ti-song-item"));
+      const needsFetch = [];
+
+      const isInvalidCoverUrl = (url) => {
+        if (!url) return true;
+        if (!url.startsWith("http")) return true;
+        if (url.includes("/img/ai4.png")) return true;
+        const midMatch = url.match(/M([0-9a-zA-Z]+)\.jpg/i);
+        if (midMatch && /^0+$/.test(midMatch[1])) return true;
+        if (url.includes("default_cover")) return true;
+        if (url.includes("meting") && /[?&]id=(&|$)/.test(url)) return true;
+        return false;
+      };
+
+      items.forEach((item) => {
+        const idx = parseInt(item.dataset.index, 10);
+        const song = songs[idx];
+        if (!song) return;
+        const imgEl = item.querySelector(".ti-song-item-cover");
+        if (!imgEl) return;
+        const currentSrc = imgEl.getAttribute("src") || "";
+        if (!isInvalidCoverUrl(currentSrc)) {
+          return;
+        }
+        needsFetch.push({ song, imgEl });
+      });
+
+      if (needsFetch.length === 0) {
+        verboseLog(`[封面补齐] 所有歌都有封面了，无需处理`);
+        return;
+      }
+      verboseLog(
+        `[封面补齐] 发现 ${needsFetch.length} 首歌缺/无效封面，开始主动获取`,
+      );
+
+      await asyncPool(3, needsFetch, async ({ song, imgEl }) => {
+        if (mySeq !== _coverFetchSeq) return;
+        const artistStr = Array.isArray(song.artist)
+          ? song.artist.join(",")
+          : song.artist || "";
+        verboseLog(`[封面补齐] 处理: "${song.title}" - "${artistStr}"`);
+
+        let cover = null;
+        const cached = MusicCache.getSearch(song.title, artistStr);
+        if (cached && cached.id && cached.source) {
+          const cachedCover =
+            MusicCache.getCover(cached.id, cached.source) || cached.coverUrl;
+          if (cachedCover && !isInvalidCoverUrl(cachedCover)) {
+            cover = cachedCover;
+            verboseLog(`[封面补齐]   ↪ 从缓存拿到: ${cover.slice(0, 60)}...`);
+          }
+        }
+
+        if (!cover) {
+          verboseLog(`[封面补齐]   ↪ 缓存没有有效图，跨源搜索...`);
+          for (const source of ["tencent", "netease", "kuwo"]) {
+            if (mySeq !== _coverFetchSeq) return;
+            try {
+              const resp = await fetch(
+                `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(song.title + " " + artistStr)}&source=${source}`,
+              );
+              if (!resp.ok) continue;
+              const data = await resp.json();
+              const list = data?.data || [];
+              for (const item of list) {
+                const itemTitle = item.song || item.name || "";
+                const itemArtist = item.singer || item.artist || "";
+                if (
+                  MusicUtils.isTitleMatch(song.title, itemTitle) &&
+                  MusicUtils.isArtistMatch(artistStr, itemArtist)
+                ) {
+                  const candidate = item.cover || item.pic || "";
+                  if (candidate && !isInvalidCoverUrl(candidate)) {
+                    cover = candidate;
+                    debugLog(`[封面补齐]   ↪ ✓ 从 ${source} 拿到有效封面`);
+                    break;
+                  }
+                }
+              }
+              if (cover) break;
+            } catch (e) {
+              debugWarn(`[封面补齐]   ↪ ${source} 搜索失败:`, e.message);
+            }
+          }
+          if (!cover) {
+            debugLog(`[封面补齐]   ↪ 所有源都没有有效封面`);
+          }
+        }
+
+        if (mySeq !== _coverFetchSeq) return;
+        if (cover && imgEl.isConnected) {
+          const finalCover = cover.replace(
+            /^https?:\/\/y\.qq\.com\//i,
+            "https://y.gtimg.cn/",
+          );
+          imgEl.setAttribute("referrerpolicy", "no-referrer");
+          imgEl.src = finalCover;
+          debugLog(`[封面补齐] ✅ 已填充: ${song.title}`);
+        } else {
+          verboseLog(`[封面补齐] 未找到封面，保持占位符: ${song.title}`);
+        }
+      });
+    }
+
+    function exitMultiSelectMode() {
+      _playlistState.multiSelectMode = false;
+      _playlistState.selectedSongIndices.clear();
+      multiToggleBtn.classList.remove("active");
+      multiActions.classList.remove("show");
+      songListEl.classList.remove("multi-mode");
+      renderSongList();
+    }
+
+    async function loadCurrentPlaylist(id) {
+      if (!id) {
+        _playlistState.current = null;
+        _playlistState.currentId = null;
+        renderSongList();
+        return;
+      }
+      try {
+        _playlistState.isLoading = true;
+        songListEl.innerHTML = `<div class="ti-song-list-empty">${t`Loading...`}</div>`;
+        const pl = await PlaylistAPI.get(id);
+        _playlistState.current = pl;
+        _playlistState.currentId = id;
+        const settingsForPage = getSettings();
+        const lastPlayedForPage = settingsForPage.rememberPlaybackProgress
+          ? settingsForPage.lastPlaybackProgress?.[id]
+          : null;
+        let initialPage = 1;
+        if (lastPlayedForPage && Array.isArray(pl.songs)) {
+          const idx = pl.songs.findIndex((s) => {
+            const sArtist = Array.isArray(s.artist)
+              ? s.artist.join(",")
+              : s.artist || "";
+            return (
+              MusicUtils.isTitleMatch(
+                lastPlayedForPage.title || "",
+                s.title || "",
+              ) &&
+              MusicUtils.isArtistMatch(lastPlayedForPage.artist || "", sArtist)
+            );
+          });
+          if (idx > 0) {
+            initialPage = Math.floor(idx / _playlistState.songPageSize) + 1;
+          }
+        }
+        _playlistState.songCurrentPage = initialPage;
+        _playlistState.songFilter = "";
+        _playlistState.selectedSongIndices.clear();
+        if (songSearchInput) songSearchInput.value = "";
+        if (_playlistState.multiSelectMode) exitMultiSelectMode();
+        renderSongList();
+      } catch (e) {
+        console.error("[Playlist] 加载失败:", e);
+        toastr.error(e.message);
+        songListEl.innerHTML = `<div class="ti-song-list-empty">${t`Load failed`}</div>`;
+      } finally {
+        _playlistState.isLoading = false;
+      }
+    }
+
+    async function refreshAll() {
+      try {
+        _playlistState.all = await PlaylistAPI.list();
+        refreshPlaylistSelect();
+        refreshCharPlaylistSelect();
+        let selectedId = settings.selectedPlaylistId;
+        if (
+          !selectedId ||
+          !_playlistState.all.find((p) => p.id === selectedId)
+        ) {
+          selectedId = _playlistState.all[0]?.id || null;
+          settings.selectedPlaylistId = selectedId;
+          saveSettingsDebounced();
+        }
+        if (selectedId) {
+          playlistSelect.value = selectedId;
+          await loadCurrentPlaylist(selectedId);
+        } else {
+          renderSongList();
+        }
+      } catch (e) {
+        console.error("[Playlist] 刷新失败:", e);
+        toastr.error(
+          t`Failed to load playlists. Please check if the backend plugin is running.`,
+        );
+      }
+    }
+
+    function setSongLoading(song) {
+      const artistStr = Array.isArray(song.artist)
+        ? song.artist.join(",")
+        : song.artist || "";
+      const newKey = `${(song.title || "").toLowerCase()}|${artistStr.toLowerCase()}`;
+      _loadingSongKey = newKey;
+
+      if (!songListEl) return;
+      songListEl.querySelectorAll(".ti-song-item.loading").forEach((el) => {
+        el.classList.remove("loading");
+        const dot = el.querySelector(".ti-song-loading-dot");
+        if (dot) dot.remove();
+      });
+
+      // 本地歌单的歌
+      songListEl
+        .querySelectorAll(".ti-song-item[data-index]")
+        .forEach((item) => {
+          const idx = parseInt(item.dataset.index, 10);
+          const s = _playlistState.current?.songs?.[idx];
+          if (!s) return;
+          const sArtist = Array.isArray(s.artist)
+            ? s.artist.join(",")
+            : s.artist || "";
+          const key = `${(s.title || "").toLowerCase()}|${sArtist.toLowerCase()}`;
+          if (key === newKey && !item.classList.contains("playing")) {
+            item.classList.add("loading");
+            const titleEl = item.querySelector(".ti-song-item-title");
+            if (titleEl && !titleEl.querySelector(".ti-song-loading-dot")) {
+              const dot = document.createElement("span");
+              dot.className = "ti-song-loading-dot";
+              titleEl.prepend(dot);
+            }
+          }
+        });
+
+      songListEl.querySelectorAll(".ti-song-item-online").forEach((item) => {
+        const idx = parseInt(item.dataset.onlineIndex, 10);
+        const s = _playlistState.onlineResults?.[idx];
+        if (!s) return;
+        const sArtist = s.artist || "";
+        const key = `${(s.title || "").toLowerCase()}|${sArtist.toLowerCase()}`;
+        if (key === newKey && !item.classList.contains("playing")) {
+          item.classList.add("loading");
+          const titleEl = item.querySelector(".ti-song-item-title");
+          if (titleEl && !titleEl.querySelector(".ti-song-loading-dot")) {
+            const dot = document.createElement("span");
+            dot.className = "ti-song-loading-dot";
+            titleEl.prepend(dot);
+          }
+        }
+      });
+
+      if (_loadingSongTimeout) clearTimeout(_loadingSongTimeout);
+      _loadingSongTimeout = setTimeout(() => {
+        _loadingSongKey = null;
+        _loadingSongTimeout = null;
+        if (typeof _updatePlaylistPlayingState === "function") {
+          _updatePlaylistPlayingState();
+        }
+      }, 15000);
+    }
+    async function queueSongToPlayer(song) {
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (!playerIframe || !playerIframe.contentWindow) {
+        toastr.error(t`Music player is not ready.`);
+        return;
+      }
+      const title = song.title || "";
+      const artist = song.artist || "";
+      const toastId = toastr.info(t`Queueing "${title}"...`, "", {
+        timeOut: 800,
+      });
+      try {
+        let trackData = null;
+        const cached = MusicCache.getSearch(title, artist);
+        if (cached) {
+          const audioUrl = MusicCache.getAudio(cached.id, cached.source);
+          if (audioUrl) {
+            trackData = {
+              id: cached.id,
+              source: cached.source,
+              title: cached.title,
+              name: cached.title,
+              artist: cached.artist,
+              coverUrl: cached.coverUrl || "",
+              audioUrl: audioUrl,
+              originalTitle: title,
+              originalArtist: artist,
+              _fromCache: true,
+            };
+          }
+        }
+        if (!trackData) {
+          trackData = await searchSongWithDedup(title, artist);
+          if (trackData) {
+            trackData.originalTitle = title;
+            trackData.originalArtist = artist;
+            trackData._fromCache = true;
+          }
+        }
+        if (!trackData) {
+          trackData = {
+            title: title,
+            name: title,
+            artist: artist,
+            coverUrl: song.cover || "",
+            originalTitle: title,
+            originalArtist: artist,
+          };
+        }
+        playerIframe.contentWindow.postMessage(
+          {
+            source: "typing-indicator-host",
+            type: "append-songs-to-playlist",
+            data: [trackData],
+          },
+          "*",
+        );
+        toastr.success(t`Added "${title}" to play queue.`, "", {
+          timeOut: 1200,
+        });
+      } catch (err) {
+        console.error("[Playlist] queue next 失败:", err);
+        toastr.error(err.message || "Failed");
+      }
+    }
+
+    function syncMorePopoverTheme(el) {
+      if (!el) return;
+      try {
+        const sample =
+          document.querySelector(".drawer-content") ||
+          document.querySelector("#sheld") ||
+          document.body;
+        if (!sample) return;
+        const cs = window.getComputedStyle(sample);
+        if (cs.backgroundImage && cs.backgroundImage !== "none") {
+          el.style.backgroundImage = cs.backgroundImage;
+          el.style.backgroundSize = cs.backgroundSize || "cover";
+          el.style.backgroundPosition = cs.backgroundPosition || "center";
+          el.style.backgroundRepeat = cs.backgroundRepeat || "no-repeat";
+          el.style.backgroundAttachment = "fixed";
+        }
+        const rootCs = window.getComputedStyle(document.documentElement);
+        const tintRaw = rootCs
+          .getPropertyValue("--SmartThemeBlurTintColor")
+          .trim();
+        if (tintRaw) {
+          const probe = document.createElement("div");
+          probe.style.cssText = "color:" + tintRaw + ";display:none;";
+          document.body.appendChild(probe);
+          const parsed = window.getComputedStyle(probe).color;
+          probe.remove();
+          const m = parsed.match(
+            /rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
+          );
+          if (m) {
+            const a = m[4] !== undefined ? parseFloat(m[4]) : 1;
+            el.style.backgroundColor = `rgba(${m[1]},${m[2]},${m[3]},${Math.max(a, 0.92)})`;
+          }
+        }
+        if (cs.color) el.style.color = cs.color;
+        const blurRaw = rootCs
+          .getPropertyValue("--SmartThemeBlurStrength")
+          .trim();
+        if (blurRaw) {
+          el.style.backdropFilter = `blur(${blurRaw})`;
+          el.style.webkitBackdropFilter = `blur(${blurRaw})`;
+        }
+      } catch (e) {}
+    }
+
+    function closeSongMorePopover() {
+      const existing = document.getElementById("ti_song_more_popover");
+      if (!existing) return;
+      if (existing._closeHandler) {
+        document.removeEventListener("click", existing._closeHandler, true);
+      }
+      existing.remove();
+    }
+
+    function showSongMorePopover(anchorBtn, song, includeCurrent = false) {
+      const existing = document.getElementById("ti_song_more_popover");
+      if (existing && existing._anchor === anchorBtn) {
+        closeSongMorePopover();
+        return;
+      }
+      closeSongMorePopover();
+
+      const currentId = _playlistState.currentId;
+      const otherPlaylists = includeCurrent
+        ? _playlistState.all.slice()
+        : _playlistState.all.filter((p) => p.id !== currentId);
+
+      const popover = document.createElement("div");
+      popover.className = "ti-song-more-popover";
+      popover.id = "ti_song_more_popover";
+
+      const headerHtml = `<div class="ti-song-more-header">${t`Add to playlist`}</div>`;
+      const listHtml =
+        otherPlaylists.length > 0
+          ? otherPlaylists
+              .map(
+                (p) =>
+                  `<button class="ti-song-more-item" data-playlist-id="${p.id}" type="button">
+                                      <i class="fa-solid fa-plus"></i>
+                                      <span>${escapeHtml(p.name)}</span>
+                                      <span class="ti-song-more-meta">${p.songCount || 0}</span>
+                                   </button>`,
+              )
+              .join("")
+          : `<div class="ti-song-more-empty">${t`No other playlists`}</div>`;
+
+      popover.innerHTML = headerHtml + listHtml;
+      popover._anchor = anchorBtn;
+      document.body.appendChild(popover);
+      syncMorePopoverTheme(popover);
+
+      [
+        "click",
+        "mousedown",
+        "mouseup",
+        "pointerdown",
+        "pointerup",
+        "touchstart",
+        "touchend",
+      ].forEach((evt) => {
+        popover.addEventListener(evt, (e) => e.stopPropagation());
+      });
+
+      const rect = anchorBtn.getBoundingClientRect();
+      const popWidth = 220;
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+      let left = rect.right - popWidth;
+      if (left < 8) left = 8;
+      if (left + popWidth > viewportW - 8) left = viewportW - popWidth - 8;
+      let top = rect.bottom + 4;
+      const popHeightGuess = Math.min(
+        320,
+        (otherPlaylists.length || 1) * 40 + 40,
+      );
+      if (top + popHeightGuess > viewportH - 8) {
+        top = rect.top - popHeightGuess - 4;
+        if (top < 8) top = 8;
+      }
+      popover.style.left = `${left}px`;
+      popover.style.top = `${top}px`;
+      popover.style.width = `${popWidth}px`;
+
+      popover.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".ti-song-more-item");
+        if (!btn) return;
+        e.stopPropagation();
+        const targetId = btn.dataset.playlistId;
+        const targetPl = _playlistState.all.find((p) => p.id === targetId);
+        btn.disabled = true;
+        btn.querySelector("i").className = "fa-solid fa-spinner fa-spin";
+        try {
+          await PlaylistAPI.addSongs(targetId, [
+            {
+              title: song.title,
+              artist: song.artist,
+              cover: song.cover || "",
+            },
+          ]);
+          toastr.success(t`Added to "${targetPl?.name || ""}"`, "", {
+            timeOut: 1200,
+          });
+          _playlistState.all = await PlaylistAPI.list();
+          refreshPlaylistSelect();
+          if (targetId === _playlistState.currentId) {
+            try {
+              _playlistState.current = await PlaylistAPI.get(targetId);
+              if (_playlistState.searchMode === "local") {
+                renderSongList();
+              }
+            } catch (e) {}
+          }
+        } catch (err) {
+          toastr.error(err.message);
+          btn.disabled = false;
+          btn.querySelector("i").className = "fa-solid fa-plus";
+          return;
+        }
+        closeSongMorePopover();
+      });
+
+      setTimeout(() => {
+        const closeHandler = (e) => {
+          if (
+            !e.target.closest("#ti_song_more_popover") &&
+            !e.target.closest('[data-action="more"]') &&
+            !e.target.closest('[data-online-action="more"]')
+          ) {
+            closeSongMorePopover();
+          }
+        };
+        document.addEventListener("click", closeHandler, true);
+        popover._closeHandler = closeHandler;
+      }, 0);
+    }
+
+    async function ensurePlayerEnabled() {
+      if (settings.playerEnabled) return;
+      settings.playerEnabled = true;
+      saveSettingsDebounced();
+      showPlayer();
+      const cb = document.getElementById("ti_player_enabled");
+      if (cb) cb.checked = true;
+      const playerControls = document.getElementById("ti_player_controls");
+      const playerThemeSection = document.getElementById(
+        "ti_player_theme_section",
+      );
+      if (playerControls) playerControls.style.display = "block";
+      if (playerThemeSection) playerThemeSection.style.display = "block";
+      await new Promise((resolve) => {
+        const start = Date.now();
+        const check = setInterval(() => {
+          if (isPlayerInitialized || Date.now() - start > 2500) {
+            clearInterval(check);
+            resolve();
+          }
+        }, 60);
+      });
+    }
+
+    if (modeSelect) {
+      modeSelect.addEventListener("change", (e) => {
+        settings.playlistSourceMode = e.target.value;
+        saveSettingsDebounced();
+        updateSourceModeDesc();
+        lastSentPlaylist = null;
+        if (settings.playerEnabled) {
+          buildAndSetInitialPlaylist().catch((err) =>
+            console.error("[Playlist] 重建播放列表失败:", err),
+          );
+        }
+        toastr.info(t`Playback source mode updated.`, "", {
+          timeOut: 1200,
+        });
+      });
+    }
+
+    if (charEnableCb) {
+      charEnableCb.addEventListener("change", (e) => {
+        settings.enableCharacterPlaylist = e.target.checked;
+        saveSettingsDebounced();
+        if (charPlaylistRow) {
+          charPlaylistRow.style.display = e.target.checked ? "grid" : "none";
+        }
+      });
+    }
+    if (charAutoSwitchCb) {
+      charAutoSwitchCb.addEventListener("change", (e) => {
+        settings.autoSwitchCharacterPlaylist = e.target.checked;
+        saveSettingsDebounced();
+      });
+    }
+    if (rememberProgressCb) {
+      rememberProgressCb.addEventListener("change", (e) => {
+        settings.rememberPlaybackProgress = e.target.checked;
+        saveSettingsDebounced();
+      });
+    }
+
+    if (charPlaylistSelect) {
+      charPlaylistSelect.addEventListener("change", (e) => {
+        if (this_chid === undefined || !characters[this_chid]) {
+          toastr.warning(t`Please select a character first.`);
+          refreshCharPlaylistSelect();
+          return;
+        }
+        const charAvatar = characters[this_chid].avatar;
+        const pid = e.target.value;
+        if (!settings.characterPlaylists) settings.characterPlaylists = {};
+        if (pid) {
+          settings.characterPlaylists[charAvatar] = pid;
+          const pl = _playlistState.all.find((p) => p.id === pid);
+          toastr.success(t`Character bound to playlist: ${pl?.name || pid}`);
+        } else {
+          delete settings.characterPlaylists[charAvatar];
+          toastr.info(t`Unbound playlist from character.`);
+        }
+        saveSettingsDebounced();
+        if (
+          settings.playlistSourceMode === "character_playlist" &&
+          settings.playerEnabled
+        ) {
+          lastSentPlaylist = null;
+          buildAndSetInitialPlaylist().catch((err) =>
+            console.error("[Playlist] 角色歌单切换后重建失败:", err),
+          );
+        }
+      });
+    }
+
+    playlistSelect.addEventListener("change", async (e) => {
+      const id = e.target.value;
+      settings.selectedPlaylistId = id;
+      saveSettingsDebounced();
+      await loadCurrentPlaylist(id);
+      if (
+        (settings.playlistSourceMode === "playlist_only" ||
+          settings.playlistSourceMode === "mixed") &&
+        settings.playerEnabled
+      ) {
+        lastSentPlaylist = null;
+        buildAndSetInitialPlaylist().catch((err) =>
+          console.error("[Playlist] 切换歌单后重建失败:", err),
+        );
+      }
+    });
+
+    playAllBtn.addEventListener("click", async () => {
+      if (!_playlistState.current) {
+        toastr.warning(t`Please select a playlist first.`);
+        return;
+      }
+      const songs = _playlistState.current.songs || [];
+      if (songs.length === 0) {
+        toastr.warning(t`This playlist is empty.`);
+        return;
+      }
+      await ensurePlayerEnabled();
+      const playerIframe = document.querySelector(
+        "#music_player .theme-iframe",
+      );
+      if (!playerIframe || !playerIframe.contentWindow) {
+        toastr.error(t`Music player is not ready.`);
+        return;
+      }
+      const avatarUrls = getAvatarUrls();
+      const playlistForPlayer = songs.map((s) => ({
+        title: s.title,
+        name: s.title,
+        artist: s.artist,
+        coverUrl: s.cover || "",
+      }));
+      lastSentPlaylist = null;
+      playerIframe.contentWindow.postMessage(
+        {
+          source: "typing-indicator-host",
+          type: "set-initial-playlist",
+          data: {
+            playlist: playlistForPlayer,
+            charAvatarUrl: avatarUrls.char,
+            userAvatarUrl: avatarUrls.user,
+          },
+        },
+        "*",
+      );
+      let startIndex = 0;
+      const progressKey = getProgressKey(
+        settings.playlistSourceMode,
+        _playlistState.currentId,
+      );
+      if (
+        settings.rememberPlaybackProgress &&
+        progressKey &&
+        settings.lastPlaybackProgress?.[progressKey]
+      ) {
+        const saved = settings.lastPlaybackProgress[progressKey];
+        const idx = songs.findIndex((s) => {
+          const sArtist = Array.isArray(s.artist)
+            ? s.artist.join(",")
+            : s.artist || "";
+          return (
+            MusicUtils.isTitleMatch(saved.title || "", s.title || "") &&
+            MusicUtils.isArtistMatch(saved.artist || "", sArtist)
+          );
+        });
+        if (idx > 0) {
+          startIndex = idx;
+          const pageSize = _playlistState.songPageSize;
+          _playlistState.songCurrentPage = Math.floor(idx / pageSize) + 1;
+          renderSongList();
+          setTimeout(() => {
+            const playingItem = songListEl?.querySelector(
+              `.ti-song-item[data-index="${idx}"]`,
+            );
+            if (playingItem) {
+              playingItem.scrollIntoView({
+                block: "center",
+                behavior: "smooth",
+              });
+            }
+          }, 120);
+        }
+      }
+      setTimeout(() => {
+        const startSong = songs[startIndex];
+        if (startSong) {
+          playerIframe.contentWindow.postMessage(
+            {
+              source: "typing-indicator-host",
+              type: "play-by-info",
+              data: {
+                title: startSong.title,
+                artist: startSong.artist,
+              },
+            },
+            "*",
+          );
+        }
+      }, 350);
+      if (startIndex > 0) {
+        toastr.success(t`Resuming playlist: ${_playlistState.current.name}`);
+      } else {
+        toastr.success(t`Playing playlist: ${_playlistState.current.name}`);
+      }
+    });
+
+    infoBtn.addEventListener("click", () => {
+      if (!_playlistState.current) {
+        toastr.warning(t`Please select a playlist first.`);
+        return;
+      }
+      const pl = _playlistState.current;
+      const fmt = (iso) => {
+        if (!iso) return "-";
+        try {
+          return new Date(iso).toLocaleString();
+        } catch (e) {
+          return iso;
+        }
+      };
+      const sourceLabel =
+        {
+          netease: t`NetEase Music`,
+          tencent: t`QQ Music`,
+          custom: t`Custom`,
+        }[pl.source] || pl.source;
+      const info = [
+        `# ${pl.name}`,
+        ``,
+        `> ${t`Playlist details`}`,
+        ``,
+        `- **${t`Song count`}**: ${pl.songs?.length || 0}`,
+        `- **${t`Source`}**: ${sourceLabel}`,
+        pl.sourceId
+          ? `- **${t`Original playlist ID`}**: \`${pl.sourceId}\``
+          : "",
+        `- **${t`Created at`}**: ${fmt(pl.createdAt)}`,
+        `- **${t`Updated at`}**: ${fmt(pl.updatedAt)}`,
+        ``,
+        `---`,
+        `*${t`Playlists imported from URL keep their original source info.`}*`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      showThemeInfoPopup({ name: pl.name, readme: info });
+    });
+
+    addBtn.addEventListener("click", async () => {
+      const name = prompt(t`Enter new playlist name:`);
+      if (!name || !name.trim()) return;
+      try {
+        const pl = await PlaylistAPI.create(name.trim());
+        settings.selectedPlaylistId = pl.id;
+        saveSettingsDebounced();
+        await refreshAll();
+        toastr.success(t`Playlist "${pl.name}" created.`);
+      } catch (e) {
+        toastr.error(e.message);
+      }
+    });
+
+    saveBtn.addEventListener("click", async () => {
+      await refreshAll();
+      toastr.success(t`Synced from server.`, "", { timeOut: 1000 });
+    });
+    saveBtn.title = t`Sync from server`;
+
+    renameBtn.addEventListener("click", async () => {
+      if (!_playlistState.current) {
+        toastr.warning(t`Please select a playlist first.`);
+        return;
+      }
+      const current = _playlistState.current;
+      const newName = prompt(t`Enter new name:`, current.name);
+      if (!newName || !newName.trim() || newName.trim() === current.name)
+        return;
+      try {
+        await PlaylistAPI.update(current.id, {
+          name: newName.trim(),
+        });
+        await refreshAll();
+        toastr.success(t`Renamed.`);
+      } catch (e) {
+        toastr.error(e.message);
+      }
+    });
+
+    deleteBtn.addEventListener("click", async () => {
+      if (!_playlistState.current) {
+        toastr.warning(t`Please select a playlist first.`);
+        return;
+      }
+      const pl = _playlistState.current;
+      if (!confirm(t`Delete playlist "${pl.name}"? This cannot be undone.`))
+        return;
+      try {
+        await PlaylistAPI.remove(pl.id);
+        if (settings.characterPlaylists) {
+          for (const key of Object.keys(settings.characterPlaylists)) {
+            if (settings.characterPlaylists[key] === pl.id) {
+              delete settings.characterPlaylists[key];
+            }
+          }
+        }
+        if (settings.lastPlaybackProgress) {
+          delete settings.lastPlaybackProgress[pl.id];
+        }
+        settings.selectedPlaylistId = null;
+        saveSettingsDebounced();
+        await refreshAll();
+        toastr.success(t`Playlist "${pl.name}" deleted.`);
+      } catch (e) {
+        toastr.error(e.message);
+      }
+    });
+
+    exportJsonBtn.addEventListener("click", () => {
+      if (!_playlistState.current) {
+        toastr.warning(t`Please select a playlist first.`);
+        return;
+      }
+      const pl = _playlistState.current;
+      const exportData = {
+        _type: "ti-playlist",
+        _exportedAt: new Date().toISOString(),
+        _exportedBy: "TypingIndicator Themes Extension",
+        name: pl.name,
+        cover: pl.cover || "",
+        source: pl.source || "custom",
+        sourceId: pl.sourceId || "",
+        songs: pl.songs || [],
+      };
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${pl.name.replace(/[\\/*?:"<>|]/g, "_")} [Playlist].json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toastr.success(t`Exported "${pl.name}"`);
+    });
+
+    importJsonBtn.addEventListener("click", () => {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "application/json,.json";
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          if (!data.name || !Array.isArray(data.songs)) {
+            throw new Error(t`Invalid playlist JSON format.`);
+          }
+          const pl = await PlaylistAPI.create(data.name, data.cover || "");
+          if (data.songs.length > 0) {
+            await PlaylistAPI.addSongs(pl.id, data.songs);
+          }
+          settings.selectedPlaylistId = pl.id;
+          saveSettingsDebounced();
+          await refreshAll();
+          toastr.success(
+            t`Imported "${data.name}" with ${data.songs.length} songs.`,
+          );
+        } catch (err) {
+          toastr.error(t`Import failed: ${err.message}`);
+        }
+      };
+      input.click();
+    });
+
+    importUrlBtn.addEventListener("click", async () => {
+      const url = (importUrlInput.value || "").trim();
+      if (!url) {
+        toastr.warning(t`Please paste a playlist URL.`);
+        return;
+      }
+      const originalHtml = importUrlBtn.innerHTML;
+      importUrlBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i>`;
+      importUrlBtn.disabled = true;
+      try {
+        const result = await PlaylistAPI.importFromUrl(url);
+        if (result.success && result.playlist) {
+          importUrlInput.value = "";
+          settings.selectedPlaylistId = result.playlist.id;
+          saveSettingsDebounced();
+          await refreshAll();
+          toastr.success(
+            t`Imported "${result.playlist.name}" with ${result.playlist.songCount} songs.`,
+          );
+        } else {
+          throw new Error(t`Import failed.`);
+        }
+      } catch (e) {
+        toastr.error(e.message);
+      } finally {
+        importUrlBtn.innerHTML = originalHtml;
+        importUrlBtn.disabled = false;
+      }
+    });
+
+    if (importUrlInput) {
+      importUrlInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          importUrlBtn.click();
+        }
+      });
+    }
+
+    async function performOnlineSearch(page = 1) {
+      const query = (songSearchInput?.value || "").trim();
+      const source = _playlistState.searchMode;
+      if (!query || source === "local") return;
+
+      _playlistState.onlineResults = [];
+      _playlistState.onlineSearching = true;
+      renderSongList();
+
+      try {
+        const resp = await fetch(
+          `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(query)}&source=${source}&page=${page}`,
+        );
+        if (!resp.ok) throw new Error(t`Search request failed`);
+        const data = await resp.json();
+        const sourceLabels = {
+          tencent: t`QQ Music`,
+          netease: t`NetEase`,
+          kuwo: t`Kuwo`,
+        };
+        const newItems = (data.data || []).map((item) => ({
+          id: item.id || item.rid,
+          title: item.song || item.name || "",
+          artist: item.singer || item.artist || "",
+          cover: (item.cover || item.pic || "").replace(
+            /^https?:\/\/y\.qq\.com\//i,
+            "https://y.gtimg.cn/",
+          ),
+          source: source,
+          sourceLabel: sourceLabels[source] || source,
+        }));
+        _playlistState.onlineResults = newItems;
+        _playlistState.onlineCurrentPage = page;
+        _playlistState.onlineHasMore = newItems.length >= 30;
+      } catch (err) {
+        console.error("[Playlist] 在线搜索失败:", err);
+        _playlistState.onlineResults = [];
+        _playlistState.onlineHasMore = false;
+        toastr.error(err.message || t`Search failed`);
+      } finally {
+        _playlistState.onlineSearching = false;
+        renderSongList();
+      }
+    }
+
+    const songSearchBtn = section.querySelector("#ti_song_search_btn");
+    const songSearchClear = section.querySelector("#ti_song_search_clear");
+
+    function updateClearBtnVisibility() {
+      if (!songSearchClear || !songSearchInput) return;
+      if (songSearchInput.value) {
+        songSearchClear.classList.add("show");
+      } else {
+        songSearchClear.classList.remove("show");
+      }
+    }
+
+    if (songSearchInput) {
+      let searchTimeout;
+      let lastSearchedQuery = "";
+      songSearchInput.addEventListener("input", (e) => {
+        updateClearBtnVisibility();
+        clearTimeout(searchTimeout);
+        if (_playlistState.searchMode === "local") {
+          searchTimeout = setTimeout(() => {
+            _playlistState.songFilter = e.target.value;
+            _playlistState.songCurrentPage = 1;
+            renderSongList();
+          }, 180);
+        } else {
+          const query = e.target.value.trim();
+          if (!query || query.length < 2) {
+            _playlistState.onlineResults = [];
+            _playlistState.onlineSearching = false;
+            renderSongList();
+            return;
+          }
+          searchTimeout = setTimeout(() => {
+            const cur = (songSearchInput.value || "").trim();
+            if (cur === query && cur !== lastSearchedQuery) {
+              lastSearchedQuery = cur;
+              performOnlineSearch();
+            }
+          }, 800);
+        }
+      });
+      songSearchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && _playlistState.searchMode !== "local") {
+          e.preventDefault();
+          clearTimeout(searchTimeout);
+          lastSearchedQuery = (songSearchInput.value || "").trim();
+          performOnlineSearch();
+        }
+      });
+
+      if (songSearchBtn) {
+        songSearchBtn.addEventListener("click", () => {
+          if (_playlistState.searchMode === "local") {
+            _playlistState.songFilter = songSearchInput.value || "";
+            _playlistState.songCurrentPage = 1;
+            renderSongList();
+            songSearchInput.focus();
+          } else {
+            const q = (songSearchInput.value || "").trim();
+            if (!q) {
+              toastr.info(t`Enter keywords`, "", {
+                timeOut: 1200,
+              });
+              songSearchInput.focus();
+              return;
+            }
+            if (q.length < 2) {
+              toastr.info(t`Enter keywords`, "", {
+                timeOut: 1200,
+              });
+              return;
+            }
+            clearTimeout(searchTimeout);
+            lastSearchedQuery = q;
+            performOnlineSearch();
+          }
+        });
+      }
+
+      if (songSearchClear) {
+        songSearchClear.addEventListener("click", () => {
+          songSearchInput.value = "";
+          lastSearchedQuery = "";
+          updateClearBtnVisibility();
+          clearTimeout(searchTimeout);
+          if (_playlistState.searchMode === "local") {
+            _playlistState.songFilter = "";
+            _playlistState.songCurrentPage = 1;
+          } else {
+            _playlistState.onlineResults = [];
+            _playlistState.onlineSearching = false;
+          }
+          renderSongList();
+          songSearchInput.focus();
+        });
+      }
+    }
+
+    // tab 切换
+    const searchTabs = section.querySelectorAll(".ti-search-tab");
+    searchTabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const mode = tab.dataset.searchMode;
+        if (_playlistState.searchMode === mode) return;
+        searchTabs.forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        _playlistState.searchMode = mode;
+
+        if (mode === "local") {
+          _playlistState.onlineResults = [];
+          _playlistState.onlineSearching = false;
+          if (songSearchInput) {
+            _playlistState.songFilter = songSearchInput.value || "";
+          }
+          renderSongList();
+        } else {
+          _playlistState.songFilter = "";
+          if (_playlistState.multiSelectMode) exitMultiSelectMode();
+          if (songSearchInput) {
+            songSearchInput.placeholder = t`Type and press Enter to search...`;
+          }
+          const q = (songSearchInput?.value || "").trim();
+          if (q && q.length >= 2) {
+            _playlistState.onlineResults = [];
+            _playlistState.onlineCurrentPage = 1;
+            _playlistState.onlineHasMore = false;
+            performOnlineSearch();
+          } else {
+            renderSongList();
+          }
+          setTimeout(() => songSearchInput?.focus(), 30);
+        }
+      });
+    });
+
+    if (pagePrevBtn) {
+      pagePrevBtn.addEventListener("click", () => {
+        if (_playlistState.searchMode !== "local") {
+          if ((_playlistState.onlineCurrentPage || 1) > 1) {
+            performOnlineSearch(_playlistState.onlineCurrentPage - 1);
+            songListEl.scrollTop = 0;
+          }
+          return;
+        }
+        if (_playlistState.songCurrentPage > 1) {
+          _playlistState.songCurrentPage--;
+          renderSongList();
+          songListEl.scrollTop = 0;
+        }
+      });
+    }
+    if (pageNextBtn) {
+      pageNextBtn.addEventListener("click", () => {
+        if (_playlistState.searchMode !== "local") {
+          if (_playlistState.onlineHasMore) {
+            performOnlineSearch((_playlistState.onlineCurrentPage || 1) + 1);
+            songListEl.scrollTop = 0;
+          }
+          return;
+        }
+        _playlistState.songCurrentPage++;
+        renderSongList();
+        songListEl.scrollTop = 0;
+      });
+    }
+    if (pageInput) {
+      const handlePageInput = () => {
+        const val = parseInt(pageInput.value, 10);
+        if (isNaN(val) || val < 1) return;
+        if (_playlistState.searchMode !== "local") {
+          performOnlineSearch(val);
+          songListEl.scrollTop = 0;
+          return;
+        }
+        _playlistState.songCurrentPage = val;
+        renderSongList();
+        songListEl.scrollTop = 0;
+      };
+      pageInput.addEventListener("change", handlePageInput);
+      pageInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          handlePageInput();
+          pageInput.blur();
+        }
+      });
+    }
+
+    if (multiToggleBtn) {
+      multiToggleBtn.addEventListener("click", () => {
+        const isActive = multiToggleBtn.classList.toggle("active");
+        _playlistState.multiSelectMode = isActive;
+        _playlistState.selectedSongIndices.clear();
+        if (isActive) {
+          multiActions.classList.add("show");
+          songListEl.classList.add("multi-mode");
+        } else {
+          multiActions.classList.remove("show");
+          songListEl.classList.remove("multi-mode");
+        }
+        updateMultiSelectCount();
+        renderSongList();
+      });
+    }
+
+    if (multiSelectAllBtn) {
+      multiSelectAllBtn.addEventListener("click", () => {
+        const songs = _playlistState.current?.songs || [];
+        if (songs.length === 0) return;
+        if (_playlistState.selectedSongIndices.size === songs.length) {
+          _playlistState.selectedSongIndices.clear();
+        } else {
+          songs.forEach((_, i) => _playlistState.selectedSongIndices.add(i));
+        }
+        updateMultiSelectCount();
+        renderSongList();
+      });
+    }
+
+    if (multiRemoveBtn) {
+      multiRemoveBtn.addEventListener("click", async () => {
+        const indices = Array.from(_playlistState.selectedSongIndices);
+        if (indices.length === 0) {
+          toastr.warning(t`Nothing selected.`);
+          return;
+        }
+        if (!confirm(t`Remove ${indices.length} songs from this playlist?`))
+          return;
+        try {
+          await PlaylistAPI.removeSongs(_playlistState.currentId, {
+            indices,
+          });
+          exitMultiSelectMode();
+          await loadCurrentPlaylist(_playlistState.currentId);
+          await refreshAll();
+          toastr.success(t`Removed ${indices.length} songs.`);
+        } catch (err) {
+          toastr.error(err.message);
+        }
+      });
+    }
+
+    if (multiCancelBtn) {
+      multiCancelBtn.addEventListener("click", exitMultiSelectMode);
+    }
+
+    songListEl.addEventListener("click", async (e) => {
+      if (_playlistState.multiSelectMode) {
+        const item = e.target.closest(".ti-song-item");
+        if (!item) return;
+        const idx = parseInt(item.dataset.index, 10);
+        if (_playlistState.selectedSongIndices.has(idx)) {
+          _playlistState.selectedSongIndices.delete(idx);
+          item.classList.remove("selected");
+        } else {
+          _playlistState.selectedSongIndices.add(idx);
+          item.classList.add("selected");
+        }
+        updateMultiSelectCount();
+        return;
+      }
+      // 在线搜索结果的操作
+      const onlineActionBtn = e.target.closest("[data-online-action]");
+      if (onlineActionBtn) {
+        e.stopPropagation();
+        const i = parseInt(onlineActionBtn.dataset.onlineIndex, 10);
+        const track = _playlistState.onlineResults[i];
+        if (!track) return;
+        const action = onlineActionBtn.dataset.onlineAction;
+
+        if (action === "add") {
+          if (!_playlistState.currentId) {
+            toastr.warning(t`Please select a playlist first.`);
+            return;
+          }
+          const iconEl = onlineActionBtn.querySelector("i");
+          onlineActionBtn.disabled = true;
+          if (iconEl) iconEl.className = "fa-solid fa-spinner fa-spin";
+          try {
+            await PlaylistAPI.addSongs(_playlistState.currentId, [
+              {
+                title: track.title,
+                artist: track.artist,
+                cover: track.cover || "",
+              },
+            ]);
+            toastr.success(t`Added "${track.title}"`, "", {
+              timeOut: 1000,
+            });
+            _playlistState.all = await PlaylistAPI.list();
+            refreshPlaylistSelect();
+            try {
+              _playlistState.current = await PlaylistAPI.get(
+                _playlistState.currentId,
+              );
+            } catch (e) {}
+            if (iconEl) iconEl.className = "fa-solid fa-check";
+            setTimeout(() => {
+              if (iconEl && iconEl.isConnected)
+                iconEl.className = "fa-solid fa-plus";
+              onlineActionBtn.disabled = false;
+            }, 1200);
+          } catch (err) {
+            toastr.error(err.message);
+            if (iconEl) iconEl.className = "fa-solid fa-plus";
+            onlineActionBtn.disabled = false;
+          }
+          return;
+        }
+
+        if (action === "more") {
+          showSongMorePopover(
+            onlineActionBtn,
+            {
+              title: track.title,
+              artist: track.artist,
+              cover: track.cover || "",
+            },
+            true,
+          );
+          return;
+        }
+        return;
+      }
+
+      const onlineItem = e.target.closest(".ti-song-item-online");
+      if (onlineItem) {
+        const i = parseInt(onlineItem.dataset.onlineIndex, 10);
+        const track = _playlistState.onlineResults[i];
+        if (!track) return;
+        setSongLoading({ title: track.title, artist: track.artist });
+        await ensurePlayerEnabled();
+        handleSongPlayRequest({
+          title: track.title,
+          artist: track.artist,
+        });
+        return;
+      }
+
+      const actionBtn = e.target.closest("[data-action]");
+      if (actionBtn && actionBtn.dataset.action !== "resume-play") {
+        e.stopPropagation();
+        const idx = parseInt(actionBtn.dataset.index, 10);
+        const action = actionBtn.dataset.action;
+        const songs = _playlistState.current?.songs || [];
+        const song = songs[idx];
+        if (!song) return;
+        if (action === "queue-next") {
+          await ensurePlayerEnabled();
+          queueSongToPlayer(song);
+        } else if (action === "toggle-play") {
+          const sArtStr = Array.isArray(song.artist)
+            ? song.artist.join(",")
+            : song.artist || "";
+          const isCurrent =
+            currentPlayerTrack &&
+            fuzzyMatchTrack(song.title || "", sArtStr, currentPlayerTrack);
+          if (isCurrent) {
+            const playerIframe = document.querySelector(
+              "#music_player .theme-iframe",
+            );
+            if (playerIframe && playerIframe.contentWindow) {
+              playerIframe.contentWindow.postMessage(
+                {
+                  source: "typing-indicator-host",
+                  type: "toggle-playback",
+                },
+                "*",
+              );
+            }
+          } else {
+            setSongLoading(song);
+            await ensurePlayerEnabled();
+            handleSongPlayRequest({
+              title: song.title,
+              artist: song.artist,
+            });
+          }
+        } else if (action === "more") {
+          showSongMorePopover(actionBtn, song);
+        } else if (action === "remove") {
+          if (!confirm(t`Remove "${song.title}" from this playlist?`)) return;
+          try {
+            await PlaylistAPI.removeSongs(_playlistState.currentId, {
+              indices: [idx],
+            });
+            await loadCurrentPlaylist(_playlistState.currentId);
+            await refreshAll();
+            toastr.success(t`Removed.`, "", { timeOut: 1000 });
+          } catch (err) {
+            toastr.error(err.message);
+          }
+        }
+        return;
+      }
+      // 继续播放提示条点击
+      const resumeBar = e.target.closest(".ti-song-resume-bar");
+      if (resumeBar) {
+        e.stopPropagation();
+        const idx = parseInt(resumeBar.dataset.index, 10);
+        const song = _playlistState.current?.songs?.[idx];
+        if (!song) return;
+        _playlistState._dismissedResumeFor = _playlistState.currentId;
+        const pageSize = _playlistState.songPageSize;
+        _playlistState.songCurrentPage = Math.floor(idx / pageSize) + 1;
+        renderSongList();
+        setSongLoading(song);
+        await ensurePlayerEnabled();
+        handleSongPlayRequest({
+          title: song.title,
+          artist: song.artist,
+        });
+        return;
+      }
+
+      const item = e.target.closest(".ti-song-item");
+      if (item) {
+        const idx = parseInt(item.dataset.index, 10);
+        const song = _playlistState.current?.songs?.[idx];
+        if (!song) return;
+        const sArtStr = Array.isArray(song.artist)
+          ? song.artist.join(",")
+          : song.artist || "";
+        const isCurrent =
+          currentPlayerTrack &&
+          fuzzyMatchTrack(song.title || "", sArtStr, currentPlayerTrack);
+        if (isCurrent) {
+          const playerIframe = document.querySelector(
+            "#music_player .theme-iframe",
+          );
+          if (playerIframe && playerIframe.contentWindow) {
+            playerIframe.contentWindow.postMessage(
+              {
+                source: "typing-indicator-host",
+                type: "toggle-playback",
+              },
+              "*",
+            );
+          }
+          return;
+        }
+        setSongLoading(song);
+        await ensurePlayerEnabled();
+        handleSongPlayRequest({
+          title: song.title,
+          artist: song.artist,
+        });
+      }
+    });
+
+    _updatePlaylistPlayingState = () => {
+      if (!songListEl) return;
+      if (_playlistState.searchMode !== "local") {
+        const results = _playlistState.onlineResults || [];
+        if (results.length === 0) return;
+        const onlineItems = songListEl.querySelectorAll(".ti-song-item-online");
+        onlineItems.forEach((item) => {
+          const idx = parseInt(item.dataset.onlineIndex, 10);
+          const s = results[idx];
+          if (!s) return;
+          const matches =
+            currentPlayerTrack &&
+            fuzzyMatchTrack(s.title || "", s.artist || "", currentPlayerTrack);
+          item.classList.remove("playing", "paused", "loading");
+          const oldEq = item.querySelector(".ti-song-playing-bars");
+          if (oldEq) oldEq.remove();
+          const oldDot = item.querySelector(".ti-song-loading-dot");
+          if (oldDot) oldDot.remove();
+          const titleEl = item.querySelector(".ti-song-item-title");
+          if (matches) {
+            item.classList.add("playing");
+            if (!listeningSession.isPlaying) item.classList.add("paused");
+            const eq = document.createElement("span");
+            eq.className = "ti-song-playing-bars";
+            eq.innerHTML = "<span></span><span></span><span></span>";
+            if (titleEl) titleEl.prepend(eq);
+          } else {
+            const key = `${(s.title || "").toLowerCase()}|${(s.artist || "").toLowerCase()}`;
+            if (_loadingSongKey === key) {
+              item.classList.add("loading");
+              const dot = document.createElement("span");
+              dot.className = "ti-song-loading-dot";
+              if (titleEl) titleEl.prepend(dot);
+            }
+          }
+        });
+        return;
+      }
+
+      const songs = _playlistState.current?.songs || [];
+      if (songs.length === 0) return;
+
+      const currentArtistStr = currentPlayerTrack
+        ? Array.isArray(currentPlayerTrack.artist)
+          ? currentPlayerTrack.artist.join(",")
+          : currentPlayerTrack.artist || ""
+        : "";
+
+      const items = songListEl.querySelectorAll(".ti-song-item");
+      items.forEach((item) => {
+        const idx = parseInt(item.dataset.index, 10);
+        const song = songs[idx];
+        if (!song) return;
+        const artistStr = Array.isArray(song.artist)
+          ? song.artist.join(",")
+          : song.artist || "";
+        const matches =
+          currentPlayerTrack &&
+          fuzzyMatchTrack(song.title || "", artistStr, currentPlayerTrack);
+
+        item.classList.remove("playing", "paused", "loading");
+        const oldEq = item.querySelector(".ti-song-playing-bars");
+        if (oldEq) oldEq.remove();
+        const oldDot = item.querySelector(".ti-song-loading-dot");
+        if (oldDot) oldDot.remove();
+
+        const titleEl = item.querySelector(".ti-song-item-title");
+
+        if (matches) {
+          item.classList.add("playing");
+          const isPausedNow = !listeningSession.isPlaying;
+          if (isPausedNow) {
+            item.classList.add("paused");
+          }
+          const eq = document.createElement("span");
+          eq.className = "ti-song-playing-bars";
+          eq.innerHTML = "<span></span><span></span><span></span>";
+          if (titleEl) titleEl.prepend(eq);
+        } else {
+          if (
+            _loadingSongKey &&
+            `${(song.title || "").toLowerCase()}|${artistStr.toLowerCase()}` ===
+              _loadingSongKey
+          ) {
+            item.classList.add("loading");
+            const dot = document.createElement("span");
+            dot.className = "ti-song-loading-dot";
+            if (titleEl) titleEl.prepend(dot);
+          }
+        }
+      });
+
+      if (currentPlayerTrack && _loadingSongKey) {
+        const currentKey = `${(currentPlayerTrack.title || currentPlayerTrack.name || "").toLowerCase()}|${currentArtistStr.toLowerCase()}`;
+        if (
+          currentKey === _loadingSongKey ||
+          songs.some((s) => {
+            const sArtist = Array.isArray(s.artist)
+              ? s.artist.join(",")
+              : s.artist || "";
+            const sKey = `${(s.title || "").toLowerCase()}|${sArtist.toLowerCase()}`;
+            return (
+              sKey === _loadingSongKey &&
+              fuzzyMatchTrack(s.title || "", sArtist, currentPlayerTrack)
+            );
+          })
+        ) {
+          _loadingSongKey = null;
+          if (_loadingSongTimeout) {
+            clearTimeout(_loadingSongTimeout);
+            _loadingSongTimeout = null;
+          }
+        }
+      }
+    };
+    window._tiPlaylistPanelNotify = async (options = {}) => {
+      try {
+        _playlistState.all = await PlaylistAPI.list();
+        refreshPlaylistSelect();
+        refreshCharPlaylistSelect();
+        if (
+          options.affectedPlaylistId &&
+          options.affectedPlaylistId === _playlistState.currentId
+        ) {
+          try {
+            _playlistState.current = await PlaylistAPI.get(
+              _playlistState.currentId,
+            );
+            if (_playlistState.searchMode === "local") {
+              renderSongList();
+            }
+          } catch (e) {}
+        }
+      } catch (e) {
+        console.warn("[Playlist] 通知刷新失败:", e);
+      }
+    };
+
+    refreshAll().catch((e) => console.error("[Playlist] 初始化加载失败:", e));
+  }
+
   function initializeToolsSettings() {
     const settings = getSettings();
     const fpsMonitorCheckbox = section.querySelector("#ti_fps_monitor");
@@ -7386,7 +10611,7 @@ function addExtensionSettings() {
                             border-bottom: 1px solid var(--SmartThemeBorderColor, #333);
                             flex-shrink: 0;
                         ">
-                            <h3 style="margin: 0; font-size: 1.2em;">📖 ${currentLang === "zh" ? "使用说明" : currentLang === "th" ? "คู่มือการใช้งาน" : "Usage Guide"}</h3>
+                            <h3 style="margin: 0; font-size: 1.2em;"><i class="fa-solid fa-book-open" style="opacity:0.85;margin-right:8px;"></i>${currentLang === "zh" ? "使用说明" : currentLang === "th" ? "คู่มือการใช้งาน" : "Usage Guide"}</h3>
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <!-- 语言切换按钮 -->
                                 <div id="ti_lang_switch" style="
@@ -7503,12 +10728,13 @@ function addExtensionSettings() {
               langThBtn.style.color =
                 lang === "th" ? "#000" : "var(--SmartThemeBodyColor, #fff)";
 
-              titleEl.textContent =
-                lang === "zh"
-                  ? "📖 使用说明"
+              titleEl.innerHTML =
+                `<i class="fa-solid fa-book-open" style="opacity:0.85;margin-right:8px;"></i>` +
+                (lang === "zh"
+                  ? "使用说明"
                   : lang === "th"
-                    ? "📖 คู่มือการใช้งาน"
-                    : "📖 Usage Guide";
+                    ? "คู่มือการใช้งาน"
+                    : "Usage Guide");
 
               contentDiv.scrollTop = 0;
             } catch (error) {
@@ -7587,13 +10813,14 @@ function addExtensionSettings() {
       settings.debugLogs = e.target.checked;
       saveSettingsDebounced();
       updateLogFunctions();
+      const verboseLabel = section.querySelector("#ti_verbose_logs_label");
       const verboseCheckbox = section.querySelector("#ti_verbose_logs");
-      if (verboseCheckbox) {
-        verboseCheckbox.disabled = !e.target.checked;
-        if (!e.target.checked) {
-          verboseCheckbox.checked = false;
-          settings.verboseLogs = false;
-        }
+      if (verboseLabel) {
+        verboseLabel.style.display = e.target.checked ? "flex" : "none";
+      }
+      if (verboseCheckbox && !e.target.checked) {
+        verboseCheckbox.checked = false;
+        settings.verboseLogs = false;
       }
       if (e.target.checked) {
         toastr.info(
@@ -7618,40 +10845,50 @@ function addExtensionSettings() {
         updateLogFunctions();
       });
 
-    section
-      .querySelector("#ti_download_guide_btn")
-      .addEventListener("click", async () => {
-        try {
-          const scriptUrl = new URL(import.meta.url);
-          const extensionPath = scriptUrl.pathname.substring(
-            0,
-            scriptUrl.pathname.lastIndexOf("/") + 1,
-          );
-          const guideFilePath = `${extensionPath}theme_guide.md`;
-          const response = await fetch(guideFilePath);
-          if (!response.ok) {
-            throw new Error(`文件未找到 (状态码: ${response.status})`);
-          }
-          const markdownContent = await response.text();
-          const blob = new Blob([markdownContent], {
-            type: "text/markdown;charset=utf-8",
-          });
-          const url = URL.createObjectURL(blob);
-          const downloader = document.createElement("a");
-          downloader.style.display = "none";
-          downloader.href = url;
-          downloader.download = "指示器美化主题创作指南.md";
-          document.body.appendChild(downloader);
-          downloader.click();
-          window.URL.revokeObjectURL(url);
-          downloader.remove();
-        } catch (error) {
-          console.error("下载创作指南失败:", error);
-          toastr.error(
-            t`Failed to download the creation guide. Please ensure the 'theme_guide.md' file is in the extension's root directory.`,
-          );
+    const downloadGuide = async (fileName, displayName) => {
+      try {
+        const scriptUrl = new URL(import.meta.url);
+        const extensionPath = scriptUrl.pathname.substring(
+          0,
+          scriptUrl.pathname.lastIndexOf("/") + 1,
+        );
+        const guideFilePath = `${extensionPath}${fileName}`;
+        const response = await fetch(guideFilePath);
+        if (!response.ok) {
+          throw new Error(`文件未找到 (状态码: ${response.status})`);
         }
-      });
+        const markdownContent = await response.text();
+        const blob = new Blob([markdownContent], {
+          type: "text/markdown;charset=utf-8",
+        });
+        const url = URL.createObjectURL(blob);
+        const downloader = document.createElement("a");
+        downloader.style.display = "none";
+        downloader.href = url;
+        downloader.download = displayName;
+        document.body.appendChild(downloader);
+        downloader.click();
+        window.URL.revokeObjectURL(url);
+        downloader.remove();
+      } catch (error) {
+        console.error("下载创作指南失败:", error);
+        toastr.error(
+          t`Failed to download the creation guide. Please ensure the guide file is in the extension's root directory.`,
+        );
+      }
+    };
+
+    section
+      .querySelector("#ti_download_indicator_guide_btn")
+      .addEventListener("click", () =>
+        downloadGuide("theme_guide_indicator.md", "指示器主题创作指南.md"),
+      );
+
+    section
+      .querySelector("#ti_download_player_guide_btn")
+      .addEventListener("click", () =>
+        downloadGuide("theme_guide_player.md", "播放器主题创作指南.md"),
+      );
 
     section
       .querySelector("#ti_restore_defaults_btn")
@@ -8539,7 +11776,7 @@ function addExtensionSettings() {
         const suggestionContainer = $(
           `<div id="suggestion-container-theme" style="padding: 8px; margin-top: 5px; background: var(--background-color-tertiary); border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 0.9em;"></div>`,
         );
-        const message = `💡 ${t`Found a matching theme`}: "<b>${
+        const message = `<i class="fa-solid fa-lightbulb" style="color:#f0c674;margin-right:4px;"></i>${t`Found a matching theme`}: "<b>${
           recommendedTheme.name
         }</b>". `;
         const applyLink = $(
@@ -8737,7 +11974,7 @@ function addExtensionSettings() {
           const suggestionContainer = $(
             `<div id="suggestion-container-preset" style="padding: 8px; margin-top: 5px; background: var(--background-color-tertiary); border: 1px solid var(--border-color); border-radius: 6px; text-align: center; font-size: 0.9em;"></div>`,
           );
-          const message = `💡 ${t`Found a matching preset`}: "<b>${
+          const message = `<i class="fa-solid fa-lightbulb" style="color:#f0c674;margin-right:4px;"></i>${t`Found a matching preset`}: "<b>${
             recommendedPreset.name
           }</b>".`;
           const applyLink = $(
@@ -9319,9 +12556,9 @@ function addExtensionSettings() {
           const newTheme = {
             id: Date.now().toString(),
             name:
-              n.startsWith(t`Player`) || n.startsWith("Player")
+              n.startsWith("播放器") || n.startsWith("Player")
                 ? n
-                : `${t`Player`}-${n}`,
+                : `Player-${n}`,
             useIframe: true,
             html: "",
             iframeCSS: "",
@@ -9445,9 +12682,8 @@ function addExtensionSettings() {
         const defaultSizesJsonString = JSON.stringify(
           {
             draggable: {
-              width: "90vw",
-              height: "110px",
-              maxWidth: "320px",
+              width: "80px",
+              height: "100px",
             },
           },
           null,
@@ -9610,6 +12846,7 @@ function initializeObservers() {
   if (bodyClassObserver) {
     bodyClassObserver.disconnect();
   }
+  setupFloatingIndicatorAutoAdjust();
   bodyClassObserver = new MutationObserver((mutationsList) => {
     for (const mutation of mutationsList) {
       if (
@@ -9765,6 +13002,7 @@ function initializeObservers() {
           source: "typing-indicator-host",
           type: "append-songs-to-playlist",
           data: trulyNewSongs,
+          insertAfterCurrent: true,
         },
         "*",
       );
@@ -9873,14 +13111,14 @@ function initializeObservers() {
             coverUrl,
           } = data;
 
-          console.log("[缓存回写] 收到播放器数据:", {
+          verboseLog("[缓存回写] 收到播放器数据:", {
             title,
             artist,
             id: trackData?.id,
           });
           if (title && artist && trackData?.artist) {
             if (!MusicUtils.isArtistMatch(artist, trackData.artist)) {
-              console.warn(
+              debugWarn(
                 `[缓存回写] ⚠️ 歌手不匹配，拒绝缓存\n  期望: ${artist}\n  实际: ${trackData.artist}`,
               );
               return;
@@ -9889,12 +13127,12 @@ function initializeObservers() {
 
           if (title && artist && trackData) {
             MusicCache.setSearch(title, artist, trackData);
-            console.log("[缓存回写] ✓ 写入搜索缓存");
+            verboseLog("[缓存回写] ✓ 写入搜索缓存");
           }
           if (trackData?.id && trackData?.source) {
             if (audioUrl) {
               MusicCache.setAudio(trackData.id, trackData.source, audioUrl);
-              console.log("[缓存回写] ✓ 写入音频缓存");
+              verboseLog("[缓存回写] ✓ 写入音频缓存");
             }
             if (lyricsContent) {
               MusicCache.setLyrics(
@@ -9903,11 +13141,34 @@ function initializeObservers() {
                 lyricsContent,
                 tlyricContent || "",
               );
-              console.log("[缓存回写] ✓ 写入歌词缓存");
+              verboseLog("[缓存回写] ✓ 写入歌词缓存");
             }
             if (coverUrl) {
               MusicCache.setCover(trackData.id, trackData.source, coverUrl);
-              console.log("[缓存回写] ✓ 写入封面缓存");
+              verboseLog("[缓存回写] ✓ 写入封面缓存");
+            }
+            if (coverUrl && title && artist) {
+              const songList = document.querySelector("#ti_song_list");
+              if (songList) {
+                songList.querySelectorAll(".ti-song-item").forEach((item) => {
+                  const titleEl = item.querySelector(".ti-song-item-title");
+                  const artistEl = item.querySelector(".ti-song-item-artist");
+                  if (!titleEl || !artistEl) return;
+                  const itemTitle = titleEl.textContent.trim();
+                  const itemArtist = artistEl.textContent.trim();
+                  if (
+                    MusicUtils.isTitleMatch(title, itemTitle) &&
+                    MusicUtils.isArtistMatch(artist, itemArtist)
+                  ) {
+                    const imgEl = item.querySelector(".ti-song-item-cover");
+                    if (imgEl && imgEl.getAttribute("src") !== coverUrl) {
+                      imgEl.setAttribute("referrerpolicy", "no-referrer");
+                      imgEl.src = coverUrl;
+                      debugLog(`[缓存回写] ✓ 已同步更新歌单封面: ${itemTitle}`);
+                    }
+                  }
+                });
+              }
             }
           }
         }
@@ -10028,12 +13289,143 @@ function initializeObservers() {
             handleSongPlayRequest(data);
           }
           break;
+        case "favorite-query-list":
+          if (data && data.track) {
+            getFavoriteSnapshot(data.track)
+              .then((snap) => {
+                if (event.source) {
+                  event.source.postMessage(
+                    {
+                      source: "typing-indicator-host",
+                      type: "favorite-list-response",
+                      data: {
+                        playlists: snap.all,
+                        statusMap: snap.statusMap,
+                      },
+                    },
+                    event.origin,
+                  );
+                }
+              })
+              .catch((e) => console.error("[Favorite] 查询失败:", e));
+          }
+          break;
+        case "favorite-query-status":
+          if (data && data.track) {
+            broadcastFavoriteStatus(data.track);
+          }
+          break;
+        case "favorite-toggle-playlist":
+          if (data && data.track && data.playlistId) {
+            (async () => {
+              try {
+                if (data.isCurrentlyIn) {
+                  const pl = await PlaylistAPI.get(data.playlistId);
+                  const trackArtistStr = Array.isArray(data.track.artist)
+                    ? data.track.artist.join(",")
+                    : data.track.artist || "";
+                  const idx = (pl.songs || []).findIndex((s) => {
+                    const sArtist = Array.isArray(s.artist)
+                      ? s.artist.join(",")
+                      : s.artist || "";
+                    return (
+                      MusicUtils.isTitleMatch(data.track.title, s.title) &&
+                      MusicUtils.isArtistMatch(trackArtistStr, sArtist)
+                    );
+                  });
+                  if (idx >= 0) {
+                    await PlaylistAPI.removeSongs(data.playlistId, {
+                      indices: [idx],
+                    });
+                    toastr.info(t`Removed from "${pl.name}"`, "", {
+                      timeOut: 1200,
+                    });
+                  }
+                } else {
+                  await PlaylistAPI.addSongs(data.playlistId, [
+                    {
+                      title: data.track.title,
+                      artist: data.track.artist,
+                      cover: data.track.coverUrl || "",
+                    },
+                  ]);
+                  const list = await PlaylistAPI.list();
+                  const pl = list.find((p) => p.id === data.playlistId);
+                  toastr.success(t`Added to "${pl ? pl.name : ""}"`, "", {
+                    timeOut: 1200,
+                  });
+                }
+                broadcastFavoriteStatus(data.track);
+                if (window._tiPlaylistPanelNotify) {
+                  window._tiPlaylistPanelNotify({
+                    affectedPlaylistId: data.playlistId,
+                  });
+                }
+              } catch (e) {
+                console.error("[Favorite] 操作失败:", e);
+                toastr.error(e.message || t`Operation failed`);
+              }
+            })();
+          }
+          break;
+        case "favorite-create-playlist":
+          if (data && data.track && data.name) {
+            (async () => {
+              try {
+                const pl = await PlaylistAPI.create(data.name);
+                await PlaylistAPI.addSongs(pl.id, [
+                  {
+                    title: data.track.title,
+                    artist: data.track.artist,
+                    cover: data.track.coverUrl || "",
+                  },
+                ]);
+                toastr.success(t`Created "${pl.name}" and added song`, "", {
+                  timeOut: 1500,
+                });
+                broadcastFavoriteStatus(data.track);
+                if (window._tiPlaylistPanelNotify) {
+                  window._tiPlaylistPanelNotify({
+                    affectedPlaylistId: pl.id,
+                  });
+                }
+              } catch (e) {
+                console.error("[Favorite] 创建失败:", e);
+                toastr.error(e.message || t`Create failed`);
+              }
+            })();
+          }
+          break;
         case "playback-state-changed":
           if (data) {
             const { isPlaying, currentTrack, lyrics } = data;
             if (isPlaying && currentTrack) {
               startListeningSession();
               startStatsUpdateTimer();
+              const _s = getSettings();
+              if (_s.rememberPlaybackProgress) {
+                const progressKey = getProgressKey(
+                  _s.playlistSourceMode,
+                  _s.selectedPlaylistId,
+                );
+                if (progressKey) {
+                  if (!_s.lastPlaybackProgress) _s.lastPlaybackProgress = {};
+                  _s.lastPlaybackProgress[progressKey] = {
+                    title:
+                      currentTrack.originalTitle ||
+                      currentTrack.title ||
+                      currentTrack.name ||
+                      "",
+                    artist:
+                      currentTrack.originalArtist ||
+                      (Array.isArray(currentTrack.artist)
+                        ? currentTrack.artist.join(" / ")
+                        : currentTrack.artist || ""),
+                    updatedAt: Date.now(),
+                  };
+                  saveSettingsDebounced();
+                }
+              }
             } else if (!isPlaying) {
               settleListeningTime("paused");
               listeningSession.isPlaying = false;
@@ -10041,65 +13433,73 @@ function initializeObservers() {
               if (listeningStatsUpdateCallback) {
                 listeningStatsUpdateCallback();
               }
+              if (typeof _updatePlaylistPlayingState === "function") {
+                _updatePlaylistPlayingState();
+              }
             }
-            const settings = getSettings();
-            if (settings.lyricsEnabled) {
-              if (isPlaying && currentTrack) {
-                const normalizeArtistForCompare = (a) =>
-                  Array.isArray(a) ? a.join(",") : a || "";
+            if (currentTrack) {
+              const settings = getSettings();
+              if (settings.lyricsEnabled && isPlaying) {
+                if (isPlaying && currentTrack) {
+                  const normalizeArtistForCompare = (a) =>
+                    Array.isArray(a) ? a.join(",") : a || "";
 
-                const isNewTrack =
-                  !currentPlayerTrack ||
-                  currentTrack.name !== currentPlayerTrack?.name ||
-                  normalizeArtistForCompare(currentTrack.artist) !==
-                    normalizeArtistForCompare(currentPlayerTrack?.artist);
+                  const isNewTrack =
+                    !currentPlayerTrack ||
+                    currentTrack.name !== currentPlayerTrack?.name ||
+                    normalizeArtistForCompare(currentTrack.artist) !==
+                      normalizeArtistForCompare(currentPlayerTrack?.artist);
 
-                if (isNewTrack) {
-                  if (lyrics && lyrics.length > 0) {
-                    currentLyrics = lyrics;
-                    currentLyricIndex = -1;
-                    const hasAnyTranslation = lyrics.some(
-                      (line) =>
-                        line.translated && line.translated.trim() !== "",
-                    );
-                    settings._autoShowTranslation = hasAnyTranslation;
+                  if (isNewTrack) {
+                    if (lyrics && lyrics.length > 0) {
+                      currentLyrics = lyrics;
+                      currentLyricIndex = -1;
+                      const hasAnyTranslation = lyrics.some(
+                        (line) =>
+                          line.translated && line.translated.trim() !== "",
+                      );
+                      settings._autoShowTranslation = hasAnyTranslation;
 
-                    showLyricsOverlay();
-                    console.log(
-                      `[Lyrics] ✓ 收到歌词: ${lyrics.length} 行, 有翻译: ${hasAnyTranslation}`,
-                    );
-                    refreshLyricsOverlay();
-                  } else {
-                    currentLyrics = [];
-                    settings._autoShowTranslation = false;
-                    hideLyricsOverlay();
+                      showLyricsOverlay();
+                      console.log(
+                        `[Lyrics] ✓ 收到歌词: ${lyrics.length} 行, 有翻译: ${hasAnyTranslation}`,
+                      );
+                      refreshLyricsOverlay();
+                    } else {
+                      currentLyrics = [];
+                      settings._autoShowTranslation = false;
+                      hideLyricsOverlay();
+                    }
                   }
                 }
               }
+
+              currentPlayerTrack = currentTrack;
+
+              if (typeof _updatePlaylistPlayingState === "function") {
+                _updatePlaylistPlayingState();
+              }
+
+              document
+                .querySelectorAll(".music-bubble-from-regex")
+                .forEach((el) => {
+                  const bubbleTitle = el.dataset.title;
+                  const bubbleArtist = el.dataset.artist;
+                  const matchesCurrent = fuzzyMatchTrack(
+                    bubbleTitle,
+                    bubbleArtist,
+                    currentTrack,
+                  );
+
+                  if (matchesCurrent && isPlaying) {
+                    el.classList.add("is-playing");
+                  } else {
+                    el.classList.remove("is-playing");
+                  }
+                });
             }
-
-            currentPlayerTrack = currentTrack;
-
-            document
-              .querySelectorAll(".music-bubble-from-regex")
-              .forEach((el) => {
-                const bubbleTitle = el.dataset.title;
-                const bubbleArtist = el.dataset.artist;
-                const matchesCurrent = fuzzyMatchTrack(
-                  bubbleTitle,
-                  bubbleArtist,
-                  currentTrack,
-                );
-
-                if (matchesCurrent && isPlaying) {
-                  el.classList.add("is-playing");
-                } else {
-                  el.classList.remove("is-playing");
-                }
-              });
           }
           break;
-
         case "playback-progress":
           if (data) {
             const {
@@ -10143,11 +13543,133 @@ function initializeObservers() {
             }
           }
           break;
-
         case "audio-playback-failed":
           if (data && data.id && data.source) {
-            debugLog("[TypingIndicator] 收到播放失败通知，重新获取音频URL...");
-            MusicCache.invalidateAudio(data.id, data.source);
+            debugLog("[TypingIndicator] 收到播放失败通知，开始无缝跨源换源...");
+
+            // 反查歌曲名和歌手，方便跨源搜索
+            let originalTitle = data.title || "";
+            let originalArtist = data.artist || "";
+            if (!originalTitle && currentPlayerTrack) {
+              originalTitle =
+                currentPlayerTrack.originalTitle ||
+                currentPlayerTrack.title ||
+                currentPlayerTrack.name ||
+                "";
+              const aRaw =
+                currentPlayerTrack.originalArtist || currentPlayerTrack.artist;
+              originalArtist = Array.isArray(aRaw)
+                ? aRaw.join(" / ")
+                : aRaw || "";
+            }
+
+            // 失效旧缓存
+            MusicCache.invalidateTrack(data.id, data.source);
+            if (originalTitle) {
+              MusicCache.invalidateSearch(originalTitle, originalArtist);
+            }
+
+            const playerIframe = document.querySelector(
+              "#music_player .theme-iframe",
+            );
+
+            // 优先做完整跨源搜索
+            if (originalTitle && originalArtist) {
+              searchSongWithDedup(originalTitle, originalArtist)
+                .then((newTrack) => {
+                  if (!playerIframe || !playerIframe.contentWindow) return;
+                  if (newTrack && newTrack.audioUrl) {
+                    // 1. 更新 currentPlayerTrack 的源标识
+                    if (currentPlayerTrack) {
+                      currentPlayerTrack.id = newTrack.id;
+                      currentPlayerTrack.source = newTrack.source;
+                    }
+
+                    // 2. 通过 audio-url-refreshed 无缝换源（iframe 主题会保留 currentTime）
+                    //    同时附带新歌词数据，让支持的主题可以同步刷新
+                    playerIframe.contentWindow.postMessage(
+                      {
+                        source: "typing-indicator-host",
+                        type: "audio-url-refreshed",
+                        data: {
+                          audioUrl: newTrack.audioUrl,
+                          trackIndex: data.trackIndex,
+                          lyricsContent: newTrack.lyricsContent || "",
+                          tlyricContent: newTrack.tlyricContent || "",
+                          newId: newTrack.id,
+                          newSource: newTrack.source,
+                          seamless: true,
+                        },
+                      },
+                      "*",
+                    );
+
+                    // 3. 同步刷新宿主的悬浮歌词
+                    const _hostSettings = getSettings();
+                    if (_hostSettings.lyricsEnabled && newTrack.lyricsContent) {
+                      const mainLines = parseLRC(newTrack.lyricsContent);
+                      const transLines = parseLRC(newTrack.tlyricContent || "");
+                      const transMap = new Map();
+                      transLines.forEach((t) =>
+                        transMap.set(t.time.toFixed(2), t.text),
+                      );
+                      currentLyrics = mainLines.map((line) => ({
+                        time: line.time,
+                        text: line.text,
+                        translated: transMap.get(line.time.toFixed(2)) || "",
+                      }));
+                      currentLyricIndex = -1;
+                      lastLyricsProgress = -1;
+                      if (currentLyrics.length > 0) {
+                        const hasTrans = currentLyrics.some(
+                          (l) => l.translated,
+                        );
+                        _hostSettings._autoShowTranslation = hasTrans;
+                        showLyricsOverlay();
+                        refreshLyricsOverlay();
+                        debugLog(
+                          `[TypingIndicator] ✓ 悬浮歌词已无缝刷新: ${currentLyrics.length} 行`,
+                        );
+                      }
+                    }
+
+                    debugLog(
+                      `[TypingIndicator] ✓ 无缝换源到 ${newTrack.source}，currentTime 由 iframe 保留`,
+                    );
+                  } else {
+                    playerIframe.contentWindow.postMessage(
+                      {
+                        source: "typing-indicator-host",
+                        type: "audio-url-refreshed",
+                        data: {
+                          audioUrl: "",
+                          trackIndex: data.trackIndex,
+                        },
+                      },
+                      "*",
+                    );
+                  }
+                })
+                .catch((err) => {
+                  console.error("[TypingIndicator] 跨源搜索失败:", err);
+                  if (playerIframe && playerIframe.contentWindow) {
+                    playerIframe.contentWindow.postMessage(
+                      {
+                        source: "typing-indicator-host",
+                        type: "audio-url-refreshed",
+                        data: {
+                          audioUrl: "",
+                          trackIndex: data.trackIndex,
+                        },
+                      },
+                      "*",
+                    );
+                  }
+                });
+              break;
+            }
+
+            // 没有 title/artist 时的兜底：仅刷新音频URL
             const sourceMap = {
               Netease: "netease",
               Tencent: "tencent",
@@ -10155,14 +13677,12 @@ function initializeObservers() {
             };
             const apiSource =
               sourceMap[data.source] || data.source.toLowerCase();
-
             fetch(
               `/api/plugins/g-player-proxy/song?id=${data.id}&source=${apiSource}`,
             )
               .then((res) => res.json())
               .then((songData) => {
                 let newAudioUrl = "";
-
                 if (songData.data) {
                   if (Array.isArray(songData.data)) {
                     newAudioUrl = songData.data[0]?.url || "";
@@ -10170,13 +13690,9 @@ function initializeObservers() {
                     newAudioUrl = songData.data.url || "";
                   }
                 }
-
                 if (newAudioUrl) {
                   MusicCache.setAudio(data.id, data.source, newAudioUrl);
                 }
-                const playerIframe = document.querySelector(
-                  "#music_player .theme-iframe",
-                );
                 if (playerIframe && playerIframe.contentWindow) {
                   playerIframe.contentWindow.postMessage(
                     {
@@ -10191,12 +13707,7 @@ function initializeObservers() {
                   );
                 }
               })
-              .catch((err) => {
-                console.error("[TypingIndicator] 重新获取音频URL失败:", err);
-
-                const playerIframe = document.querySelector(
-                  "#music_player .theme-iframe",
-                );
+              .catch(() => {
                 if (playerIframe && playerIframe.contentWindow) {
                   playerIframe.contentWindow.postMessage(
                     {
@@ -10683,6 +14194,22 @@ function initializeObservers() {
     hideLyricsOverlay();
     setTimeout(() => {
       if (chatId) {
+        const _s = getSettings();
+        if (
+          _s.playerEnabled &&
+          _s.enableCharacterPlaylist &&
+          _s.autoSwitchCharacterPlaylist &&
+          this_chid !== undefined &&
+          characters[this_chid]
+        ) {
+          const _charAvatar = characters[this_chid].avatar;
+          const _boundId = _s.characterPlaylists?.[_charAvatar];
+          if (_boundId && _boundId !== _s.selectedPlaylistId) {
+            _s.selectedPlaylistId = _boundId;
+            saveSettingsDebounced();
+            debugLog(`[Playlist] 角色切换，自动绑定歌单: ${_boundId}`);
+          }
+        }
         buildAndSetInitialPlaylist().catch((err) =>
           console.error("[TypingIndicator] 播放列表构建失败:", err),
         );
