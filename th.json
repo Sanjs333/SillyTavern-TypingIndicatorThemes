@@ -251,6 +251,10 @@
   "Positive = move up, Negative = move down": "ค่าบวก = เลื่อนขึ้น, ค่าลบ = เลื่อนลง",
   "Test Display": "ทดสอบการแสดงผล",
   "Hide Test": "ซ่อนการทดสอบ",
+  "Log Category": "หมวดหมู่บันทึก",
+  "All Logs": "บันทึกทั้งหมด",
+  "Indicator Only": "เฉพาะตัวบ่งชี้",
+  "Player Only": "เฉพาะเครื่องเล่น",
   "Pick color": "เลือกสี",
   "In Playlist": "ในเพลย์ลิสต์",
   "NetEase": "NetEase",
@@ -365,5 +369,14 @@
   "Added to \"${0}\"": "เพิ่มใน \"${0}\" แล้ว",
   "Continue Playing": "เล่นต่อ",
   "Click to jump to last played song": "คลิกเพื่อข้ามไปยังเพลงที่เล่นล่าสุด",
-  "Clear": "ล้าง"
+  "Clear": "ล้าง",
+  "Currently in character playlist mode, but no character is selected. Open a character chat first.": "ตอนนี้อยู่ในโหมดเพลย์ลิสต์ตัวละคร แต่ยังไม่ได้เลือกตัวละคร กรุณาเปิดแชทตัวละครก่อนน่ะ~",
+  "Currently in character playlist mode, but \"${0}\" has no playlist bound. Enable the option below and pick one, otherwise playback will be empty.": "ตอนนี้อยู่ในโหมดเพลย์ลิสต์ตัวละคร แต่ \"${0}\" ยังไม่ได้ผูกเพลย์ลิสต์ กรุณาเปิดตัวเลือกด้านล่างและเลือกหนึ่งรายการ ไม่งั้นการเล่นเพลงจะว่างเปล่าน่ะ~",
+  "current character": "ตัวละครปัจจุบัน",
+  "Playlist backend not available. If you need the playlist feature, please make sure the backend plugin has been installed according to the instructions on the Tools page.": "ระบบหลังบ้านเพลย์ลิสต์ไม่พร้อมใช้งาน หากคุณต้องการใช้ฟีเจอร์เพลย์ลิสต์ โปรดตรวจสอบว่าติดตั้งปลั๊กอินหลังบ้านตามคำแนะนำในหน้าเครื่องมือเรียบร้อยแล้ว",
+  "Backend not available": "แบ็กเอนด์ไม่พร้อม",
+  "Operation failed": "การดำเนินการล้มเหลว",
+  "Create failed": "สร้างไม่สำเร็จ",
+  "Created \"${0}\" and added song": "สร้าง \"${0}\" และเพิ่มเพลงแล้ว",
+  "Removed from \"${0}\"": "ลบออกจาก \"${0}\" แล้ว"
 }

@@ -247,11 +247,11 @@ iframe 模式需要通过 JSON 定义在不同位置下的推荐尺寸。
 }
 ​```
 
-### 6. 响应 `pause-theme`：避免后台幽灵循环
+### 6. 响应 `pause-theme`:销毁前最后一刻的兜底通知
 
-主题切换时，旧 iframe 会被框架放进隐藏池里等下次复用（不是销毁）。这时候框架会发 `pause-theme` 消息。**如果你的主题里有 `setInterval`、`requestAnimationFrame` 或 `<audio>`，必须监听这条消息暂停活动**，否则切走之后还会在后台跑，会拖慢页面性能。
+主题切换、回收时,框架会先发 `pause-theme` 消息,**紧接着立即销毁 iframe**。这条消息的作用是给你一个最后机会,赶在 iframe 被移除之前停掉所有异步任务,避免它们在销毁瞬间触发报错(比如 `setInterval` 回调里访问已经不存在的 DOM)。
 
-注意：和 `graceful-shutdown-request` 不同，`pause-theme` **只暂停不清理**，因为下次复用时主题会被重新激活。
+注意:和 `graceful-shutdown-request` 不同,`pause-theme` 是**单向通知,不需要响应**,主系统也不会等你处理完才销毁。如果你需要保存数据,请用 `graceful-shutdown-request`。
 
 ​```javascript
 let animationFrameId;
@@ -268,10 +268,10 @@ window.addEventListener("message", (event) => {
 });
 ​```
 
-| 消息                        | 何时收到       | 应该做什么            | 是否清理状态 |
-| --------------------------- | -------------- | --------------------- | ------------ |
-| `pause-theme`               | 主题切换被回收 | 暂停所有循环和音频    | ❌ 保留状态   |
-| `graceful-shutdown-request` | 主题被彻底销毁 | 清理所有资源 + 发响应 | ✅ 完全清理   |
+| 消息                        | 何时收到                | 应该做什么                    | 是否需要响应 |
+| --------------------------- | ----------------------- | ----------------------------- | ------------ |
+| `pause-theme`               | iframe 即将被销毁前一刻 | 立刻停掉循环和音频(兜底用)    | ❌ 不需要     |
+| `graceful-shutdown-request` | 主题被销毁,系统等待回信 | 清理资源 + 用响应附带保存数据 | ✅ 必须响应   |
 
 ---
 
