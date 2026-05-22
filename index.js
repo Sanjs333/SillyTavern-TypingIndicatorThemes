@@ -94,7 +94,7 @@ window.TI_FPS = FPSMonitor;
 
 let acornPromise = null;
 let messageFlushScheduled = false;
-const PLUGIN_VERSION = "4.1";
+const PLUGIN_VERSION = "4.1.5";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -144,178 +144,64 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  4.1: {
+  "4.1.5": {
     date: "2026-5-22",
     title: {
-      zh: "音乐播放稳定性与搜索体验优化",
-      en: "Music Playback Stability and Search Experience Improvements",
-      th: "ปรับปรุงความเสถียรในการเล่นเพลงและประสบการณ์การค้นหา",
+      zh: "播放稳定性修复与歌单体验优化",
+      en: "Playback Stability Fixes and Playlist UX Improvements",
+      th: "แก้ไขความเสถียรการเล่นและปรับปรุง UX เพลย์ลิสต์",
     },
     content: {
       zh: `
-# v4.1 更新说明
+## v4.1.5
 
----
+### 🛠️ 问题修复
 
-## 🎵 音乐搜索与播放优化
+- 修复了切换音乐源时偶尔卡住、反复加载的问题
+- 修复了歌曲开头有时会重复播放一小段的问题
+- 改善了网速较慢时的播放稳定性，减少误判为试听版的情况
+- 修复了缓存歌曲音频链接过期导致无法播放的问题，命中缓存时自动刷新链接
 
-- **多源并行搜索**：现在同时检索网易云音乐、QQ 音乐和酷我音乐，从多个来源中择优播放，减少搜不到歌的情况。
-- **版本优先级优化**：搜索结果会自动降低 Live、翻唱、伴奏、纯音乐等版本的排序，优先匹配原版。
-- **播放失败自动恢复**：播放中断时会先尝试刷新当前链接，无效后再切换至其他来源，避免频繁换源干扰听歌。
-- **歌单预加载**：歌单构建完成后自动预取前几首歌曲的播放链接，首次播放响应更快。
-- **歌词加载优化**：仅在确实需要翻译时才请求译文，减少不必要的加载。
-- **多歌手匹配优化**：多歌手歌曲的匹配更稳定，减少因歌手顺序或分隔符不同导致的误判。
-- **歌手名过滤优化**：降低疑似异常歌手名结果的优先级，减少错误匹配。
-- **点击 BGM 气泡播放优化**：优先完成搜索后直接下发可播放数据，减少播放器内部重复搜索。
-- **歌单歌曲加载优化**：自动补充已有缓存中的音频、歌词、封面和来源信息。
+### 🎨 歌单体验优化
 
----
-
-## ✨ 新增功能
-
-- **音乐源自动熔断**：某个音乐来源连续出现故障时，会自动暂停对该来源的请求，避免反复尝试不可用的渠道。
-- **搜索失败记录**：短时间内搜索过但未找到的歌曲会被暂时记录，避免重复无效搜索。
-- **角色歌单未绑定提示**：启用角色歌单功能但当前角色尚未绑定歌单时，页面会显示提示。
-- **覆盖模式下聊天可正常滚动**：使用覆盖型播放器主题时，鼠标滚轮和触摸滑动仍可正常滚动聊天区域。
-
----
-
-## 🎨 界面与体验优化
-
-- **歌单后端不可用提示优化**：后端插件未启动或不可用时，歌单区域会显示说明，不再只弹出错误提示。若未启用播放器功能，则不会显示所有播放器相关提示。
-- **角色歌单播放进度优化**：角色歌单模式下会使用当前角色真实绑定的歌单记录播放进度。
-- **iframe 主题交互状态优化**：iframe 加载完成后会重新同步点击穿透、拖拽和覆盖模式等交互状态。
-- **听歌统计恢复优化**：本地备份的听歌统计只会恢复一次，避免重复合并。
-
----
-
-## 🛠️ 问题修复
-
-- 修复播放失败后可能再次请求同一失败来源的问题。
-- 修复角色歌单模式下播放进度记录到错误歌单的问题。
-- 修复播放器关闭后仍在后台扫描 BGM、产生无效请求的问题。
-- 修复覆盖型主题阻挡聊天区滚动的问题。
-- 修复歌单重复构建时出现列表不同步或旧列表覆盖新列表的问题。
-- 修复封面缓存失效后搜索结果中仍残留旧封面的问题。
-- 修复歌单后端不可用时界面提示不明确的问题。
-- 修复 JS 语法校验在异常错误对象上可能二次报错的问题。
-- 修复部分测试指示器被生成结束、消息发送或 stop 按钮状态误隐藏的问题。
-
----
-
-## ⚠️ 使用提示
-
-若需使用播放器功能，请重启酒馆以更新后端插件。在此之前，请确保已按照工具页面的使用指南完成后端插件的安装。
+- 正在播放的歌曲在歌单中更加醒目（左侧色条 + 背景高亮）
+- 打开歌单时自动定位到当前歌曲，无需手动滚动
+- 切歌时歌单平滑跟随滚动
+- 以上优化同时适用于设置页歌单和播放器内置歌单
 `,
       en: `
-# v4.1 Update Notes
+## v4.1.5
 
----
+### 🛠️ Bug Fixes
 
-## 🎵 Music Search and Playback Improvements
+- Fixed playback getting stuck when switching between music sources
+- Fixed audio occasionally repeating at the start of a track
+- Improved playback stability on slower connections, reducing false "preview clip" detection
+- Fixed cached songs failing to play due to expired audio URLs; now auto-refreshes on cache hit
 
-- **Parallel multi-source search**: Now searches NetEase Music, QQ Music and Kuwo simultaneously, selecting the best available result to reduce cases where songs cannot be found.
-- **Version priority optimization**: Live, cover, instrumental and karaoke versions are automatically deprioritized in favor of original releases.
-- **Automatic playback recovery**: When playback fails, the player first attempts to refresh the current link before switching to another source, reducing unnecessary source changes.
-- **Playlist preloading**: After a playlist is built, playback links for the first few songs are prefetched automatically for faster initial playback.
-- **Lyrics loading optimization**: Translation requests are only made when actually needed, reducing unnecessary network requests.
-- **Improved multi-artist matching**: More stable matching for songs with multiple artists, reducing errors caused by different artist orderings or separators.
-- **Improved artist name filtering**: Results with suspected abnormal artist names are deprioritized to reduce incorrect matches.
-- **BGM bubble playback optimization**: Search is completed first before delivering playable data directly, reducing redundant searches inside the player.
-- **Playlist song loading optimization**: Audio, lyrics, cover and source information from existing cache are automatically supplemented.
+### 🎨 Playlist Improvements
 
----
-
-## ✨ New Features
-
-- **Music source circuit breaker**: When a music source encounters consecutive failures, requests to that source are automatically paused to avoid repeatedly attempting unavailable channels.
-- **Failed search persistence**: Songs that were searched but not found within a short period are temporarily recorded to avoid repeated unsuccessful searches.
-- **Character playlist unbound notice**: When the character playlist feature is enabled but the current character has no playlist bound, a notice is shown on the playlist page to avoid confusion with player malfunctions.
-- **Chat scrolling in overlay mode**: When using overlay-type player themes, mouse wheel and touch scrolling still work normally in the chat area.
-
----
-
-## 🎨 UI and Experience Improvements
-
-- **Improved playlist backend unavailable notice**: When the backend plugin is not running or unavailable, the playlist area now shows an explanation instead of only displaying an error popup.
-- **Character playlist progress optimization**: In character playlist mode, playback progress is recorded using the playlist actually bound to the current character.
-- **iframe theme interaction state sync**: After an iframe finishes loading, click-through, drag and overlay interaction states are re-synchronized.
-- **Listening stats restore optimization**: Locally backed-up listening stats are now only restored once to prevent duplicate merging.
-
----
-
-## 🛠️ Bug Fixes
-
-- Fixed an issue where playback could retry the same failed source after a failure.
-- Fixed an issue where playback progress in character playlist mode could be recorded to the wrong playlist.
-- Fixed an issue where the player continued scanning for BGM in the background after being closed, generating unnecessary requests.
-- Fixed an issue where overlay-type themes blocked scrolling in the chat area.
-- Fixed an issue where repeated playlist builds could cause list desync or old lists overwriting new ones.
-- Fixed an issue where outdated covers remained in search results after the cover cache expired.
-- Fixed an issue where the UI feedback was unclear when the playlist backend was unavailable.
-- Fixed a potential secondary error in JS syntax validation when handling abnormal error objects.
-- Fixed an issue where some test indicators were incorrectly hidden by generation end, message send or stop button state changes.
-
----
-
-## ⚠️ Notice
-
-To use the player features, please restart SillyTavern to update the backend plugin. Before doing so, make sure you have already installed the backend plugin by following the usage guide on the tools page.
+- Currently playing track is now easier to spot (accent bar + background highlight)
+- Playlist auto-scrolls to the current track when opened
+- Smooth scrolling when switching tracks
+- Improvements apply to both the settings playlist and the player's built-in playlist
 `,
       th: `
-# v4.1 บันทึกการอัปเดต
+## v4.1.5
 
----
+### 🛠️ การแก้ไขข้อบกพร่อง
 
-## 🎵 ปรับปรุงการค้นหาและเล่นเพลง
+- แก้ไขปัญหาการเล่นค้างเมื่อสลับแหล่งเพลง
+- แก้ไขปัญหาเสียงเล่นซ้ำบางครั้งที่ต้นเพลง
+- ปรับปรุงความเสถียรการเล่นเมื่อเชื่อมต่อช้า ลดการตรวจจับผิดพลาดว่าเป็นเพลงตัวอย่าง
+- แก้ไขปัญหาเพลงแคชไม่สามารถเล่นได้เนื่องจาก URL เสียงหมดอายุ รีเฟรชลิงก์อัตโนมัติเมื่อพบแคช
 
-- **ค้นหาหลายแหล่งพร้อมกัน**: ค้นหาจาก NetEase Music, QQ Music และ Kuwo พร้อมกัน แล้วเลือกผลลัพธ์ที่ดีที่สุด ลดกรณีที่ไม่พบเพลง
-- **ปรับลำดับความสำคัญของเวอร์ชันเพลง**: เวอร์ชัน Live, Cover, Instrumental และ Karaoke จะถูกลดลำดับโดยอัตโนมัติ เพื่อให้เวอร์ชันต้นฉบับมาก่อน
-- **กู้คืนการเล่นอัตโนมัติ**: เมื่อเล่นล้มเหลว เครื่องเล่นจะลองรีเฟรชลิงก์ปัจจุบันก่อน หากยังไม่ได้จึงเปลี่ยนแหล่ง ลดการสลับแหล่งที่ไม่จำเป็น
-- **โหลดเพลย์ลิสต์ล่วงหน้า**: หลังจากสร้างเพลย์ลิสต์เสร็จ จะดึงลิงก์เล่นของเพลงแรก ๆ ไว้ล่วงหน้าเพื่อให้เล่นได้เร็วขึ้น
-- **ปรับปรุงการโหลดเนื้อเพลง**: ขอคำแปลเฉพาะเมื่อจำเป็นจริง ๆ ลดการร้องขอที่ไม่จำเป็น
-- **ปรับปรุงการจับคู่ศิลปินหลายคน**: การจับคู่เพลงที่มีหลายศิลปินเสถียรขึ้น ลดข้อผิดพลาดจากลำดับหรือตัวคั่นที่ต่างกัน
-- **ปรับปรุงการกรองชื่อศิลปิน**: ลดลำดับผลลัพธ์ที่มีชื่อศิลปินผิดปกติ เพื่อลดการจับคู่ที่ไม่ถูกต้อง
-- **ปรับปรุงการเล่นจากบับเบิล BGM**: ค้นหาให้เสร็จก่อนแล้วส่งข้อมูลที่เล่นได้โดยตรง ลดการค้นหาซ้ำภายในเครื่องเล่น
-- **ปรับปรุงการโหลดเพลงในเพลย์ลิสต์**: เติมข้อมูลเสียง เนื้อเพลง ปก และแหล่งจากแคชที่มีอยู่โดยอัตโนมัติ
+### 🎨 ปรับปรุงเพลย์ลิสต์
 
----
-
-## ✨ ฟีเจอร์ใหม่
-
-- **ตัดการเชื่อมต่อแหล่งเพลงอัตโนมัติ**: เมื่อแหล่งเพลงใดเกิดข้อผิดพลาดต่อเนื่อง จะหยุดส่งคำขอไปยังแหล่งนั้นชั่วคราว เพื่อหลีกเลี่ยงการลองซ้ำกับช่องทางที่ใช้ไม่ได้
-- **บันทึกการค้นหาที่ล้มเหลว**: เพลงที่ค้นหาแต่ไม่พบในช่วงเวลาสั้น ๆ จะถูกบันทึกไว้ชั่วคราว เพื่อหลีกเลี่ยงการค้นหาซ้ำที่ไม่สำเร็จ
-- **แจ้งเตือนเมื่อตัวละครยังไม่ได้ผูกเพลย์ลิสต์**: เมื่อเปิดโหมดเพลย์ลิสต์ตัวละครแต่ยังไม่ได้ผูกเพลย์ลิสต์ หน้าเพลย์ลิสต์จะแสดงคำแนะนำแทนที่จะปล่อยให้สับสนว่าเครื่องเล่นเสีย
-- **เลื่อนแชทได้ในโหมด Overlay**: เมื่อใช้ธีมแบบ Overlay ยังสามารถเลื่อนแชทด้วยล้อเมาส์หรือการสัมผัสได้ตามปกติ
-
----
-
-## 🎨 ปรับปรุง UI และประสบการณ์ใช้งาน
-
-- **ปรับปรุงการแจ้งเตือนเมื่อ Backend ไม่พร้อมใช้งาน**: เมื่อปลั๊กอิน Backend ไม่ทำงาน บริเวณเพลย์ลิสต์จะแสดงคำอธิบาย แทนที่จะแสดงเพียงป๊อปอัปข้อผิดพลาด
-- **ปรับปรุงความคืบหน้าการเล่นในโหมดเพลย์ลิสต์ตัวละคร**: บันทึกความคืบหน้าโดยใช้เพลย์ลิสต์ที่ผูกกับตัวละครปัจจุบันจริง ๆ
-- **ซิงค์สถานะการโต้ตอบของธีม iframe**: หลังจาก iframe โหลดเสร็จ สถานะ Click-through, Drag และ Overlay จะถูกซิงค์ใหม่
-- **ปรับปรุงการกู้คืนสถิติการฟังเพลง**: สถิติที่สำรองไว้ในเครื่องจะถูกกู้คืนเพียงครั้งเดียว เพื่อป้องกันการรวมข้อมูลซ้ำ
-
----
-
-## 🛠️ แก้ไขข้อบกพร่อง
-
-- แก้ไขปัญหาที่การเล่นอาจลองซ้ำกับแหล่งที่ล้มเหลวเดิมหลังจากเกิดข้อผิดพลาด
-- แก้ไขปัญหาที่ความคืบหน้าการเล่นในโหมดเพลย์ลิสต์ตัวละครอาจบันทึกไปยังเพลย์ลิสต์ผิด
-- แก้ไขปัญหาที่เครื่องเล่นยังสแกน BGM ในพื้นหลังหลังจากถูกปิด ทำให้เกิดคำขอที่ไม่จำเป็น
-- แก้ไขปัญหาที่ธีมแบบ Overlay ขัดขวางการเลื่อนในพื้นที่แชท
-- แก้ไขปัญหาที่การสร้างเพลย์ลิสต์ซ้ำอาจทำให้รายการไม่ซิงค์หรือรายการเก่าทับรายการใหม่
-- แก้ไขปัญหาที่ปกเพลงเก่ายังคงปรากฏในผลการค้นหาหลังจากแคชหมดอายุ
-- แก้ไขปัญหาที่การแจ้งเตือน UI ไม่ชัดเจนเมื่อ Backend เพลย์ลิสต์ไม่พร้อมใช้งาน
-- แก้ไขข้อผิดพลาดที่อาจเกิดขึ้นซ้ำในการตรวจสอบไวยากรณ์ JS เมื่อจัดการกับ error object ที่ผิดปกติ
-- แก้ไขปัญหาที่ตัวบ่งชี้ทดสอบบางรายการถูกซ่อนโดยไม่ตั้งใจจากการสิ้นสุดการสร้าง การส่งข้อความ หรือสถานะปุ่ม Stop
-
----
-
-## ⚠️ ประกาศสำคัญ
-
-หากต้องการใช้ฟีเจอร์เครื่องเล่น กรุณารีสตาร์ท SillyTavern เพื่ออัปเดตปลั๊กอิน Backend ก่อนหน้านั้น กรุณาตรวจสอบให้แน่ใจว่าได้ติดตั้งปลั๊กอิน Backend แล้วตามคู่มือการใช้งานในหน้าเครื่องมือ
+- เพลงที่กำลังเล่นโดดเด่นขึ้นในเพลย์ลิสต์ (แถบสีด้านซ้าย + พื้นหลังเน้น)
+- เปิดเพลย์ลิสต์แล้วเลื่อนไปยังเพลงปัจจุบันอัตโนมัติ
+- เลื่อนอย่างนุ่มนวลเมื่อเปลี่ยนเพลง
+- การปรับปรุงนี้ใช้กับทั้งเพลย์ลิสต์ในการตั้งค่าและเพลย์ลิสต์ในตัวเครื่องเล่น
 `,
     },
   },
@@ -1409,7 +1295,7 @@ const MusicUtils = {
    * 集中的音频时长检测（供所有播放器主题调用）
    * 用法：await window.parent.MusicUtils.checkAudioDuration(url)
    */
-  checkAudioDuration(audioUrl, timeoutMs = 3000) {
+  checkAudioDuration(audioUrl, timeoutMs = 5000) {
     return new Promise((resolve) => {
       if (!audioUrl) return resolve(null);
       const needProxyDomains = ["music.126.net", "qq.com", "kuwo.cn"];
@@ -3426,63 +3312,63 @@ async function searchSongWithDedup(title, artist, excludeSources = []) {
       );
 
     if (isMatch && !isExcluded) {
-      verboseLog(`[Player][搜索] ✓ 缓存命中: ${title} - ${artist}`);
-      return cached;
-    } else if (isExcluded && isMatch) {
-      const sourceMap = {
-        netease: "netease",
-        tencent: "tencent",
-        kuwo: "kuwo",
-      };
-      const apiSource = sourceMap[cachedSrc] || cachedSrc;
-      verboseLog(
-        `[Player][搜索] 缓存源 ${cached.source} 在排除列表，尝试给原源刷新URL+时长校验，避免跨源被翻唱截胡...`,
-      );
-      try {
-        const refreshed = await fetchAndValidateSong(cached.id, apiSource, {
-          title,
-          artist,
-        });
-        if (refreshed && refreshed.audioUrl) {
-          debugLog(
-            `[Player][搜索] ✓ 原源 ${cached.source} 刷新+校验通过（只是临时链接过期），直接复用原源`,
-          );
-          MusicCache.setAudio(cached.id, cached.source, refreshed.audioUrl);
-          if (refreshed.lyricsContent) {
-            MusicCache.setLyrics(
-              cached.id,
-              cached.source,
-              refreshed.lyricsContent,
-              refreshed.tlyricContent || "",
-            );
+      verboseLog(`[Player][搜索] ✓ 搜索缓存命中: ${title} - ${artist}`);
+      let audioUrl = MusicCache.getAudio(cached.id, cached.source);
+      if (!audioUrl) {
+        verboseLog(`[Player][搜索] 音频URL缓存过期，主动刷新...`);
+        const sourceMap = {
+          Netease: "netease",
+          Tencent: "tencent",
+          Kuwo: "kuwo",
+        };
+        const apiSource =
+          sourceMap[cached.source] || cached.source.toLowerCase();
+        try {
+          const refreshed = await fetchAndValidateSong(cached.id, apiSource, {
+            title,
+            artist,
+          });
+          if (refreshed && refreshed.audioUrl) {
+            audioUrl = refreshed.audioUrl;
+            MusicCache.setAudio(cached.id, cached.source, audioUrl);
+            if (refreshed.lyricsContent) {
+              MusicCache.setLyrics(
+                cached.id,
+                cached.source,
+                refreshed.lyricsContent,
+                refreshed.tlyricContent || "",
+              );
+            }
+            debugLog(`[Player][搜索] ✓ 缓存歌曲音频URL已刷新: ${title}`);
           }
-          return {
-            id: cached.id,
-            source: cached.source,
-            name: cached.title,
-            title: cached.title,
-            artist: cached.artist,
-            coverUrl:
-              cached.coverUrl ||
-              MusicCache.getCover(cached.id, cached.source) ||
-              "",
-            audioUrl: refreshed.audioUrl,
-            lyricsContent: refreshed.lyricsContent || "",
-            tlyricContent: refreshed.tlyricContent || "",
-          };
+        } catch (e) {
+          debugWarn(`[Player][搜索] 音频刷新失败:`, e.message);
         }
-        debugLog(
-          `[Player][搜索] 原源 ${cached.source} 校验失败（可能是试听版/版权下架/源头返回垃圾链接），转跨源搜索`,
-        );
-      } catch (e) {
-        debugWarn(
-          `[Player][搜索] 原源 ${cached.source} 刷新异常，转跨源:`,
-          e.message,
-        );
       }
+      if (audioUrl) {
+        const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
+        const coverUrl =
+          MusicCache.getCover(cached.id, cached.source) ||
+          cached.coverUrl ||
+          "";
+        return {
+          id: cached.id,
+          source: cached.source,
+          name: cached.title,
+          title: cached.title,
+          artist: cached.artist,
+          coverUrl: coverUrl,
+          audioUrl: audioUrl,
+          lyricsContent: lyricsData?.content || "",
+          tlyricContent: lyricsData?.tlyric || "",
+        };
+      }
+      debugLog(
+        `[Player][搜索] 缓存歌曲音频无法获取，转跨源搜索: ${title} - ${artist}`,
+      );
     } else if (isExcluded) {
       verboseLog(
-        `[Player][搜索] ⚠️ 缓存源 ${cached.source} 在排除列表且歌手不匹配，跳过: ${title} - ${artist}`,
+        `[Player][搜索] ⚠️ 缓存源 ${cached.source} 已被排除（说明该源刚才已播放失败），直接转跨源搜索: ${title} - ${artist}`,
       );
     } else {
       debugLog(
@@ -3815,8 +3701,8 @@ async function fetchAndValidateSong(id, source, queryInfo = null) {
 
     if (!audioUrl) return null;
     const duration = await MusicUtils.checkAudioDuration(audioUrl);
-    if (duration === null) return null;
-    if (duration <= MusicUtils.MIN_PLAYABLE_DURATION) return null;
+    if (duration !== null && duration <= MusicUtils.MIN_PLAYABLE_DURATION)
+      return null;
     return { audioUrl, lyricsContent, tlyricContent };
   } catch (error) {
     debugWarn(`[搜索调试] fetchAndValidateSong 失败:`, error);
