@@ -94,7 +94,7 @@ window.TI_FPS = FPSMonitor;
 
 let acornPromise = null;
 let messageFlushScheduled = false;
-const PLUGIN_VERSION = "4.1.5";
+const PLUGIN_VERSION = "4.2";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -144,64 +144,67 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "4.1.5": {
-    date: "2026-5-22",
+  4.2: {
+    date: "2026-6-15",
     title: {
-      zh: "播放稳定性修复与歌单体验优化",
-      en: "Playback Stability Fixes and Playlist UX Improvements",
-      th: "แก้ไขความเสถียรการเล่นและปรับปรุง UX เพลย์ลิสต์",
+      zh: "稳定性修复与体验打磨",
+      en: "Stability Fixes and UX Polish",
+      th: "แก้ไขความเสถียรและปรับปรุง UX",
     },
     content: {
       zh: `
-## v4.1.5
-
 ### 🛠️ 问题修复
 
-- 修复了切换音乐源时偶尔卡住、反复加载的问题
-- 修复了歌曲开头有时会重复播放一小段的问题
-- 改善了网速较慢时的播放稳定性，减少误判为试听版的情况
-- 修复了缓存歌曲音频链接过期导致无法播放的问题，命中缓存时自动刷新链接
+- 修复了混合模式下记忆歌单功能不生效的问题
+- 修复了单曲循环模式下歌曲不能正常重播的问题
+- 修复了部分 QQ 音乐封面加载失败的问题
+- 修复了歌单页面滚动当前播放歌曲行为错误的问题
+- 修复了带括号翻译的歌词显示不完整的问题（例如「原文（译文）」格式）
 
-### 🎨 歌单体验优化
+### ✨ 体验优化
 
-- 正在播放的歌曲在歌单中更加醒目（左侧色条 + 背景高亮）
-- 打开歌单时自动定位到当前歌曲，无需手动滚动
-- 切歌时歌单平滑跟随滚动
-- 以上优化同时适用于设置页歌单和播放器内置歌单
+- 优化了部分 iframe 主题的性能
+- 切换音源时更稳定，会自动跳过已经失败过的源，跨源搜索更快
+- 切换到后台标签页时不再占用资源
+- 缓存歌曲再次播放更快，减少了重复加载
+
+> 更新后请重启酒馆以更新后端
 `,
       en: `
-## v4.1.5
-
 ### 🛠️ Bug Fixes
 
-- Fixed playback getting stuck when switching between music sources
-- Fixed audio occasionally repeating at the start of a track
-- Improved playback stability on slower connections, reducing false "preview clip" detection
-- Fixed cached songs failing to play due to expired audio URLs; now auto-refreshes on cache hit
+- Fixed memory playlist not working in Mixed Mode
+- Fixed single-song loop mode not restarting properly
+- Fixed some QQ Music covers failing to load
+- Fixed incorrect scroll-to-current-song behavior on the playlist page
+- Fixed inline translations in lyrics being cut off (e.g. "original (translation)" format)
 
-### 🎨 Playlist Improvements
+### ✨ UX Improvements
 
-- Currently playing track is now easier to spot (accent bar + background highlight)
-- Playlist auto-scrolls to the current track when opened
-- Smooth scrolling when switching tracks
-- Improvements apply to both the settings playlist and the player's built-in playlist
+- Improved performance of some iframe themes
+- More stable source switching: automatically skips failed sources, and faster cross-source search
+- No longer consumes resources when the tab is in the background
+- Cached songs replay faster with fewer redundant checks
+
+> Please restart SillyTavern after updating
 `,
       th: `
-## v4.1.5
-
 ### 🛠️ การแก้ไขข้อบกพร่อง
 
-- แก้ไขปัญหาการเล่นค้างเมื่อสลับแหล่งเพลง
-- แก้ไขปัญหาเสียงเล่นซ้ำบางครั้งที่ต้นเพลง
-- ปรับปรุงความเสถียรการเล่นเมื่อเชื่อมต่อช้า ลดการตรวจจับผิดพลาดว่าเป็นเพลงตัวอย่าง
-- แก้ไขปัญหาเพลงแคชไม่สามารถเล่นได้เนื่องจาก URL เสียงหมดอายุ รีเฟรชลิงก์อัตโนมัติเมื่อพบแคช
+- แก้ไขปัญหาฟีเจอร์จดจำเพลย์ลิสต์ไม่ทำงานในโหมดผสม
+- แก้ไขปัญหาโหมดเล่นเพลงเดียวซ้ำไม่เริ่มเล่นใหม่
+- แก้ไขปัญหาภาพปก QQ Music บางส่วนโหลดไม่สำเร็จ
+- แก้ไขปัญหาการเลื่อนหน้าเพลย์ลิสต์ไปยังเพลงที่กำลังเล่นผิดพลาด
+- แก้ไขปัญหาเนื้อเพลงที่มีคำแปลในวงเล็บแสดงไม่ครบ
 
-### 🎨 ปรับปรุงเพลย์ลิสต์
+### ✨ ปรับปรุงประสบการณ์
 
-- เพลงที่กำลังเล่นโดดเด่นขึ้นในเพลย์ลิสต์ (แถบสีด้านซ้าย + พื้นหลังเน้น)
-- เปิดเพลย์ลิสต์แล้วเลื่อนไปยังเพลงปัจจุบันอัตโนมัติ
-- เลื่อนอย่างนุ่มนวลเมื่อเปลี่ยนเพลง
-- การปรับปรุงนี้ใช้กับทั้งเพลย์ลิสต์ในการตั้งค่าและเพลย์ลิสต์ในตัวเครื่องเล่น
+- ปรับปรุงประสิทธิภาพของธีม iframe บางตัว
+- การสลับแหล่งเพลงเสถียรขึ้น ข้ามแหล่งที่เคยล้มเหลวอัตโนมัติ และค้นหาข้ามแหล่งเพลงเร็วขึ้น
+- ไม่ใช้ทรัพยากรเมื่อสลับไปแท็บอื่น
+- เพลงที่แคชไว้เล่นซ้ำเร็วขึ้น ลดการตรวจสอบซ้ำซ้อน
+
+> กรุณารีสตาร์ท SillyTavern หลังการอัปเดต
 `,
     },
   },
@@ -1370,6 +1373,7 @@ const MusicUtils = {
     let s = str
       .toLowerCase()
       .normalize("NFKC")
+      .replace(/\s*[-—–]\s*《[^》]*》[\s\S]*$/g, "")
       .replace(/\s*[\(\（\[\【].*?[\)\）\]\】]\s*/g, "")
       .replace(/[\s\-_·・,，.。!！?？'"「」『』:：/／]/g, "");
 
@@ -1746,11 +1750,24 @@ const MusicCache = {
         verboseLog(`[MusicCache] setSearch: 拒绝写入无效封面URL: ${coverUrl}`);
         coverUrl = "";
       }
+      if (coverUrl) {
+        const isNeteaseDirectLink = /p\d+\.music\.126\.net/.test(coverUrl);
+        const isNeteaseSource = String(data.source).toLowerCase() === "netease";
+        if (isNeteaseDirectLink) {
+          if (isNeteaseSource && data.id) {
+            coverUrl = `https://api.qijieya.cn/meting/?server=netease&type=pic&id=${data.id}&size=500`;
+          } else {
+            debugWarn(
+              `[MusicCache] ⚠️ 网易云直链但 source/id 异常: source="${data.source}" id="${data.id}"`,
+            );
+          }
+        }
+      }
     }
 
     this._memoryCache.search[key] = {
       data: {
-        id: data.id,
+        id: String(data.id),
         source: data.source,
         title: data.title || data.name || title,
         artist: this._normalizeArtist(data.artist || artist),
@@ -1782,12 +1799,34 @@ const MusicCache = {
     return item.url;
   },
 
-  setAudio(id, source, url) {
+  setAudio(id, source, url, verified = true) {
     if (!url || !id || !source) return;
     const key = this._detailKey(id, source);
-    this._memoryCache.audio[key] = { url, ts: Date.now() };
+    const now = Date.now();
+    const existing = this._memoryCache.audio[key];
+    this._memoryCache.audio[key] = {
+      url,
+      ts: now,
+      verifiedAt: verified ? now : existing?.verifiedAt || 0,
+    };
     this._enforceLimit("audio");
     this.save();
+  },
+
+  markAudioAsVerified(id, source) {
+    const key = this._detailKey(id, source);
+    const item = this._memoryCache.audio[key];
+    if (item) {
+      item.verifiedAt = Date.now();
+      this.save();
+    }
+  },
+
+  isAudioRecentlyVerified(id, source, ttl = 2 * 60 * 60 * 1000) {
+    const key = this._detailKey(id, source);
+    const item = this._memoryCache.audio[key];
+    if (!item || !item.verifiedAt) return false;
+    return Date.now() - item.verifiedAt < ttl;
   },
 
   invalidateAudio(id, source) {
@@ -1815,9 +1854,21 @@ const MusicCache = {
     if (!url || !id || !source) return;
     const midMatch = url.match(/M([0-9a-zA-Z]+)\.jpg/i);
     const isEmptyShell = midMatch && /^0+$/.test(midMatch[1]);
-    if (isEmptyShell || url.includes("default_cover")) {
-      console.warn(`[MusicCache] 拒绝写入无效封面: ${url}`);
+    const isEmptyMeting = url.includes("meting") && /[?&]id=(&|$)/.test(url);
+    if (isEmptyShell || isEmptyMeting || url.includes("default_cover")) {
+      verboseLog(`[MusicCache] 拒绝写入无效封面: ${url}`);
       return;
+    }
+    const isNeteaseDirectLink = /p\d+\.music\.126\.net/.test(url);
+    const isNeteaseSource = String(source).toLowerCase() === "netease";
+    if (isNeteaseDirectLink) {
+      if (isNeteaseSource) {
+        url = `https://api.qijieya.cn/meting/?server=netease&type=pic&id=${id}&size=500`;
+      } else {
+        debugWarn(
+          `[MusicCache] 网易云直链但 source 不匹配（"${source}"），未替换`,
+        );
+      }
     }
     this._enforceLimit("cover");
     const key = this._detailKey(id, source);
@@ -2071,8 +2122,8 @@ window.__tiDebug = {
 
 const ApiHealthMonitor = {
   _state: new Map(),
-  BLACKLIST_THRESHOLD: 3,
-  BLACKLIST_DURATION: 5 * 60 * 1000,
+  BLACKLIST_THRESHOLD: 5,
+  BLACKLIST_DURATION: 2 * 60 * 1000,
 
   _shouldLog() {
     return !!extension_settings[MODULE]?.playerEnabled;
@@ -2327,7 +2378,10 @@ let lyricsOverlayElement = null;
 let listeningStatsUpdateTimer = null;
 let lastSentPlaylist = null;
 let playerAutoHideVisible = true;
+let _autoShowTranslationFlag = null;
 let playerAutoHideHandlers = null;
+let generationStartedSafetyTimer = null;
+let stopButtonHasAppearedFlag = false;
 
 function fuzzyMatchTrack(bubbleTitle, bubbleArtist, track) {
   if (!track || !bubbleTitle || !bubbleArtist) return false;
@@ -2609,6 +2663,9 @@ function getSettings() {
     } catch (e) {
       console.warn("[TI] 恢复听歌统计失败:", e);
     }
+  }
+  if (settings._autoShowTranslation !== undefined) {
+    delete settings._autoShowTranslation;
   }
   updateLogFunctions();
   return settings;
@@ -3282,7 +3339,8 @@ function refreshAllBubbles() {
   verboseLog("[Player][气泡] 已刷新所有BGM气泡样式");
 }
 
-async function searchSongWithDedup(title, artist, excludeSources = []) {
+async function searchSongWithDedup(title, artist, excludeSourcesInput = []) {
+  const excludeSources = [...excludeSourcesInput];
   const hasExclude = excludeSources.length > 0;
   const excludeLower = excludeSources.map((s) => String(s).toLowerCase());
   const key = hasExclude
@@ -3346,26 +3404,62 @@ async function searchSongWithDedup(title, artist, excludeSources = []) {
         }
       }
       if (audioUrl) {
-        const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
-        const coverUrl =
-          MusicCache.getCover(cached.id, cached.source) ||
-          cached.coverUrl ||
-          "";
-        return {
-          id: cached.id,
-          source: cached.source,
-          name: cached.title,
-          title: cached.title,
-          artist: cached.artist,
-          coverUrl: coverUrl,
-          audioUrl: audioUrl,
-          lyricsContent: lyricsData?.content || "",
-          tlyricContent: lyricsData?.tlyric || "",
-        };
+        const recentlyVerified = MusicCache.isAudioRecentlyVerified(
+          cached.id,
+          cached.source,
+        );
+        let cachedDur = null;
+        if (!recentlyVerified) {
+          cachedDur = await MusicUtils.checkAudioDuration(audioUrl);
+        } else {
+          verboseLog(
+            `[Player][搜索] ⏩ 缓存链接 2 小时内验证过，跳过时长检测: ${title}`,
+          );
+        }
+        if (
+          cachedDur !== null &&
+          cachedDur <= MusicUtils.MIN_PLAYABLE_DURATION
+        ) {
+          debugWarn(
+            `[Player][搜索] ⚠️ 缓存链接已变试听版(${cachedDur.toFixed(1)}s)，丢弃并跨源: ${title} - ${artist}`,
+          );
+          MusicCache.invalidateAudio(cached.id, cached.source);
+          if (
+            cached.source &&
+            !excludeLower.includes(String(cached.source).toLowerCase())
+          ) {
+            excludeSources.push(cached.source);
+            excludeLower.push(String(cached.source).toLowerCase());
+          }
+        } else {
+          const lyricsData = MusicCache.getLyrics(cached.id, cached.source);
+          const coverUrl =
+            MusicCache.getCover(cached.id, cached.source) ||
+            cached.coverUrl ||
+            "";
+          return {
+            id: cached.id,
+            source: cached.source,
+            name: cached.title,
+            title: cached.title,
+            artist: cached.artist,
+            coverUrl: coverUrl,
+            audioUrl: audioUrl,
+            lyricsContent: lyricsData?.content || "",
+            tlyricContent: lyricsData?.tlyric || "",
+          };
+        }
       }
       debugLog(
         `[Player][搜索] 缓存歌曲音频无法获取，转跨源搜索: ${title} - ${artist}`,
       );
+      if (
+        cached.source &&
+        !excludeLower.includes(String(cached.source).toLowerCase())
+      ) {
+        excludeSources.push(cached.source);
+        excludeLower.push(String(cached.source).toLowerCase());
+      }
     } else if (isExcluded) {
       verboseLog(
         `[Player][搜索] ⚠️ 缓存源 ${cached.source} 已被排除（说明该源刚才已播放失败），直接转跨源搜索: ${title} - ${artist}`,
@@ -3423,66 +3517,99 @@ async function searchSongWithDedup(title, artist, excludeSources = []) {
     pendingSearches.delete(key);
   }
 }
+const _candidatesCache = new Map();
+const _CANDIDATES_TTL = 60 * 1000;
 
 async function searchSong(title, artist = "", excludeSources = []) {
   const query = artist ? `${title} ${artist}` : title;
   const allSources = ["netease", "tencent", "kuwo"];
   const lowerExclude = excludeSources.map((s) => String(s).toLowerCase());
-  const sources = allSources.filter((s) => {
-    if (lowerExclude.includes(s)) return false;
-    if (ApiHealthMonitor.isBlacklisted(`search:${s}`)) {
-      debugLog(`[搜索] 跳过熔断中的源: ${s}`);
-      return false;
-    }
-    return true;
-  });
-
-  if (sources.length === 0) {
-    console.warn("[Player][搜索] 所有源都被排除/熔断");
-    return null;
-  }
-
-  debugLog(`[Player][搜索] 并发搜索 "${query}"，启用源: ${sources.join(", ")}`);
-
   const sourceLabelMap = {
     netease: "Netease",
     tencent: "Tencent",
     kuwo: "Kuwo",
   };
 
-  const searchPromises = sources.map(async (source) => {
-    try {
-      const resp = await fetch(
-        `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(query)}&source=${source}`,
+  const _candKey = `${(title || "").toLowerCase().trim()}|${(artist || "").toLowerCase().trim()}`;
+  const _cachedEntry = _candidatesCache.get(_candKey);
+  let candidates = null;
+
+  if (_cachedEntry && Date.now() - _cachedEntry.ts < _CANDIDATES_TTL) {
+    const filtered = _cachedEntry.candidates.filter(
+      (c) => !lowerExclude.includes(c._source),
+    );
+    if (filtered.length > 0) {
+      debugLog(
+        `[Player][搜索] ✓ 复用 ${filtered.length}/${_cachedEntry.candidates.length} 条候选 (排除: ${lowerExclude.join(",") || "无"})`,
       );
-      if (!resp.ok) {
+      candidates = filtered;
+    }
+  }
+
+  if (!candidates) {
+    const sources = allSources.filter((s) => {
+      if (lowerExclude.includes(s)) return false;
+      if (ApiHealthMonitor.isBlacklisted(`search:${s}`)) {
+        debugLog(`[搜索] 跳过熔断中的源: ${s}`);
+        return false;
+      }
+      return true;
+    });
+
+    if (sources.length === 0) {
+      console.warn("[Player][搜索] 所有源都被排除/熔断");
+      return null;
+    }
+
+    debugLog(
+      `[Player][搜索] 并发搜索 "${query}"，启用源: ${sources.join(", ")}`,
+    );
+
+    const searchPromises = sources.map(async (source) => {
+      try {
+        const resp = await fetch(
+          `/api/plugins/g-player-proxy/search?query=${encodeURIComponent(query)}&source=${source}`,
+        );
+        if (!resp.ok) {
+          ApiHealthMonitor.recordFailure(`search:${source}`);
+          return { source, results: [] };
+        }
+        const data = await resp.json();
+        const results = data?.data || [];
+        if (results.length > 0) {
+          ApiHealthMonitor.recordSuccess(`search:${source}`);
+        }
+        return { source, results };
+      } catch (e) {
         ApiHealthMonitor.recordFailure(`search:${source}`);
         return { source, results: [] };
       }
-      const data = await resp.json();
-      const results = data?.data || [];
-      if (results.length > 0) {
-        ApiHealthMonitor.recordSuccess(`search:${source}`);
-      }
-      return { source, results };
-    } catch (e) {
-      ApiHealthMonitor.recordFailure(`search:${source}`);
-      return { source, results: [] };
-    }
-  });
-
-  const allResults = await Promise.all(searchPromises);
-
-  const candidates = [];
-  for (const { source, results } of allResults) {
-    const sourceLabel = sourceLabelMap[source];
-    results.slice(0, 5).forEach((item) => {
-      candidates.push({
-        ...item,
-        _source: source,
-        _sourceLabel: sourceLabel,
-      });
     });
+
+    const allResults = await Promise.all(searchPromises);
+
+    candidates = [];
+    for (const { source, results } of allResults) {
+      const sourceLabel = sourceLabelMap[source];
+      results.slice(0, 5).forEach((item) => {
+        candidates.push({
+          ...item,
+          _source: source,
+          _sourceLabel: sourceLabel,
+        });
+      });
+    }
+
+    if (candidates.length > 0) {
+      _candidatesCache.set(_candKey, {
+        candidates: [...candidates],
+        ts: Date.now(),
+      });
+      if (_candidatesCache.size > 100) {
+        const firstKey = _candidatesCache.keys().next().value;
+        _candidatesCache.delete(firstKey);
+      }
+    }
   }
 
   if (candidates.length === 0) {
@@ -3531,63 +3658,93 @@ async function searchSong(title, artist = "", excludeSources = []) {
     const itemCover = item.cover || item.pic || "";
 
     if (cachedAudio) {
-      verboseLog(
-        `[Player][搜索] ✓ 缓存命中 ${sourceLabel} (分数 ${score.toFixed(1)})`,
+      const recentlyVerified = MusicCache.isAudioRecentlyVerified(
+        trackId,
+        sourceLabel,
       );
-      let finalTlyric = cachedLyrics?.tlyric || "";
-      const _checkKey = `${trackId}-${sourceLabel}`;
-      const _needTrans =
-        cachedLyrics?.content && shouldTryTranslation(cachedLyrics.content);
-      if (
-        cachedLyrics?.content &&
-        !finalTlyric &&
-        _needTrans &&
-        !_translationCheckedKeys.has(_checkKey)
-      ) {
-        _translationCheckedKeys.add(_checkKey);
-        try {
-          const lyricRes = await fetch(
-            `/api/plugins/g-player-proxy/lyric?id=${trackId}&source=${source}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
-          );
-          if (lyricRes.ok) {
-            const lyricJson = await lyricRes.json();
-            const newTlyric =
-              lyricJson?.data?.tlyric || lyricJson?.data?.trans || "";
-            if (newTlyric && newTlyric.trim() !== "") {
-              finalTlyric = newTlyric;
-              MusicCache.setLyrics(
-                trackId,
-                sourceLabel,
-                cachedLyrics.content,
-                newTlyric,
-              );
-            }
-          }
-        } catch (e) {
-          debugWarn("[搜索] 补翻译失败:", e.message);
-        }
+      let cachedDur = null;
+      if (!recentlyVerified) {
+        cachedDur = await MusicUtils.checkAudioDuration(cachedAudio);
       }
-      return {
-        id: trackId,
-        name: item.song || item.name,
-        title: item.song || item.name,
-        artist: item.singer || item.artist,
-        coverUrl: cachedCover || itemCover,
-        source: sourceLabel,
-        audioUrl: cachedAudio,
-        lyricsContent: cachedLyrics?.content || "",
-        tlyricContent: finalTlyric,
-      };
+      if (cachedDur !== null && cachedDur <= MusicUtils.MIN_PLAYABLE_DURATION) {
+        debugWarn(
+          `[Player][搜索] ✗ 缓存的 ${sourceLabel} 已变成试听版(${cachedDur.toFixed(1)}s)，清除并重新获取`,
+        );
+        MusicCache.invalidateAudio(trackId, sourceLabel);
+      } else {
+        if (cachedDur !== null) {
+          MusicCache.markAudioAsVerified(trackId, sourceLabel);
+        }
+        verboseLog(
+          `[Player][搜索] ✓ 缓存命中 ${sourceLabel} (分数 ${score.toFixed(1)})`,
+        );
+        let finalTlyric = cachedLyrics?.tlyric || "";
+        const _checkKey = `${trackId}-${sourceLabel}`;
+        const _needTrans =
+          cachedLyrics?.content && shouldTryTranslation(cachedLyrics.content);
+        if (
+          cachedLyrics?.content &&
+          !finalTlyric &&
+          _needTrans &&
+          !_translationCheckedKeys.has(_checkKey)
+        ) {
+          if (_translationCheckedKeys.size > 500)
+            _translationCheckedKeys.clear();
+          _translationCheckedKeys.add(_checkKey);
+          try {
+            const lyricRes = await fetch(
+              `/api/plugins/g-player-proxy/lyric?id=${trackId}&source=${source}&title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`,
+            );
+            if (lyricRes.ok) {
+              const lyricJson = await lyricRes.json();
+              const newTlyric =
+                lyricJson?.data?.tlyric || lyricJson?.data?.trans || "";
+              if (newTlyric && newTlyric.trim() !== "") {
+                finalTlyric = newTlyric;
+                MusicCache.setLyrics(
+                  trackId,
+                  sourceLabel,
+                  cachedLyrics.content,
+                  newTlyric,
+                );
+              }
+            }
+          } catch (e) {
+            debugWarn("[搜索] 补翻译失败:", e.message);
+          }
+        }
+        return {
+          id: trackId,
+          name: item.song || item.name,
+          title: item.song || item.name,
+          artist: item.singer || item.artist,
+          coverUrl: cachedCover || itemCover,
+          source: sourceLabel,
+          audioUrl: cachedAudio,
+          lyricsContent: cachedLyrics?.content || "",
+          tlyricContent: finalTlyric,
+        };
+      }
     }
-
     try {
       const songData = await fetchAndValidateSong(trackId, source, {
         title,
         artist,
       });
-      if (!songData || !songData.audioUrl) {
+      if (!songData) {
         ApiHealthMonitor.recordFailure(`song:${source}`);
-        verboseLog(`[Player][搜索] ✗ ${sourceLabel} URL 无效，尝试下一候选`);
+        verboseLog(`[Player][搜索] ✗ ${sourceLabel} 接口故障，尝试下一候选`);
+        continue;
+      }
+      if (songData._noSource) {
+        verboseLog(`[Player][搜索] ✗ ${sourceLabel} 这首歌没源，跳过但不熔断`);
+        continue;
+      }
+      if (songData._isPreview) {
+        verboseLog(`[Player][搜索] ✗ ${sourceLabel} 是试听版，跳过但不熔断`);
+        continue;
+      }
+      if (!songData.audioUrl) {
         continue;
       }
       ApiHealthMonitor.recordSuccess(`song:${source}`);
@@ -3648,7 +3805,7 @@ async function fetchAndValidateSong(id, source, queryInfo = null) {
     const songData = await songResponse.json();
 
     if (songData._needFallback) {
-      return null;
+      return { _noSource: true };
     }
 
     let audioUrl = "";
@@ -3677,7 +3834,7 @@ async function fetchAndValidateSong(id, source, queryInfo = null) {
               }
             }
           } catch (e) {
-            console.warn(`[搜索] 使用 lrcId 获取歌词失败`);
+            verboseLog(`[搜索] 使用 lrcId 获取歌词失败`);
           }
         }
       }
@@ -3699,11 +3856,17 @@ async function fetchAndValidateSong(id, source, queryInfo = null) {
       } catch (e) {}
     }
 
-    if (!audioUrl) return null;
+    if (!audioUrl) return { _noSource: true };
     const duration = await MusicUtils.checkAudioDuration(audioUrl);
-    if (duration !== null && duration <= MusicUtils.MIN_PLAYABLE_DURATION)
-      return null;
-    return { audioUrl, lyricsContent, tlyricContent };
+    if (duration !== null && duration <= MusicUtils.MIN_PLAYABLE_DURATION) {
+      return { _isPreview: true };
+    }
+    return {
+      audioUrl,
+      lyricsContent,
+      tlyricContent,
+      _verified: duration !== null,
+    };
   } catch (error) {
     debugWarn(`[搜索调试] fetchAndValidateSong 失败:`, error);
     return null;
@@ -3771,6 +3934,7 @@ async function findSongsInMessage(messageId) {
         _needTrans &&
         !_translationCheckedKeys.has(_checkKey)
       ) {
+        if (_translationCheckedKeys.size > 500) _translationCheckedKeys.clear();
         _translationCheckedKeys.add(_checkKey);
         verboseLog(`[Player][歌词] 缓存里翻译缺失，主动补: ${title}`);
         try {
@@ -3972,7 +4136,7 @@ async function _loadPlaylistSongsAsTracks(playlistId) {
 }
 
 let _prefetchAbortController = null;
-async function prefetchPlaylistUrls(playlist) {
+async function prefetchPlaylistUrls(playlist, startIndex = 0) {
   if (!Array.isArray(playlist) || playlist.length === 0) return;
   if (_prefetchAbortController) {
     _prefetchAbortController.abort();
@@ -3982,8 +4146,10 @@ async function prefetchPlaylistUrls(playlist) {
 
   const PREFETCH_LIMIT = 5;
   const targets = [];
-  for (const t of playlist) {
+  const len = playlist.length;
+  for (let i = 0; i < len; i++) {
     if (targets.length >= PREFETCH_LIMIT) break;
+    const t = playlist[(startIndex + i) % len];
     if (t.audioUrl) continue;
     const title = t.originalTitle || t.title || t.name || "";
     const artist = t.originalArtist || t.artist || "";
@@ -4011,11 +4177,21 @@ async function prefetchPlaylistUrls(playlist) {
 
 async function _doBuildAndSetInitialPlaylist() {
   const settings = getSettings();
+  const mode = settings.playlistSourceMode || "mixed";
+  if (
+    settings.rememberPlaybackProgress &&
+    (mode === "mixed" || mode === "chat_only") &&
+    (this_chid === undefined || !characters[this_chid])
+  ) {
+    debugLog(
+      `[Player][歌单] 角色未就绪 (this_chid=${this_chid})，跳过本次构建，等待聊天加载完成`,
+    );
+    return;
+  }
+
   isPlaylistReady = false;
   let finalPlaylist = [];
   try {
-    const mode = settings.playlistSourceMode || "mixed";
-
     if (mode === "playlist_only") {
       finalPlaylist = await _loadPlaylistSongsAsTracks(
         settings.selectedPlaylistId,
@@ -4136,6 +4312,13 @@ async function _doBuildAndSetInitialPlaylist() {
             const rKey = getProgressKey(mode, activePlaylistId);
             if (rKey && settings.lastPlaybackProgress?.[rKey]) {
               resumeTrack = settings.lastPlaybackProgress[rKey];
+              debugLog(
+                `[Player][记忆] ✓ 读取到进度 key="${rKey}" → "${resumeTrack.title}" - "${resumeTrack.artist}"，将传递给播放器`,
+              );
+            } else {
+              debugLog(
+                `[Player][记忆] ✗ 没有找到进度 key="${rKey || "(空)"}", mode="${mode}"`,
+              );
             }
           }
           playerIframe.contentWindow.postMessage(
@@ -4184,7 +4367,41 @@ async function _doBuildAndSetInitialPlaylist() {
   } finally {
     isPlaylistReady = true;
     if (finalPlaylist && finalPlaylist.length > 0) {
-      setTimeout(() => prefetchPlaylistUrls(finalPlaylist), 800);
+      let prefetchStart = 0;
+      if (settings.rememberPlaybackProgress) {
+        let activePlaylistId = settings.selectedPlaylistId;
+        if (mode === "character_playlist") {
+          const charAvatar =
+            this_chid !== undefined && characters[this_chid]
+              ? characters[this_chid].avatar
+              : null;
+          activePlaylistId =
+            charAvatar && settings.characterPlaylists
+              ? settings.characterPlaylists[charAvatar]
+              : null;
+        }
+        const rKey = getProgressKey(mode, activePlaylistId);
+        const saved = rKey ? settings.lastPlaybackProgress?.[rKey] : null;
+        if (saved) {
+          const idx = finalPlaylist.findIndex((t) => {
+            const tArtist = Array.isArray(t.artist)
+              ? t.artist.join(",")
+              : t.artist || "";
+            return (
+              MusicUtils.isTitleMatch(
+                saved.title || "",
+                t.originalTitle || t.title || "",
+              ) &&
+              MusicUtils.isArtistMatch(
+                saved.artist || "",
+                t.originalArtist || tArtist,
+              )
+            );
+          });
+          if (idx > 0) prefetchStart = idx;
+        }
+      }
+      setTimeout(() => prefetchPlaylistUrls(finalPlaylist, prefetchStart), 800);
     }
   }
 }
@@ -4280,7 +4497,28 @@ async function handleSongPlayRequest(songData) {
     }
     let audioUrl = MusicCache.getAudio(cached.id, cached.source);
 
+    let cachedDur = null;
     if (audioUrl) {
+      const recentlyVerified = MusicCache.isAudioRecentlyVerified(
+        cached.id,
+        cached.source,
+      );
+      if (!recentlyVerified) {
+        cachedDur = await MusicUtils.checkAudioDuration(audioUrl);
+      }
+      if (cachedDur !== null && cachedDur <= MusicUtils.MIN_PLAYABLE_DURATION) {
+        debugWarn(
+          `[Player][缓存] ⚠️ 缓存链接已变试听版(${cachedDur.toFixed(1)}s)，丢弃: ${songData.title}`,
+        );
+        MusicCache.invalidateAudio(cached.id, cached.source);
+        audioUrl = null;
+      }
+    }
+
+    if (audioUrl) {
+      if (cachedDur !== null) {
+        MusicCache.markAudioAsVerified(cached.id, cached.source);
+      }
       verboseLog(
         `[Player][缓存] ✓ 完全命中: ${songData.title} - ${songData.artist}`,
       );
@@ -4326,23 +4564,23 @@ async function handleSongPlayRequest(songData) {
         Kuwo: "kuwo",
       };
       const apiSource = sourceMap[cached.source] || cached.source.toLowerCase();
+      const refreshed = await fetchAndValidateSong(cached.id, apiSource, {
+        title: songData.title,
+        artist: songData.artist,
+      });
 
-      const response = await fetch(
-        `/api/plugins/g-player-proxy/song?id=${cached.id}&source=${apiSource}`,
-      );
-      const data = await response.json();
-
-      let newAudioUrl = "";
-      if (data.data) {
-        newAudioUrl = Array.isArray(data.data)
-          ? data.data[0]?.url
-          : data.data.url;
-      }
-
-      if (newAudioUrl && !newAudioUrl.includes(".mp4")) {
-        MusicCache.setAudio(cached.id, cached.source, newAudioUrl);
+      if (refreshed && refreshed.audioUrl) {
+        MusicCache.setAudio(cached.id, cached.source, refreshed.audioUrl);
+        if (refreshed.lyricsContent) {
+          MusicCache.setLyrics(
+            cached.id,
+            cached.source,
+            refreshed.lyricsContent,
+            refreshed.tlyricContent || "",
+          );
+        }
         debugLog(`[Player][缓存] ✓ 音频URL已刷新: ${songData.title}`);
-        sendPlayNow(playerIframe, cached, newAudioUrl, songData);
+        sendPlayNow(playerIframe, cached, refreshed.audioUrl, songData);
         showPlayerFeedback();
         return;
       }
@@ -4356,7 +4594,13 @@ async function handleSongPlayRequest(songData) {
   );
 
   try {
-    const newTrack = await searchSongWithDedup(songData.title, songData.artist);
+    const exclude = cached && cached.source ? [cached.source] : [];
+    const newTrack = await searchSongWithDedup(
+      songData.title,
+      songData.artist,
+      exclude,
+    );
+
     if (newTrack && newTrack.audioUrl) {
       debugLog(
         `[Player][搜索] ✓ 主插件搜到，直接 play-now: ${songData.title} (${newTrack.source})`,
@@ -5243,7 +5487,20 @@ function parseLRC(lrcText) {
       : 0;
     const time = minutes * 60 + seconds + ms / 1000;
     const text = match[4].trim();
-    if (text) lines.push({ time, text });
+    if (text) {
+      const inlineTrans = text.match(
+        /^(.+?)\s*[（(]([\u4e00-\u9fa5][^()（）]*)[）)]\s*$/,
+      );
+      if (inlineTrans) {
+        lines.push({
+          time,
+          text: inlineTrans[1].trim(),
+          translated: inlineTrans[2].trim(),
+        });
+      } else {
+        lines.push({ time, text });
+      }
+    }
   }
 
   return lines.sort((a, b) => a.time - b.time);
@@ -5549,8 +5806,8 @@ function updateLyricsDisplay(currentTime) {
 
 function shouldShowTranslation() {
   const settings = getSettings();
-  if (settings._autoShowTranslation !== undefined) {
-    return settings._autoShowTranslation;
+  if (_autoShowTranslationFlag !== null) {
+    return _autoShowTranslationFlag;
   }
   return settings.lyricsShowNextLine;
 }
@@ -8295,6 +8552,18 @@ function addExtensionSettings() {
 
     updateCacheStats();
     setupListeningStatsUI();
+    if (window._tiCacheStatsTimer) {
+      clearInterval(window._tiCacheStatsTimer);
+    }
+    window._tiCacheStatsTimer = setInterval(() => {
+      const statsDiv = section.querySelector("#ti_cache_stats");
+      if (!statsDiv || !statsDiv.isConnected) {
+        clearInterval(window._tiCacheStatsTimer);
+        window._tiCacheStatsTimer = null;
+        return;
+      }
+      updateCacheStats();
+    }, 100000);
 
     const clearCacheBtn = section.querySelector("#ti_cache_clear");
     if (clearCacheBtn) {
@@ -8450,7 +8719,7 @@ function addExtensionSettings() {
         showNextCheckbox.addEventListener("change", (e) => {
           const settings = getSettings();
           settings.lyricsShowNextLine = e.target.checked;
-          delete settings._autoShowTranslation;
+          _autoShowTranslationFlag = null;
           saveSettingsDebounced();
           refreshLyricsOverlay();
         });
@@ -8927,10 +9196,10 @@ function addExtensionSettings() {
 
           const normalizeCoverUrl = (url) => {
             if (!url || typeof url !== "string") return url;
-            return url.replace(
-              /^https?:\/\/y\.qq\.com\//i,
-              "https://y.gtimg.cn/",
-            );
+            if (/^https?:\/\/(y\.qq\.com|y\.gtimg\.cn)\//i.test(url)) {
+              return `/api/plugins/g-player-proxy/cover-proxy?url=${encodeURIComponent(url)}`;
+            }
+            return url;
           };
 
           let cover = normalizeCoverUrl(s.cover);
@@ -9083,12 +9352,17 @@ function addExtensionSettings() {
         if (targetItem && songListEl) {
           const containerRect = songListEl.getBoundingClientRect();
           const itemRect = targetItem.getBoundingClientRect();
-          if (
+          const isOutOfView =
             itemRect.top < containerRect.top ||
-            itemRect.bottom > containerRect.bottom
-          ) {
-            targetItem.scrollIntoView({
-              block: "center",
+            itemRect.bottom > containerRect.bottom;
+          if (isOutOfView) {
+            const targetOffset =
+              targetItem.offsetTop -
+              songListEl.offsetTop -
+              songListEl.clientHeight / 2 +
+              targetItem.clientHeight / 2;
+            songListEl.scrollTo({
+              top: Math.max(0, targetOffset),
               behavior: "smooth",
             });
           }
@@ -9195,10 +9469,11 @@ function addExtensionSettings() {
 
         if (mySeq !== _coverFetchSeq) return;
         if (cover && imgEl.isConnected) {
-          const finalCover = cover.replace(
-            /^https?:\/\/y\.qq\.com\//i,
-            "https://y.gtimg.cn/",
-          );
+          const finalCover = /^https?:\/\/(y\.qq\.com|y\.gtimg\.cn)\//i.test(
+            cover,
+          )
+            ? `/api/plugins/g-player-proxy/cover-proxy?url=${encodeURIComponent(cover)}`
+            : cover;
           imgEl.setAttribute("referrerpolicy", "no-referrer");
           imgEl.src = finalCover;
           verboseLog(`[Player][封面] ✅ 已填充: ${song.title}`);
@@ -9231,9 +9506,14 @@ function addExtensionSettings() {
         _playlistState.current = pl;
         _playlistState.currentId = id;
         const settingsForPage = getSettings();
-        const lastPlayedForPage = settingsForPage.rememberPlaybackProgress
-          ? settingsForPage.lastPlaybackProgress?.[id]
-          : null;
+        const progressKeyForPage = getProgressKey(
+          settingsForPage.playlistSourceMode,
+          id,
+        );
+        const lastPlayedForPage =
+          settingsForPage.rememberPlaybackProgress && progressKeyForPage
+            ? settingsForPage.lastPlaybackProgress?.[progressKeyForPage]
+            : null;
         let initialPage = 1;
         if (lastPlayedForPage && Array.isArray(pl.songs)) {
           const idx = pl.songs.findIndex((s) => {
@@ -9783,9 +10063,14 @@ function addExtensionSettings() {
             const playingItem = songListEl?.querySelector(
               `.ti-song-item[data-index="${idx}"]`,
             );
-            if (playingItem) {
-              playingItem.scrollIntoView({
-                block: "center",
+            if (playingItem && songListEl) {
+              const targetOffset =
+                playingItem.offsetTop -
+                songListEl.offsetTop -
+                songListEl.clientHeight / 2 +
+                playingItem.clientHeight / 2;
+              songListEl.scrollTo({
+                top: Math.max(0, targetOffset),
                 behavior: "smooth",
               });
             }
@@ -10096,6 +10381,7 @@ function addExtensionSettings() {
           if (!query) {
             _playlistState.onlineResults = [];
             _playlistState.onlineSearching = false;
+            lastSearchedQuery = "";
             renderSongList();
             return;
           }
@@ -13024,6 +13310,7 @@ function initializeObservers() {
           const isHidden =
             window.getComputedStyle(stopButton).display === "none";
           if (!isHidden) {
+            stopButtonHasAppearedFlag = true;
             if (stopButtonHideTimer) {
               clearTimeout(stopButtonHideTimer);
               stopButtonHideTimer = null;
@@ -13075,12 +13362,20 @@ function initializeObservers() {
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
       verboseLog("[TI] 页面已显示。");
+      if (
+        listeningSession.isPlaying &&
+        listeningStatsUpdateCallback &&
+        !listeningStatsUpdateTimer
+      ) {
+        startStatsUpdateTimer();
+      }
     } else {
       verboseLog("[TI] 页面已隐藏，更新操作暂停。");
       if (bubbleRenderScheduled) {
         bubbleRenderQueue.clear();
         bubbleRenderScheduled = false;
       }
+      stopStatsUpdateTimer();
     }
   });
   document.addEventListener("click", function (event) {
@@ -13152,6 +13447,9 @@ function initializeObservers() {
               : song.artist || ""
             ).toLowerCase()}`;
       if (appendedSongKeys.has(key)) return false;
+      if (appendedSongKeys.size > 1000) {
+        appendedSongKeys.clear();
+      }
       appendedSongKeys.add(key);
       return true;
     });
@@ -13639,20 +13937,29 @@ function initializeObservers() {
                 );
                 if (progressKey) {
                   if (!_s.lastPlaybackProgress) _s.lastPlaybackProgress = {};
+                  const savedTitle =
+                    currentTrack.originalTitle ||
+                    currentTrack.title ||
+                    currentTrack.name ||
+                    "";
+                  const savedArtist =
+                    currentTrack.originalArtist ||
+                    (Array.isArray(currentTrack.artist)
+                      ? currentTrack.artist.join(" / ")
+                      : currentTrack.artist || "");
                   _s.lastPlaybackProgress[progressKey] = {
-                    title:
-                      currentTrack.originalTitle ||
-                      currentTrack.title ||
-                      currentTrack.name ||
-                      "",
-                    artist:
-                      currentTrack.originalArtist ||
-                      (Array.isArray(currentTrack.artist)
-                        ? currentTrack.artist.join(" / ")
-                        : currentTrack.artist || ""),
+                    title: savedTitle,
+                    artist: savedArtist,
                     updatedAt: Date.now(),
                   };
                   saveSettingsDebounced();
+                  debugLog(
+                    `[Player][记忆] ✓ 保存进度 key="${progressKey}" → "${savedTitle}" - "${savedArtist}"`,
+                  );
+                } else {
+                  debugWarn(
+                    `[Player][记忆] ⚠️ progressKey 为空，无法保存进度（mode=${_s.playlistSourceMode}）`,
+                  );
                 }
               }
             } else if (!isPlaying) {
@@ -13687,7 +13994,7 @@ function initializeObservers() {
                         (line) =>
                           line.translated && line.translated.trim() !== "",
                       );
-                      settings._autoShowTranslation = hasAnyTranslation;
+                      _autoShowTranslationFlag = hasAnyTranslation;
 
                       showLyricsOverlay();
                       debugLog(
@@ -13696,7 +14003,7 @@ function initializeObservers() {
                       refreshLyricsOverlay();
                     } else {
                       currentLyrics = [];
-                      settings._autoShowTranslation = false;
+                      _autoShowTranslationFlag = false;
                       hideLyricsOverlay();
                     }
                   }
@@ -13775,11 +14082,6 @@ function initializeObservers() {
         case "audio-playback-failed":
           if (data && data.id && data.source) {
             const _failedSrcLower = String(data.source).toLowerCase();
-            ApiHealthMonitor.recordFailure(`song:${_failedSrcLower}`);
-            debugLog(
-              `[ApiHealth] 累计 song:${_failedSrcLower} 失败一次（达到 3 次将熔断 5 分钟）`,
-            );
-
             let originalTitle = "";
             let originalArtist = "";
             if (currentPlayerTrack) {
@@ -13830,49 +14132,39 @@ function initializeObservers() {
               }
             };
 
-            const goCrossSource = () => {
+            const goCrossSource = (isApiFailure = true) => {
               if (!originalTitle || !originalArtist) {
                 replyEmpty();
                 return;
               }
+              if (isApiFailure) {
+                ApiHealthMonitor.recordFailure(`song:${_failedSrcLower}`);
+                debugLog(
+                  `[ApiHealth] 累计 song:${_failedSrcLower} 失败一次（达到 ${ApiHealthMonitor.BLACKLIST_THRESHOLD} 次将熔断 ${ApiHealthMonitor.BLACKLIST_DURATION / 60000} 分钟）`,
+                );
+              }
               debugLog("[TI] 同源刷新失败，转入跨源搜索...");
-              searchSongWithDedup(originalTitle, originalArtist, [data.source])
+              const allTriedSources = Array.isArray(data.triedSources)
+                ? [...data.triedSources]
+                : [];
+              if (data.source && !allTriedSources.includes(data.source)) {
+                allTriedSources.push(data.source);
+              }
+              searchSongWithDedup(
+                originalTitle,
+                originalArtist,
+                allTriedSources,
+              )
                 .then(async (newTrack) => {
                   if (!playerIframe || !playerIframe.contentWindow) return;
                   if (!newTrack || !newTrack.audioUrl) {
-                    debugLog(
-                      "[TI] 跨源搜不到，可能这首歌只有原源有，最后回退到原源重搜一次...",
-                    );
-                    MusicCache.invalidateAudio(data.id, data.source);
-                    const fallback = await searchSongWithDedup(
-                      originalTitle,
-                      originalArtist,
-                      [],
-                    );
-                    if (fallback && fallback.audioUrl) {
-                      if (currentPlayerTrack) {
-                        currentPlayerTrack.id = fallback.id;
-                        currentPlayerTrack.source = fallback.source;
-                      }
-                      playerIframe.contentWindow.postMessage(
-                        {
-                          source: "typing-indicator-host",
-                          type: "audio-url-refreshed",
-                          data: {
-                            audioUrl: fallback.audioUrl,
-                            trackIndex: data.trackIndex,
-                            lyricsContent: fallback.lyricsContent || "",
-                            tlyricContent: fallback.tlyricContent || "",
-                            newId: fallback.id,
-                            newSource: fallback.source,
-                            newCoverUrl: fallback.coverUrl || "",
-                            seamless: true,
-                          },
-                        },
-                        "*",
+                    debugLog("[TI] 跨源也搜不到，告知播放器无可用音源");
+                    MusicCache.invalidateTrack(data.id, data.source);
+                    if (originalTitle) {
+                      MusicCache.invalidateSearch(
+                        originalTitle,
+                        originalArtist,
                       );
-                      debugLog(`[TI] ✓ 回退到原源 ${fallback.source} 成功`);
-                      return;
                     }
                     replyEmpty();
                     return;
@@ -13919,7 +14211,7 @@ function initializeObservers() {
                     lastLyricsProgress = -1;
                     if (currentLyrics.length > 0) {
                       const hasTrans = currentLyrics.some((l) => l.translated);
-                      _hostSettings._autoShowTranslation = hasTrans;
+                      _autoShowTranslationFlag = hasTrans;
                       showLyricsOverlay();
                       refreshLyricsOverlay();
                       debugLog(
@@ -13951,25 +14243,39 @@ function initializeObservers() {
                 const isNeedFallback = songData?._needFallback;
 
                 if (newAudioUrl && !isMp4 && !isNeedFallback) {
-                  MusicCache.setAudio(data.id, data.source, newAudioUrl);
-                  debugLog("[TI] ✓ 同源刷新成功，无缝继续播放");
-                  if (playerIframe && playerIframe.contentWindow) {
-                    playerIframe.contentWindow.postMessage(
-                      {
-                        source: "typing-indicator-host",
-                        type: "audio-url-refreshed",
-                        data: {
-                          audioUrl: newAudioUrl,
-                          trackIndex: data.trackIndex,
-                          seamless: true,
+                  MusicUtils.checkAudioDuration(newAudioUrl).then((dur) => {
+                    if (
+                      dur !== null &&
+                      dur <= MusicUtils.MIN_PLAYABLE_DURATION
+                    ) {
+                      debugWarn(
+                        `[TI] ⚠️ 同源刷新仍是试听版(${dur.toFixed(1)}s)，转跨源`,
+                      );
+                      goCrossSource(false);
+                      return;
+                    }
+                    ApiHealthMonitor.recordSuccess(`song:${_failedSrcLower}`);
+                    MusicCache.setAudio(data.id, data.source, newAudioUrl);
+                    MusicCache.markAudioAsVerified(data.id, data.source);
+                    debugLog("[TI] ✓ 同源刷新成功，无缝继续播放");
+                    if (playerIframe && playerIframe.contentWindow) {
+                      playerIframe.contentWindow.postMessage(
+                        {
+                          source: "typing-indicator-host",
+                          type: "audio-url-refreshed",
+                          data: {
+                            audioUrl: newAudioUrl,
+                            trackIndex: data.trackIndex,
+                            seamless: true,
+                          },
                         },
-                      },
-                      "*",
-                    );
-                  }
+                        "*",
+                      );
+                    }
+                  });
                   return;
                 }
-                goCrossSource();
+                goCrossSource(false);
               })
               .catch((err) => {
                 console.warn("[TI] 同源刷新请求异常:", err);
@@ -14110,10 +14416,18 @@ function initializeObservers() {
 
     const settings = getSettings();
     if (!settings.persistentMode) {
-      updateAndApplyTheme("generation_start_display");
-      showTypingIndicator(type, args, dryRun);
+      stopButtonHasAppearedFlag = false;
+
       clearTimeout(messageSentCheckTimer);
       messageSentCheckTimer = null;
+      clearTimeout(generationStartedSafetyTimer);
+      generationStartedSafetyTimer = setTimeout(() => {
+        generationStartedSafetyTimer = null;
+        if (stopButtonHasAppearedFlag) {
+          updateAndApplyTheme("generation_start_display");
+          showTypingIndicator(type, args, dryRun);
+        }
+      }, 200);
     }
   });
 
@@ -14131,6 +14445,9 @@ function initializeObservers() {
   });
 
   eventSource.on(event_types.GENERATION_ENDED, (messageId) => {
+    clearTimeout(generationStartedSafetyTimer);
+    generationStartedSafetyTimer = null;
+    stopButtonHasAppearedFlag = false;
     const settings = getSettings();
     if (settings.enableBubbleReplacement) {
       setTimeout(() => {
@@ -14349,7 +14666,7 @@ function initializeObservers() {
     if (chatElement) {
       chatObserver.observe(chatElement, {
         childList: true,
-        subtree: true,
+        subtree: false,
         characterData: false,
       });
       debugLog("[Player][气泡] MutationObserver 兜底已启动");
@@ -14406,6 +14723,9 @@ function initializeObservers() {
   });
 
   eventSource.on(event_types.GENERATION_STOPPED, (messageId) => {
+    clearTimeout(generationStartedSafetyTimer);
+    generationStartedSafetyTimer = null;
+    stopButtonHasAppearedFlag = false;
     const settings = getSettings();
     if (!settings.persistentMode) {
       clearTimeout(dynamicThemeTimeoutId);
