@@ -13307,8 +13307,8 @@ function initializeObservers() {
           mutation.attributeName === "style" ||
           mutation.attributeName === "class"
         ) {
-          const isHidden =
-            window.getComputedStyle(stopButton).display === "none";
+          const inlineDisplay = stopButton.style.display;
+          const isHidden = inlineDisplay === "none";
           if (!isHidden) {
             stopButtonHasAppearedFlag = true;
             if (stopButtonHideTimer) {
