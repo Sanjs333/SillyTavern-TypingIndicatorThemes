@@ -94,7 +94,7 @@ window.TI_FPS = FPSMonitor;
 
 let acornPromise = null;
 let messageFlushScheduled = false;
-const PLUGIN_VERSION = "4.3";
+const PLUGIN_VERSION = "4.4";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -144,55 +144,61 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  4.3: {
-    date: "2026-6-5",
+  4.4: {
+    date: "2026-6-20",
     title: {
-      zh: "指示器与悬浮歌词修复",
-      en: "Indicator and Floating Lyrics Fixes",
-      th: "แก้ไขตัวบ่งชี้และเนื้อเพลงลอย",
+      zh: "美化主题绑定、气泡渲染修复与 iOS 音频解锁",
+      en: "Theme Binding, Bubble Rendering Fix, and iOS Audio Unlock",
+      th: "การผูกธีม, แก้ไขการแสดงบับเบิล และปลดล็อกเสียงบน iOS",
     },
     content: {
-      zh: `### 问题修复
-- 修复了重新生成、重抽回复等场景下，指示器可能不出现或中途消失的问题
-- 修复了开启「自动跟随主界面主题」后，自动切到 iframe 主题时指示器可能不显示的问题
-- 修复了 iframe 主题不支持当前位置时直接不显示的问题，现在会自动回退到可用位置
-- 修复了切换音源后，悬浮歌词可能丢失「原文（译文）」同行翻译的问题
-- 修复了旧设置中没有版本记录时，内置项自动更新逻辑可能被跳过的问题
+      zh: `### 新功能
+- 新增「美化主题绑定」功能，可为当前使用的酒馆美化主题单独绑定指示器主题与预设，优先级高于全局设置、低于角色专属主题
+
+### 问题修复
+- 修复开启「自动跟随主题」后，手动切换或新建指示器主题被强制覆盖的问题
+- 修复音乐气泡在流式输出结束后可能无法渲染的问题，现在会主动检索最后一条消息并多次尝试渲染
+- 修复部分 iOS 设备无法播放音乐的问题，通过注入音频解锁逻辑兼容 Safari 的手势限制
+- 修复新建主题/预设时手动覆盖状态未正确标记，导致自动跟随可能意外介入的问题
 
 ### 体验优化
-- 生成开始时增加了停止按钮兜底检测，重新生成时显示更稳定
-- 自动跟随主题时对 iframe 主题的兼容性更好
-- 悬浮歌词在换源后会优先使用独立翻译歌词；如果没有，则保留歌词行内自带翻译
+- 优化气泡渲染时机，生成结束后会持续监测并兜底渲染
+- 缩短音频时长检测的超时时间，缓解 iOS 上验证歌曲造成的卡顿
+- 为跨域音频检测添加兼容处理，提升元数据读取稳定性
 
-> 更新后建议刷新或重启 SillyTavern，以确保前端脚本和内置项完全更新
+> 更新后建议刷新或重启 SillyTavern，以确保完全更新
 `,
-      en: `### Bug Fixes
-- Fixed the indicator sometimes not appearing or disappearing during regenerate / reroll scenarios
-- Fixed the indicator not showing when Auto-sync with Main UI Theme switches to an iframe theme
-- Fixed iframe themes failing silently when the current indicator position is unsupported; it now falls back to a supported position
-- Fixed floating lyrics losing inline translations after source switching, such as "original (translation)" format
-- Fixed built-in item auto-restore possibly being skipped when old settings had no stored version record
+      en: `### New Features
+- Added "UI Theme Binding": allows binding a dedicated indicator theme and preset to the currently active SillyTavern UI theme, with priority higher than global settings but lower than character-specific themes
+
+### Bug Fixes
+- Fixed the issue where manually switching or creating indicator themes was forcibly overridden when "Auto-sync with Main UI Theme" was enabled
+- Fixed music bubbles sometimes failing to render after streaming output completed; now it proactively finds the last message and retries rendering
+- Fixed music playback not working on some iOS devices by injecting an audio unlock logic to comply with Safari's gesture restrictions
+- Fixed the manual override flag not being set correctly when creating new themes/presets, which could cause auto-follow to interfere unexpectedly
 
 ### UX Improvements
-- Added a fallback display trigger based on the stop button for more reliable regenerate behavior
-- Improved compatibility when auto-following iframe themes
-- Floating lyrics now prefer separate translated lyrics, and fall back to inline translations when no separate translation is available
+- Improved bubble rendering timing: after generation finishes, the system will keep monitoring and fallback-render
+- Shortened the timeout for audio duration detection to reduce stuttering when validating songs on iOS
+- Added cross-origin compatibility handling for audio detection, improving metadata retrieval stability
 
-> Please refresh or restart SillyTavern after updating to ensure frontend scripts and built-in items are fully updated
+> Please refresh or restart SillyTavern after updating to ensure the update is fully applied
 `,
-      th: `### การแก้ไขข้อบกพร่อง
-- แก้ไขปัญหาตัวบ่งชี้อาจไม่แสดงหรือหายไประหว่างการสร้างคำตอบใหม่ / สุ่มคำตอบใหม่
-- แก้ไขปัญหาตัวบ่งชี้ไม่แสดงเมื่อเปิดการซิงก์ธีมหลักอัตโนมัติแล้วสลับไปยังธีม iframe
-- แก้ไขปัญหาธีม iframe ไม่แสดงผลเมื่อไม่รองรับตำแหน่งปัจจุบัน ตอนนี้จะย้อนกลับไปยังตำแหน่งที่ใช้ได้โดยอัตโนมัติ
-- แก้ไขปัญหาเนื้อเพลงลอยสูญเสียคำแปลแบบอยู่ในบรรทัดเดียวกันหลังเปลี่ยนแหล่งเพลง เช่น รูปแบบ "ต้นฉบับ (คำแปล)"
-- แก้ไขปัญหาการกู้คืนรายการในตัวอาจถูกข้าม หากการตั้งค่าเก่าไม่มีข้อมูลเวอร์ชัน
+      th: `### ฟีเจอร์ใหม่
+- เพิ่ม "การผูกธีม UI": สามารถผูกธีมตัวบ่งชี้และพรีเซ็ตเฉพาะกับธีม UI ของ SillyTavern ที่ใช้งานอยู่ โดยมีลำดับความสำคัญสูงกว่าการตั้งค่าสากลแต่ต่ำกว่าธีมเฉพาะตัวละคร
 
-### ปรับปรุงประสบการณ์
-- เพิ่มกลไกสำรองจากปุ่มหยุด เพื่อให้ตัวบ่งชี้แสดงได้เสถียรขึ้นระหว่างการสร้างใหม่
-- ปรับปรุงความเข้ากันได้เมื่อซิงก์ไปยังธีม iframe อัตโนมัติ
-- เนื้อเพลงลอยจะใช้คำแปลแยกก่อน หากไม่มีจึงใช้คำแปลที่อยู่ในบรรทัดเดียวกัน
+### การแก้ไขข้อบกพร่อง
+- แก้ไขปัญหาการเปลี่ยนหรือสร้างธีมตัวบ่งชี้ด้วยตนเองถูกบังคับทับเมื่อเปิด "ซิงก์ธีมหลักอัตโนมัติ"
+- แก้ไขปัญหาฟองเพลงอาจไม่แสดงผลหลังจากเอาต์พุตสตรีมเสร็จสิ้น ตอนนี้จะค้นหาข้อความสุดท้ายและพยายามเรนเดอร์ซ้ำ
+- แก้ไขปัญหาการเล่นเพลงไม่ทำงานบนอุปกรณ์ iOS บางรุ่น โดยเพิ่มตรรกะปลดล็อกเสียงให้สอดคล้องกับข้อจำกัดท่าทางของ Safari
+- แก้ไขการตั้งค่าสถานะแทนที่ด้วยตนเองไม่ถูกต้องเมื่อสร้างธีม/พรีเซ็ตใหม่ ซึ่งอาจทำให้การติดตามอัตโนมัติเข้ามาแทรกแซงโดยไม่คาดคิด
 
-> หลังอัปเดต แนะนำให้รีเฟรชหรือรีสตาร์ท SillyTavern เพื่อให้สคริปต์และรายการในตัวอัปเดตครบถ้วน
+### การปรับปรุงประสบการณ์
+- ปรับปรุงจังหวะการแสดงผลฟอง: หลังการสร้างเสร็จ ระบบจะเฝ้าติดตามและเรนเดอร์สำรอง
+- ลดระยะหมดเวลาสำหรับการตรวจจับความยาวเสียงเพื่อลดอาการสะดุดเมื่อตรวจสอบเพลงบน iOS
+- เพิ่มการจัดการความเข้ากันได้ข้ามโดเมนสำหรับการตรวจจับเสียง ปรับปรุงความเสถียรในการดึงข้อมูลเมตาดาต้า
+
+> หลังอัปเดต แนะนำให้รีเฟรชหรือรีสตาร์ท SillyTavern เพื่อให้การอัปเดตมีผลสมบูรณ์
 `,
     },
   },
@@ -892,6 +898,42 @@ async function createUnifiedIframeOriginal(
         })();
     `
     : "";
+  const iosUnlockInjection = isPlayerTheme
+    ? `
+        (function setupIOSAudioUnlock() {
+            let unlocked = false;
+            function unlock() {
+                if (unlocked) return;
+                const audio = document.querySelector('audio');
+                if (!audio) return;
+                unlocked = true;
+                if (!audio.paused) return;
+                const wasMuted = audio.muted;
+                audio.muted = true;
+                try {
+                    const p = audio.play();
+                    if (p && typeof p.then === 'function') {
+                        p.then(function() {
+                            if (!audio.paused && audio.currentTime < 0.3) {
+                                audio.pause();
+                                try { audio.currentTime = 0; } catch (e) {}
+                            }
+                            audio.muted = wasMuted;
+                        }).catch(function() {
+                            audio.muted = wasMuted;
+                        });
+                    } else {
+                        audio.muted = wasMuted;
+                    }
+                } catch (e) {
+                    audio.muted = wasMuted;
+                }
+            }
+            document.addEventListener("touchend", unlock, { capture: true });
+            document.addEventListener("click", unlock, { capture: true });
+        })();
+    `
+    : "";
   const finalJS = `
         (function() {
             window.addEventListener('error', function(e) { console.error('[Theme Error]:', e.error ? e.error.stack : e.message); });
@@ -909,6 +951,7 @@ async function createUnifiedIframeOriginal(
             window.MusicCache = window.parent.MusicCache;
             ${dragInjection}
             ${favoriteInjection}
+            ${iosUnlockInjection}
             try { ${theme.iframeJS || ""} } catch(e) { console.error('[Theme User JS Error]:', e.stack); }
             try { ThemeUtils.sendMessage('theme-loaded', { themeId: '${jsEscape(theme.id || "preview")}', themeName: '${jsEscape(theme.name || "Preview")}' }); } catch (error) { console.error('[Theme Framework Error]:', error.stack); }
         })();
@@ -1297,10 +1340,17 @@ const MusicUtils = {
       audio.preload = "metadata";
       audio.muted = true;
       audio.volume = 0;
-      const timer = setTimeout(() => {
-        audio.src = "";
-        resolve(null);
-      }, timeoutMs);
+      audio.crossOrigin = "anonymous";
+      const timer = setTimeout(
+        () => {
+          try {
+            audio.removeAttribute("src");
+            audio.load();
+          } catch (e) {}
+          resolve(null);
+        },
+        timeoutMs > 3000 ? 3000 : timeoutMs,
+      );
       audio.onloadedmetadata = () => {
         clearTimeout(timer);
         const dur = audio.duration;
@@ -2444,6 +2494,7 @@ function getSettings() {
     selectedThemeId: "default",
     themes: defaultThemes,
     characterThemes: {},
+    themeBindings: {},
     enableDynamicThemes: false,
     dynamicThemeDuration: 10,
     dynamicThemesInPersistent: false,
@@ -2734,7 +2785,18 @@ function getActiveThemeConfig() {
     }
   }
 
-  if (settings.autoFollowTheme && power_user.theme) {
+  if (power_user.theme && settings.themeBindings) {
+    const binding = settings.themeBindings[power_user.theme];
+    if (binding && (binding.themeId || binding.presetId)) {
+      verboseLog(`[TI] 应用美化绑定主题`);
+      return {
+        themeId: binding.themeId || globalThemeId,
+        presetId: binding.presetId || globalPresetId,
+      };
+    }
+  }
+
+  if (!manualOverrideActive && settings.autoFollowTheme && power_user.theme) {
     const themeBaseName = power_user.theme;
     const matchedTheme = settings.themes.find((t) =>
       t.name.startsWith(themeBaseName),
@@ -6664,6 +6726,26 @@ function handleMainThemeChange() {
   );
 }
 
+let _lastSeenBindingTheme = null;
+function handleThemeBindingChange() {
+  let mainThemeName;
+  try {
+    mainThemeName = power_user.theme;
+  } catch (error) {
+    return;
+  }
+  if (!mainThemeName) return;
+  if (_lastSeenBindingTheme === mainThemeName) return;
+  _lastSeenBindingTheme = mainThemeName;
+
+  manualOverrideActive = false;
+  updateAndApplyTheme("ui_theme_changed_for_binding");
+
+  if (document.querySelector("#ti_theme_binding_settings")) {
+    requestSettingsRender(true);
+  }
+}
+
 // ==================== SVG Defs 全局管理 ====================
 
 function setupGlobalSvgDefs() {
@@ -6952,6 +7034,46 @@ function addExtensionSettings() {
                                     </div>
                                     <label for="ti_char_theme_select" style="font-weight: bold; text-align: right;">${t`Style Themes`}:</label>
                                     <select id="ti_char_theme_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.themes
+                                      .filter(
+                                        (theme) =>
+                                          !theme.name.startsWith("播放器") &&
+                                          !theme.name.startsWith("Player"),
+                                      )
+                                      .map(
+                                        (theme) =>
+                                          `<option value="${theme.id}">${theme.name}${
+                                            theme.useIframe
+                                              ? " [iframe]"
+                                              : " [CSS]"
+                                          }</option>`,
+                                      )
+                                      .join("")}</select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="ti_theme_binding_settings" class="ti-section" style="display: none;">
+                            <h4>${t`Theme Binding`} <span id="ti_binding_current_theme" style="color: var(--SmartThemeQuoteColor, #88c0d0); font-weight: normal; font-size: 0.9em; margin-left: 6px;"></span></h4>
+                            <label class="checkbox_label" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px; cursor: pointer; padding: 0;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="ti_binding_enabled" style="margin-top: 2px;">
+                                    <span>${t`Bind a dedicated theme to the current UI theme`}</span>
+                                </div>
+                                <small style="margin-left: 28px;">${t`Applies to the current UI theme. Overrides global settings, but is overridden by the character-specific theme.`}</small>
+                            </label>
+                            <div id="ti_binding_options_container" style="display: none;">
+                                <div class="ti-grid-2-col">
+                                    <div id="ti_binding_preset_row" style="display: contents;">
+                                        <label for="ti_binding_preset_select" style="font-weight: bold; text-align: right;">${t`Text Preset`}:</label>
+                                        <select id="ti_binding_preset_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.textPresets
+                                          .map(
+                                            (p) =>
+                                              `<option value="${p.id}">${p.name}</option>`,
+                                          )
+                                          .join("")}</select>
+                                    </div>
+                                    <label for="ti_binding_theme_select" style="font-weight: bold; text-align: right;">${t`Style Themes`}:</label>
+                                    <select id="ti_binding_theme_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.themes
                                       .filter(
                                         (theme) =>
                                           !theme.name.startsWith("播放器") &&
@@ -8104,6 +8226,7 @@ function addExtensionSettings() {
         }
       });
     updateCharSpecificUI();
+    updateBindingUI();
     populatePresets();
     setupPresetEventListeners();
     populateThemes();
@@ -11876,6 +11999,212 @@ function addExtensionSettings() {
     );
   }
 
+  let bindingSettingsController = null;
+
+  function updateBindingUI() {
+    const bindingSection = section.querySelector("#ti_theme_binding_settings");
+    if (!bindingSection) return;
+
+    let currentUiTheme = "";
+    try {
+      currentUiTheme = power_user.theme || "";
+    } catch (e) {}
+
+    const currentThemeLabel = section.querySelector(
+      "#ti_binding_current_theme",
+    );
+    if (currentThemeLabel) {
+      currentThemeLabel.textContent = currentUiTheme
+        ? `${t`Current UI Theme`}: ${currentUiTheme}`
+        : "";
+    }
+
+    if (!currentUiTheme) {
+      bindingSection.style.display = "none";
+      return;
+    }
+    bindingSection.style.display = "block";
+
+    const settings = getSettings();
+    const enabledCheckbox = section.querySelector("#ti_binding_enabled");
+    const optionsContainer = section.querySelector(
+      "#ti_binding_options_container",
+    );
+    const themeSelect = section.querySelector("#ti_binding_theme_select");
+    const presetSelect = section.querySelector("#ti_binding_preset_select");
+    const presetRow = section.querySelector("#ti_binding_preset_row");
+
+    const binding = settings.themeBindings?.[currentUiTheme] || {};
+    const { themeId = "", presetId = "" } = binding;
+    const isEnabled = !!(themeId || presetId);
+
+    enabledCheckbox.checked = isEnabled;
+    optionsContainer.style.display = isEnabled ? "block" : "none";
+    themeSelect.value = themeId;
+    presetSelect.value = presetId;
+
+    const effectiveThemeId = themeId || settings.selectedThemeId;
+    const effectiveTheme = settings.themes.find(
+      (t) => t.id === effectiveThemeId,
+    );
+    const isIframe = effectiveTheme && effectiveTheme.useIframe;
+    presetRow.style.display = isIframe ? "none" : "contents";
+
+    setupBindingEventListeners();
+  }
+
+  function setupBindingEventListeners() {
+    if (bindingSettingsController) {
+      bindingSettingsController.abort();
+    }
+    bindingSettingsController = new AbortController();
+    const { signal } = bindingSettingsController;
+
+    const enabledCheckbox = section.querySelector("#ti_binding_enabled");
+    const themeSelect = section.querySelector("#ti_binding_theme_select");
+    const presetSelect = section.querySelector("#ti_binding_preset_select");
+
+    let currentUiTheme = "";
+    try {
+      currentUiTheme = power_user.theme || "";
+    } catch (e) {}
+
+    const saveBinding = () => {
+      manualOverrideActive = false;
+      if (!currentUiTheme) return;
+      const settings = getSettings();
+      const themeId = themeSelect.value;
+      const presetId = presetSelect.value;
+
+      if (!settings.themeBindings) settings.themeBindings = {};
+
+      if (!themeId && !presetId) {
+        delete settings.themeBindings[currentUiTheme];
+      } else {
+        const selectedTheme = settings.themes.find((t) => t.id === themeId);
+        const isIframe = selectedTheme && selectedTheme.useIframe;
+        settings.themeBindings[currentUiTheme] = {
+          themeId: themeId,
+          presetId: isIframe ? null : presetId,
+        };
+      }
+
+      saveSettingsDebounced();
+      setTimeout(() => {
+        updateAndApplyTheme("theme_binding_changed");
+        updateBindingUI();
+      }, 50);
+    };
+
+    if (enabledCheckbox) {
+      enabledCheckbox.addEventListener(
+        "change",
+        (e) => {
+          const isChecked = e.target.checked;
+          const optionsContainer = section.querySelector(
+            "#ti_binding_options_container",
+          );
+          optionsContainer.style.display = isChecked ? "block" : "none";
+
+          if (!isChecked && currentUiTheme) {
+            const settings = getSettings();
+            if (settings.themeBindings?.[currentUiTheme]) {
+              delete settings.themeBindings[currentUiTheme];
+              saveSettingsDebounced();
+              setTimeout(() => {
+                updateAndApplyTheme("theme_binding_disabled");
+                updateBindingUI();
+              }, 50);
+            }
+          }
+        },
+        { signal },
+      );
+    }
+
+    if (themeSelect) {
+      themeSelect.addEventListener(
+        "change",
+        () => {
+          saveBinding();
+          const themeId = themeSelect.value;
+          const presetId = presetSelect.value;
+          const settings = getSettings();
+          const theme = settings.themes.find((t) => t.id === themeId);
+
+          if (themeId) loadThemeIntoMainEditor(themeId);
+
+          if (theme && !theme.useIframe) {
+            const themeNameBase = theme.name
+              .replace(
+                /(-美化|-Style| Style|主题| Theme| \[CSS\]| \[iframe\])/g,
+                "",
+              )
+              .trim();
+            const recommendedPreset = settings.textPresets.find(
+              (p) => p.name === themeNameBase,
+            );
+
+            if (recommendedPreset && recommendedPreset.id !== presetId) {
+              if (
+                confirm(
+                  t`A matching text preset "${recommendedPreset.name}" was detected. Apply it now?`,
+                )
+              ) {
+                presetSelect.value = recommendedPreset.id;
+                saveBinding();
+                loadPresetIntoMainEditor(recommendedPreset.id);
+              }
+            }
+          }
+        },
+        { signal },
+      );
+    }
+
+    if (presetSelect) {
+      presetSelect.addEventListener(
+        "change",
+        () => {
+          saveBinding();
+          const presetId = presetSelect.value;
+          const themeId = themeSelect.value;
+          const settings = getSettings();
+          const preset = settings.textPresets.find((p) => p.id === presetId);
+
+          if (presetId) loadPresetIntoMainEditor(presetId);
+
+          if (preset) {
+            const presetNameBase = preset.name;
+            const recommendedTheme = settings.themes.find((theme) => {
+              if (theme.useIframe) return false;
+              const themeNameClean = theme.name
+                .replace(
+                  /(-美化|-Style| Style|主题| Theme| \[CSS\]| \[iframe\])/g,
+                  "",
+                )
+                .trim();
+              return themeNameClean === presetNameBase;
+            });
+
+            if (recommendedTheme && recommendedTheme.id !== themeId) {
+              if (
+                confirm(
+                  t`A matching style theme "${recommendedTheme.name}" was detected. Apply it now?`,
+                )
+              ) {
+                themeSelect.value = recommendedTheme.id;
+                saveBinding();
+                loadThemeIntoMainEditor(recommendedTheme.id);
+              }
+            }
+          }
+        },
+        { signal },
+      );
+    }
+  }
+
   function loadThemeIntoMainEditor(themeId) {
     const globalThemeSelect = section.querySelector("#ti_theme_select");
     const themeToLoad = themeId || getSettings().selectedThemeId;
@@ -12242,6 +12571,7 @@ function addExtensionSettings() {
       const settings = getSettings();
       const n = prompt(t`Preset Name`);
       if (n) {
+        manualOverrideActive = true;
         const p = {
           id: Date.now().toString(),
           name: n,
@@ -12545,6 +12875,7 @@ function addExtensionSettings() {
       const settings = getSettings();
       const n = prompt(t`Theme Name`);
       if (!n) return;
+      manualOverrideActive = true;
       const currentTheme = settings.themes.find(
         (theme) => theme.id === settings.selectedThemeId,
       );
@@ -13278,6 +13609,7 @@ function initializeObservers() {
         mutation.attributeName === "class"
       ) {
         setTimeout(() => handleMainThemeChange(), 100);
+        setTimeout(() => handleThemeBindingChange(), 120);
         setTimeout(() => {
           if (lyricsOverlayElement) {
             lyricsOverlayElement.style.fontFamily = getComputedStyle(
@@ -14465,7 +14797,8 @@ function initializeObservers() {
     const settings = getSettings();
     if (settings.enableBubbleReplacement) {
       const renderLastMesBubbles = (retry = 0) => {
-        const lastMes = document.querySelector("#chat .mes:last-child");
+        const allMes = document.querySelectorAll("#chat .mes");
+        const lastMes = allMes[allMes.length - 1];
         if (lastMes) {
           const mesId = lastMes.getAttribute("mesid");
           const mesText = lastMes.querySelector(".mes_text");
@@ -14693,16 +15026,22 @@ function initializeObservers() {
   }, 1500);
 
   eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, (messageId) => {
-    const messageElement = document.querySelector(
-      `#chat .mes[mesid="${messageId}"]`,
-    );
-    if (messageElement) {
-      const mesText = messageElement.querySelector(".mes_text");
-      if (mesText && mesText.textContent.includes("[bgm]")) {
-        bubbleRenderCache.delete(String(messageId));
-        renderBgmBubbles(messageElement);
+    const tryRenderBubbles = (retry = 0) => {
+      const messageElement = document.querySelector(
+        `#chat .mes[mesid="${messageId}"]`,
+      );
+      if (messageElement) {
+        const mesText = messageElement.querySelector(".mes_text");
+        if (mesText && mesText.textContent.includes("[bgm]")) {
+          bubbleRenderCache.delete(String(messageId));
+          renderBgmBubbles(messageElement);
+        }
       }
-    }
+      if (retry < 4) {
+        setTimeout(() => tryRenderBubbles(retry + 1), 200); // 每200ms回看一次，共盯约800ms
+      }
+    };
+    tryRenderBubbles(0);
 
     const settings = getSettings();
 
