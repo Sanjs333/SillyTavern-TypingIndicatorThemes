@@ -3279,17 +3279,17 @@ function renderBgmBubbles(messageElement) {
   let hasChanges = false;
 
   for (const match of remainingMatches) {
-    const [, title, artist] = match;
+    const [fullTag, title, artist] = match;
 
     const flexPattern = (str) => {
       return str
         .split("")
         .map((ch) => escapeRegex(ch))
-        .join("(?:<[^>]*>)*");
+        .join("(?:<[^>]*>|\\s)*");
     };
 
     const searchRegex = new RegExp(
-      `\\[bgm\\](?:<[^>]*>)*${flexPattern(title)}(?:<[^>]*>)*-(?:<[^>]*>)*${flexPattern(artist)}(?:<[^>]*>)*\\[/bgm\\]`,
+      `(?:<span[^>]*>)?${flexPattern(fullTag)}(?:<\\/span>)?`,
       "gi",
     );
 
@@ -3305,7 +3305,8 @@ function renderBgmBubbles(messageElement) {
       bubble.dataset.artist = artist.trim();
     }
 
-    const newHtml = html.replace(searchRegex, temp.innerHTML);
+    const bubbleFinalHtml = temp.innerHTML;
+    const newHtml = html.replace(searchRegex, () => bubbleFinalHtml);
     if (newHtml !== html) {
       html = newHtml;
       hasChanges = true;
