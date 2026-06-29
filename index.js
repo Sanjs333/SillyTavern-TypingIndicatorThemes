@@ -1351,15 +1351,23 @@ const MusicUtils = {
         },
         timeoutMs > 3000 ? 3000 : timeoutMs,
       );
+      const cleanup = () => {
+        try {
+          audio.onloadedmetadata = null;
+          audio.onerror = null;
+          audio.removeAttribute("src");
+          audio.load();
+        } catch (e) {}
+      };
       audio.onloadedmetadata = () => {
         clearTimeout(timer);
         const dur = audio.duration;
-        audio.src = "";
+        cleanup();
         resolve(isFinite(dur) ? dur : null);
       };
       audio.onerror = () => {
         clearTimeout(timer);
-        audio.src = "";
+        cleanup();
         resolve(null);
       };
       audio.src = finalUrl;
@@ -5062,24 +5070,28 @@ function setupFloatingIndicatorAutoAdjust() {
       _floatingIndicatorResizeObserver.disconnect();
     }
     _floatingIndicatorResizeObserver = new ResizeObserver(() => {
-      requestAnimationFrame(updatePosition);
+      scheduleUpdatePosition();
     });
     _floatingIndicatorResizeObserver.observe(sendForm);
   };
 
+  let _posUpdateScheduled = false;
+  const scheduleUpdatePosition = () => {
+    if (_posUpdateScheduled) return;
+    _posUpdateScheduled = true;
+    requestAnimationFrame(() => {
+      _posUpdateScheduled = false;
+      updatePosition();
+    });
+  };
+
   attachSendFormObserver();
   if (window.visualViewport) {
-    window.visualViewport.addEventListener("resize", () => {
-      requestAnimationFrame(updatePosition);
-    });
-    window.visualViewport.addEventListener("scroll", () => {
-      requestAnimationFrame(updatePosition);
-    });
+    window.visualViewport.addEventListener("resize", scheduleUpdatePosition);
+    window.visualViewport.addEventListener("scroll", scheduleUpdatePosition);
   }
 
-  window.addEventListener("resize", () => {
-    requestAnimationFrame(updatePosition);
-  });
+  window.addEventListener("resize", scheduleUpdatePosition);
 
   if (!document.getElementById("send_form")) {
     const retryTimer = setInterval(() => {
@@ -12267,6 +12279,21 @@ function addExtensionSettings() {
       )
       .join("");
 
+    const otherPresetSelects = [
+      section.querySelector("#ti_binding_preset_select"),
+      section.querySelector("#ti_char_preset_select"),
+    ];
+    otherPresetSelects.forEach((sel) => {
+      if (!sel) return;
+      const prevValue = sel.value;
+      sel.innerHTML =
+        `<option value="">-- ${t`Use Global Settings`} --</option>` +
+        settings.textPresets
+          .map((p) => `<option value="${p.id}">${p.name}</option>`)
+          .join("");
+      sel.value = prevValue;
+    });
+
     const selectedPreset = settings.textPresets.find((p) => p.id === currentId);
     if (!selectedPreset) {
       settings.selectedTextPresetId = settings.textPresets[0]?.id;
@@ -12297,6 +12324,31 @@ function addExtensionSettings() {
         }${modeIndicator}</option>`;
       })
       .join("");
+
+    const otherThemeSelects = [
+      section.querySelector("#ti_binding_theme_select"),
+      section.querySelector("#ti_char_theme_select"),
+    ];
+    otherThemeSelects.forEach((sel) => {
+      if (!sel) return;
+      const prevValue = sel.value;
+      sel.innerHTML =
+        `<option value="">-- ${t`Use Global Settings`} --</option>` +
+        settings.themes
+          .filter(
+            (theme) =>
+              !theme.name.startsWith("播放器") &&
+              !theme.name.startsWith("Player"),
+          )
+          .map(
+            (theme) =>
+              `<option value="${theme.id}">${theme.name}${
+                theme.useIframe ? " [iframe]" : " [CSS]"
+              }</option>`,
+          )
+          .join("");
+      sel.value = prevValue;
+    });
 
     const selectedTheme =
       settings.themes.find((theme) => theme.id === currentId) ||
