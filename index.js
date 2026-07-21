@@ -94,7 +94,8 @@ window.TI_FPS = FPSMonitor;
 
 let acornPromise = null;
 let messageFlushScheduled = false;
-const PLUGIN_VERSION = "4.4";
+let _hiddenIndicator = null;
+const PLUGIN_VERSION = "4.5";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -144,61 +145,66 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  4.4: {
-    date: "2026-6-20",
+  4.5: {
+    date: "2026-7-22",
     title: {
-      zh: "美化主题绑定、气泡渲染修复与 iOS 音频解锁",
-      en: "Theme Binding, Bubble Rendering Fix, and iOS Audio Unlock",
-      th: "การผูกธีม, แก้ไขการแสดงบับเบิล และปลดล็อกเสียงบน iOS",
+      zh: "后台播放锁屏支持、指示器缓存优化与编辑体验改善",
+      en: "Lock Screen Playback, Indicator Cache & Editor Improvements",
+      th: "รองรับล็อคสกรีน, แคชตัวบ่งชี้ และปรับปรุงประสบการณ์การแก้ไข",
     },
     content: {
-      zh: `### 新功能
-- 新增「美化主题绑定」功能，可为当前使用的酒馆美化主题单独绑定指示器主题与预设，优先级高于全局设置、低于角色专属主题
+      zh: `### 新增
+- 新增 Media Session/AudioSession 支持：后台播放时锁屏/通知栏显示歌曲封面、标题、艺术家，可直接在锁屏/通知栏操作暂停/上一首/下一首
+- 锁屏/通知栏快退/快进按钮（◀◀ ▶▶）支持，每次跳转 10 秒
+- 新增非持久模式下 iframe 主题缓存：相同角色连续触发相同主题时直接复用iframe，跳过重新解析和执行代码的开销
 
-### 问题修复
-- 修复开启「自动跟随主题」后，手动切换或新建指示器主题被强制覆盖的问题
-- 修复音乐气泡在流式输出结束后可能无法渲染的问题，现在会主动检索最后一条消息并多次尝试渲染
-- 修复部分 iOS 设备无法播放音乐的问题，通过注入音频解锁逻辑兼容 Safari 的手势限制
-- 修复新建主题/预设时手动覆盖状态未正确标记，导致自动跟随可能意外介入的问题
+### 修复
+- 修复点击「测试显示」时因美化主题绑定导致显示错误主题的问题，现在始终以下拉框选中的主题为准
 
-### 体验优化
-- 优化气泡渲染时机，生成结束后会持续监测并兜底渲染
-- 缩短音频时长检测的超时时间，缓解 iOS 上验证歌曲造成的卡顿
-- 为跨域音频检测添加兼容处理，提升元数据读取稳定性
+### 优化
+- 点击「应用推荐」后，预览区自动刷新，无需再手动按预览按钮
+- 在指示器/播放器主题编辑区修改内容时，停手 0.6 秒后自动刷新预览（仅在预览区已打开时触发）
+
+### 提醒
+- 如需为您的自定义播放器启用上述后台播放与锁屏控制功能，请重新下载最新版的「工具-播放器主题指南」，并参阅第十五节“后台播放与锁屏支持”进行相应调整。
 
 > 更新后建议刷新或重启 SillyTavern，以确保完全更新
 `,
       en: `### New Features
-- Added "UI Theme Binding": allows binding a dedicated indicator theme and preset to the currently active SillyTavern UI theme, with priority higher than global settings but lower than character-specific themes
+- Added Media Session API and AudioSession API support: lock screen / notification shade shows album art, title, and artist during background playback, with working pause/previous/next buttons
+- Added seekbackward/seekforward (◀◀ ▶▶) lock screen button support (10-second jumps)
+- Added iframe theme caching for non-persistent mode: when the same theme and character trigger consecutively, the existing iframe is reused instead of being fully rebuilt
 
 ### Bug Fixes
-- Fixed the issue where manually switching or creating indicator themes was forcibly overridden when "Auto-sync with Main UI Theme" was enabled
-- Fixed music bubbles sometimes failing to render after streaming output completed; now it proactively finds the last message and retries rendering
-- Fixed music playback not working on some iOS devices by injecting an audio unlock logic to comply with Safari's gesture restrictions
-- Fixed the manual override flag not being set correctly when creating new themes/presets, which could cause auto-follow to interfere unexpectedly
+- Fixed the test button showing the wrong theme when a UI theme binding is active; it now always uses the currently selected theme in the dropdown
+- Fixed lock screen metadata not updating immediately after switching tracks; now synced directly from inside the theme iframe without relying on the host plugin
 
 ### UX Improvements
-- Improved bubble rendering timing: after generation finishes, the system will keep monitoring and fallback-render
-- Shortened the timeout for audio duration detection to reduce stuttering when validating songs on iOS
-- Added cross-origin compatibility handling for audio detection, improving metadata retrieval stability
+- Applying a recommended preset/theme now automatically refreshes the preview without needing to click the preview button again
+- Editing CSS, HTML, JS, or preset text triggers an automatic preview refresh 0.6s after you stop typing (only when the preview area is already open)
+
+### Reminder
+- To enable the new background playback and lock screen controls for your custom player, please re-download the latest version of "Tools - Player Theme Guide" and refer to Section 15 "Background Playback & Lock Screen Support" for adaptation.
 
 > Please refresh or restart SillyTavern after updating to ensure the update is fully applied
 `,
       th: `### ฟีเจอร์ใหม่
-- เพิ่ม "การผูกธีม UI": สามารถผูกธีมตัวบ่งชี้และพรีเซ็ตเฉพาะกับธีม UI ของ SillyTavern ที่ใช้งานอยู่ โดยมีลำดับความสำคัญสูงกว่าการตั้งค่าสากลแต่ต่ำกว่าธีมเฉพาะตัวละคร
+- เพิ่มการรองรับ Media Session API และ AudioSession API: หน้าจอล็อค/แถบแจ้งเตือนแสดงรูปปกชื่อเพลง และศิลปินขณะเล่นในพื้นหลัง พร้อมปุ่มหยุด/ก่อนหน้า/ถัดไป
+- เพิ่มการรองรับปุ่มกรอหน้า/หลัง (◀◀ ▶▶) บนหน้าจอล็อค (กระโดด10 วินาที)
+- เพิ่มการแคช iframe ธีมในโหมดไม่ถาวร: เมื่อธีมและตัวละครเดิมถูกเรียกซ้ำ จะนำ iframe เดิมกลับมาใช้แทนการสร้างใหม่
 
 ### การแก้ไขข้อบกพร่อง
-- แก้ไขปัญหาการเปลี่ยนหรือสร้างธีมตัวบ่งชี้ด้วยตนเองถูกบังคับทับเมื่อเปิด "ซิงก์ธีมหลักอัตโนมัติ"
-- แก้ไขปัญหาฟองเพลงอาจไม่แสดงผลหลังจากเอาต์พุตสตรีมเสร็จสิ้น ตอนนี้จะค้นหาข้อความสุดท้ายและพยายามเรนเดอร์ซ้ำ
-- แก้ไขปัญหาการเล่นเพลงไม่ทำงานบนอุปกรณ์ iOS บางรุ่น โดยเพิ่มตรรกะปลดล็อกเสียงให้สอดคล้องกับข้อจำกัดท่าทางของ Safari
-- แก้ไขการตั้งค่าสถานะแทนที่ด้วยตนเองไม่ถูกต้องเมื่อสร้างธีม/พรีเซ็ตใหม่ ซึ่งอาจทำให้การติดตามอัตโนมัติเข้ามาแทรกแซงโดยไม่คาดคิด
+- แก้ไขปุ่มทดสอบแสดงธีมผิดเมื่อมีการผูกธีม UI ตอนนี้จะใช้ธีมที่เลือกในดรอปดาวน์เสมอ
+- แก้ไขข้อมูลการ์ดล็อคสกรีนไม่อัปเดตทันทีหลังเปลี่ยนเพลง ตอนนี้ซิงก์จากภายใน iframe โดยตรง
 
 ### การปรับปรุงประสบการณ์
-- ปรับปรุงจังหวะการแสดงผลฟอง: หลังการสร้างเสร็จ ระบบจะเฝ้าติดตามและเรนเดอร์สำรอง
-- ลดระยะหมดเวลาสำหรับการตรวจจับความยาวเสียงเพื่อลดอาการสะดุดเมื่อตรวจสอบเพลงบน iOS
-- เพิ่มการจัดการความเข้ากันได้ข้ามโดเมนสำหรับการตรวจจับเสียง ปรับปรุงความเสถียรในการดึงข้อมูลเมตาดาต้า
+- การคลิก "ใช้ที่แนะนำ" จะรีเฟรชตัวอย่างโดยอัตโนมัติ ไม่ต้องกดปุ่มอีกครั้ง
+- การแก้ไข CSS, HTML, JS หรือข้อความพรีเซ็ตในตัวแก้ไข จะรีเฟรชตัวอย่างอัตโนมัติ0.6 วินาทีหลังหยุดพิมพ์
 
-> หลังอัปเดต แนะนำให้รีเฟรชหรือรีสตาร์ท SillyTavern เพื่อให้การอัปเดตมีผลสมบูรณ์
+### คำเตือน
+- หากต้องการเปิดใช้การเล่นพื้นหลังและการควบคุมหน้าจอล็อคสำหรับเครื่องเล่นที่คุณปรับแต่งเอง โปรดดาวน์โหลด "เครื่องมือ - คู่มือธีมเครื่องเล่น" เวอร์ชันล่าสุดอีกครั้ง และดูหัวข้อที่ 15 "การเล่นพื้นหลังและการรองรับหน้าจอล็อค" เพื่อปรับแต่ง
+
+> หลังอัปเดต แนะนำให้รีเฟรชหรือรีสตาร์ท SillyTavern
 `,
     },
   },
@@ -555,6 +561,8 @@ async function createUnifiedIframeOriginal(
   iframe.className = "theme-iframe";
   iframe.style.cssText = `border: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; background: transparent; pointer-events: auto; z-index: 1;`;
   iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+  iframe.dataset.cachedThemeId = theme.id || "";
+  iframe.dataset.cachedCharName = characterName || "";
   const userName = getCurrentUserName();
   const avatarUrls = getAvatarUrls();
   const charName = characterName || getCurrentCharName();
@@ -934,6 +942,128 @@ async function createUnifiedIframeOriginal(
         })();
     `
     : "";
+
+  const mediaSessionInjection = isPlayerTheme
+    ? `
+        (function setupMediaSession() {
+            if (!('mediaSession' in navigator)) return;
+
+            function updateMetadata(track) {
+                if (!track) return;
+                try {
+                    const artistStr = Array.isArray(track.artist)
+                        ? track.artist.join(', ')
+                        : (track.artist || '');
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: track.title || track.name || 'Unknown',
+                        artist: artistStr || 'Unknown',
+                        album: '',
+                        artwork: track.coverUrl ? [
+                            { src: track.coverUrl, sizes: '96x96', type: 'image/jpeg' },
+                            { src: track.coverUrl, sizes: '256x256', type: 'image/jpeg' },
+                            { src: track.coverUrl, sizes: '512x512', type: 'image/jpeg' }
+                        ] : []
+                    });
+                } catch (e) {}
+            }
+
+            function bindAudio() {
+                const audio = document.querySelector('audio');
+                if (!audio) return false;
+                if (audio._mediaSessionBound) return true;
+                audio._mediaSessionBound = true;
+                if (navigator.audioSession) {
+                    try { navigator.audioSession.type = 'playback'; } catch (e) {}
+                }
+                audio.addEventListener('play', function() {
+                    try { navigator.mediaSession.playbackState = 'playing'; } catch (e) {}
+                });
+                audio.addEventListener('pause', function() {
+                    try { navigator.mediaSession.playbackState = 'paused'; } catch (e) {}
+                });
+                return true;
+            }
+
+            try {
+                navigator.mediaSession.setActionHandler('play', function() {
+                    const audio = document.querySelector('audio');
+                    if (audio) audio.play().catch(function(){});
+                });
+                navigator.mediaSession.setActionHandler('pause', function() {
+                    const audio = document.querySelector('audio');
+                    if (audio) audio.pause();
+                });
+                navigator.mediaSession.setActionHandler('previoustrack', function() {
+                    window.dispatchEvent(new CustomEvent('theme-media-action', { detail: { action: 'previous' } }));
+                });
+                navigator.mediaSession.setActionHandler('nexttrack', function() {
+                    window.dispatchEvent(new CustomEvent('theme-media-action', { detail: { action: 'next' } }));
+                });
+                navigator.mediaSession.setActionHandler('seekbackward', function(details) {
+                    const audio = document.querySelector('audio');
+                    if (!audio) return;
+                    const skipTime = (details && details.seekOffset) || 10;
+                    audio.currentTime = Math.max(audio.currentTime - skipTime, 0);
+                });
+                navigator.mediaSession.setActionHandler('seekforward', function(details) {
+                    const audio = document.querySelector('audio');
+                    if (!audio) return;
+                    const skipTime = (details && details.seekOffset) || 10;
+                    const dur = audio.duration || 0;
+                    audio.currentTime = dur > 0 ? Math.min(audio.currentTime + skipTime, dur) : audio.currentTime + skipTime;
+                });
+            } catch (e) {}
+
+            const bindInterval = setInterval(function() {
+                if (bindAudio()) clearInterval(bindInterval);
+            }, 500);
+            setTimeout(function() { clearInterval(bindInterval); }, 30000);
+
+            (function setupInterruptionRecovery() {
+                var _pausedWhileHidden = false;
+                function getAudio() { return document.querySelector('audio'); }
+                function bindRecovery() {
+                    var audio = getAudio();
+                    if (!audio || audio._recoveryBound) return;
+                    audio._recoveryBound = true;
+                    audio.addEventListener('pause', function() {
+                        if (document.hidden) _pausedWhileHidden = true;
+                    });
+                    audio.addEventListener('play', function() {
+                        _pausedWhileHidden = false;
+                    });
+                }
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden && _pausedWhileHidden) {
+                        _pausedWhileHidden = false;
+                        setTimeout(function() {
+                            var audio = getAudio();
+                            if (audio && audio.paused && audio.src && audio.currentTime > 0) {
+                                audio.play().catch(function() {});
+                            }
+                        }, 400);
+                    }
+                });
+                var _recoveryBindInterval = setInterval(function() {
+                    bindRecovery();
+                    if (getAudio() && getAudio()._recoveryBound) clearInterval(_recoveryBindInterval);
+                }, 600);
+                setTimeout(function() { clearInterval(_recoveryBindInterval); }, 30000);
+            })();
+
+            window.addEventListener('theme-track-changed', function(e) {
+                if (e.detail) updateMetadata(e.detail);
+            });
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.source === 'typing-indicator-host' &&
+                    event.data.type === 'media-session-update') {
+                    updateMetadata(event.data.data);
+                }
+            });
+        })();
+    `
+    : "";
+
   const finalJS = `
         (function() {
             window.addEventListener('error', function(e) { console.error('[Theme Error]:', e.error ? e.error.stack : e.message); });
@@ -952,6 +1082,7 @@ async function createUnifiedIframeOriginal(
             ${dragInjection}
             ${favoriteInjection}
             ${iosUnlockInjection}
+            ${mediaSessionInjection}
             try { ${theme.iframeJS || ""} } catch(e) { console.error('[Theme User JS Error]:', e.stack); }
             try { ThemeUtils.sendMessage('theme-loaded', { themeId: '${jsEscape(theme.id || "preview")}', themeName: '${jsEscape(theme.name || "Preview")}' }); } catch (error) { console.error('[Theme Framework Error]:', error.stack); }
         })();
@@ -5116,6 +5247,42 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
       themeId = overrideThemeId;
     }
 
+    if (
+      _hiddenIndicator &&
+      _hiddenIndicator.themeId === themeId &&
+      _hiddenIndicator.charName === getCurrentCharName() &&
+      _hiddenIndicator.element &&
+      _hiddenIndicator.element.isConnected &&
+      !isIndicatorPersisted
+    ) {
+      const cachedEl = _hiddenIndicator.element;
+      cachedEl.style.display = "";
+      cachedEl.style.visibility = "";
+      const cachedIframe = cachedEl.querySelector(".theme-iframe");
+      if (cachedIframe && cachedIframe.contentWindow) {
+        try {
+          cachedIframe.contentWindow.postMessage(
+            {
+              source: "typing-indicator-host",
+              type: "resume-theme",
+            },
+            "*",
+          );
+        } catch (e) {}
+      }
+      debugLog(`[TI] ✓ 复用缓存的指示器: ${themeId}`);
+      _hiddenIndicator = null;
+      isRendering = false;
+      return;
+    }
+
+    if (_hiddenIndicator) {
+      if (_hiddenIndicator.element && _hiddenIndicator.element.isConnected) {
+        _hiddenIndicator.element.remove();
+      }
+      _hiddenIndicator = null;
+    }
+
     const currentTheme =
       settings.themes.find((t) => t.id === themeId) || settings.themes[0];
     if (themeId && themeId !== currentTheme.id) {
@@ -5372,6 +5539,44 @@ async function hideTypingIndicator() {
 
   const typingIndicator = document.getElementById("typing_indicator");
   if (typingIndicator) {
+    const cacheThemeId = typingIndicator.dataset.themeId;
+    const cacheIframe = typingIndicator.querySelector(".theme-iframe");
+    const cacheCharName =
+      cacheIframe?.dataset.cachedCharName || getCurrentCharName();
+    const canCacheThis =
+      cacheIframe &&
+      cacheThemeId &&
+      (!_hiddenIndicator || _hiddenIndicator.themeId === cacheThemeId);
+
+    if (canCacheThis) {
+      if (
+        _hiddenIndicator &&
+        _hiddenIndicator.element &&
+        _hiddenIndicator.element.isConnected
+      ) {
+        _hiddenIndicator.element.remove();
+      }
+      if (cacheIframe.contentWindow) {
+        try {
+          cacheIframe.contentWindow.postMessage(
+            {
+              source: "typing-indicator-host",
+              type: "pause-theme",
+            },
+            "*",
+          );
+        } catch (e) {}
+      }
+      typingIndicator.style.display = "none";
+      _hiddenIndicator = {
+        themeId: cacheThemeId,
+        charName: cacheCharName,
+        element: typingIndicator,
+      };
+      debugLog(`[TI] 缓存指示器: ${cacheThemeId} / ${cacheCharName}`);
+      return;
+    }
+
     const iframe = typingIndicator.querySelector(".theme-iframe");
     if (iframe && iframe.contentWindow) {
       const isDevMode = settings.devMode === true;
@@ -8163,7 +8368,12 @@ function addExtensionSettings() {
           testPositionBtn.classList.add("fa-crosshairs");
           testPositionBtn.title = t`Test Display`;
         } else {
-          showTypingIndicator("test");
+          showTypingIndicator(
+            "test",
+            undefined,
+            undefined,
+            getSettings().selectedThemeId,
+          );
           testPositionBtn.classList.remove("fa-crosshairs");
           testPositionBtn.classList.add("fa-eye-slash");
           testPositionBtn.title = t`Hide Test`;
@@ -8231,7 +8441,12 @@ function addExtensionSettings() {
           testButton.classList.add("fa-solid", "fa-crosshairs");
           testButton.title = t`Test Dragging`;
         } else {
-          showTypingIndicator("test");
+          showTypingIndicator(
+            "test",
+            undefined,
+            undefined,
+            getSettings().selectedThemeId,
+          );
           testButton.classList.remove("fa-solid", "fa-crosshairs");
           testButton.classList.add("fa-solid", "fa-eye-slash");
           testButton.title = t`Hide Test Indicator`;
@@ -12596,6 +12811,10 @@ function addExtensionSettings() {
           applyTheme(recommendedTheme.id);
           saveSettingsDebounced();
           suggestionContainer.remove();
+          refreshLiveIndicators("preset_suggestion_applied");
+          setTimeout(() => {
+            section.querySelector("#preview_theme").click();
+          }, 50);
         });
 
         suggestionContainer.html(message).append(applyLink);
@@ -12708,6 +12927,19 @@ function addExtensionSettings() {
           getSettings().selectedTextPresetId,
         ),
       );
+
+    let _presetPreviewTimer = null;
+    if (tiPresetText) {
+      tiPresetText.addEventListener("input", () => {
+        clearTimeout(_presetPreviewTimer);
+        _presetPreviewTimer = setTimeout(() => {
+          const previewArea = document.getElementById("theme_preview_area");
+          if (previewArea && previewArea.querySelector(".typing_indicator")) {
+            section.querySelector("#preview_theme").click();
+          }
+        }, 600);
+      });
+    }
   }
 
   function setupThemeEventListeners() {
@@ -12798,6 +13030,9 @@ function addExtensionSettings() {
             saveSettingsDebounced();
             suggestionContainer.remove();
             refreshLiveIndicators("theme_suggestion_applied");
+            setTimeout(() => {
+              section.querySelector("#preview_theme").click();
+            }, 50);
           });
 
           suggestionContainer.html(message).append(applyLink);
@@ -13250,6 +13485,28 @@ function addExtensionSettings() {
 
       sizesTextarea.addEventListener("input", validateSizesJson);
     }
+
+    let _autoPreviewTimer = null;
+    const scheduleAutoPreview = () => {
+      clearTimeout(_autoPreviewTimer);
+      _autoPreviewTimer = setTimeout(() => {
+        const previewArea = document.getElementById("theme_preview_area");
+        if (previewArea && previewArea.querySelector(".typing_indicator")) {
+          section.querySelector("#preview_theme").click();
+        }
+      }, 600);
+    };
+
+    [
+      "#ti_theme_css",
+      "#ti_theme_html",
+      "#ti_theme_iframe_css",
+      "#ti_theme_iframe_js",
+      "#ti_theme_iframe_sizes",
+    ].forEach((selector) => {
+      const el = section.querySelector(selector);
+      if (el) el.addEventListener("input", scheduleAutoPreview);
+    });
   }
 
   function setupPlayerThemeEventListeners() {
@@ -14403,10 +14660,55 @@ function initializeObservers() {
                 }
               }
 
-              currentPlayerTrack = currentTrack;
-
-              if (typeof _updatePlaylistPlayingState === "function") {
-                _updatePlaylistPlayingState();
+              try {
+                navigator.mediaSession.setActionHandler("play", function () {
+                  const audio = document.querySelector("audio");
+                  if (audio) audio.play().catch(function () {});
+                });
+                navigator.mediaSession.setActionHandler("pause", function () {
+                  const audio = document.querySelector("audio");
+                  if (audio) audio.pause();
+                });
+                navigator.mediaSession.setActionHandler(
+                  "previoustrack",
+                  function () {
+                    window.dispatchEvent(
+                      new CustomEvent("theme-media-action", {
+                        detail: {
+                          action: "previous",
+                        },
+                      }),
+                    );
+                  },
+                );
+                navigator.mediaSession.setActionHandler(
+                  "nexttrack",
+                  function () {
+                    window.dispatchEvent(
+                      new CustomEvent("theme-media-action", {
+                        detail: { action: "next" },
+                      }),
+                    );
+                  },
+                );
+              } catch (e) {}
+              const _playerIframeForMS = document.querySelector(
+                "#music_player .theme-iframe",
+              );
+              if (_playerIframeForMS && _playerIframeForMS.contentWindow) {
+                queuePostMessage(
+                  _playerIframeForMS.contentWindow,
+                  {
+                    source: "typing-indicator-host",
+                    type: "media-session-update",
+                    data: {
+                      title: currentTrack.title || currentTrack.name || "",
+                      artist: currentTrack.artist,
+                      coverUrl: currentTrack.coverUrl || "",
+                    },
+                  },
+                  "*",
+                );
               }
 
               document
@@ -15201,6 +15503,12 @@ function initializeObservers() {
   eventSource.on(event_types.CHAT_CHANGED, (chatId) => {
     manualOverrideActive = false;
     settleListeningTime("chat_changed");
+    if (_hiddenIndicator) {
+      if (_hiddenIndicator.element && _hiddenIndicator.element.isConnected) {
+        _hiddenIndicator.element.remove();
+      }
+      _hiddenIndicator = null;
+    }
     currentLyrics = [];
     currentLyricIndex = -1;
     appendedSongKeys.clear();

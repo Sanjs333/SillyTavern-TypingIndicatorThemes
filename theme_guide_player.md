@@ -52,7 +52,9 @@
 最稳妥的做法：**给所有自定义滚动容器显式加 `data-no-drag` 属性**：
 
 ```html
-<ul class="bw-list" data-no-drag>...</ul>
+<ul class="bw-list" data-no-drag>
+  ...
+</ul>
 <div class="my-lyrics-fullscreen" data-no-drag>...</div>
 ```
 
@@ -87,22 +89,22 @@
 ​```javascript
 // 1. 切歌后查询新歌的收藏状态
 function onTrackChanged(track) {
-  if (track) ThemeUtils.queryFavoriteStatus(track);
+if (track) ThemeUtils.queryFavoriteStatus(track);
 }
 
 // 2. 点击爱心按钮 → 弹出对话框
 heartButton.addEventListener("click", () => {
-  const currentTrack = state.playlist[state.currentIndex];
-  if (currentTrack) ThemeUtils.toggleFavorite(currentTrack);
+const currentTrack = state.playlist[state.currentIndex];
+if (currentTrack) ThemeUtils.toggleFavorite(currentTrack);
 });
 
 // 3. 监听状态推送，更新 UI
 window.addEventListener("message", (event) => {
-  if (event.data?.source !== "typing-indicator-host") return;
-  if (event.data.type === "favorite-status-update") {
-    const { track, isFavorited } = event.data.data;
-    const currentTrack = state.playlist[state.currentIndex];
-    if (!currentTrack) return;
+if (event.data?.source !== "typing-indicator-host") return;
+if (event.data.type === "favorite-status-update") {
+const { track, isFavorited } = event.data.data;
+const currentTrack = state.playlist[state.currentIndex];
+if (!currentTrack) return;
 
     // 用框架注入的 MusicUtils 做模糊匹配（处理繁简体、括号等差异）
     const MusicUtils = window.parent.MusicUtils;
@@ -119,7 +121,8 @@ window.addEventListener("message", (event) => {
     if (isMatch) {
       heartIcon.classList.toggle("favorited", isFavorited);
     }
-  }
+
+}
 });
 ​```
 
@@ -168,15 +171,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
 ​```javascript
 document.addEventListener("DOMContentLoaded", () => {
-  const initialPlaylist = ThemeUtils.getPlaylist();  // 同步函数
-  const initialAvatar = ThemeUtils.getCharAvatar();
+const initialPlaylist = ThemeUtils.getPlaylist(); // 同步函数
+const initialAvatar = ThemeUtils.getCharAvatar();
 
-  if (initialPlaylist && initialPlaylist.length > 0) {
-    loadPlaylist(initialPlaylist);
-  }
-  if (initialAvatar) {
-    dom.avatar.src = initialAvatar;
-  }
+if (initialPlaylist && initialPlaylist.length > 0) {
+loadPlaylist(initialPlaylist);
+}
+if (initialAvatar) {
+dom.avatar.src = initialAvatar;
+}
 });
 ​```
 
@@ -255,20 +258,20 @@ case "update-playlist":
 
 ​```javascript
 case "play-now":
-  // 主系统已准备好完整数据，data 含 audioUrl，直接用
-  addAndPlayTrack(data, true);
-  break;
+// 主系统已准备好完整数据，data 含 audioUrl，直接用
+addAndPlayTrack(data, true);
+break;
 
 case "play-by-info":
-  // 主系统只知道歌名歌手，需要播放器自己搜索
-  searchAndPlay(data.title, data.artist, null, true);
-  break;
+// 主系统只知道歌名歌手，需要播放器自己搜索
+searchAndPlay(data.title, data.artist, null, true);
+break;
 ​```
 
 #### `pause-theme` vs `graceful-shutdown-request`
 
-| 消息                        | 目的            | 是否清理状态   | 后续动作         |
-| --------------------------- | --------------- | -------------- | ---------------- |
+| 消息                        | 目的            | 是否清理状态    | 后续动作         |
+| --------------------------- | --------------- | --------------- | ---------------- |
 | `pause-theme`               | iframe 回收复用 | ❌ 保留所有状态 | 等待重新激活     |
 | `graceful-shutdown-request` | 主题即将销毁    | ✅ 完全清理     | 发送响应后被移除 |
 
@@ -283,12 +286,12 @@ case "play-by-info":
 ​```javascript
 case "set-initial-playlist":
 case "context-update":
-  if (data.charAvatarUrl) dom.avatar.src = data.charAvatarUrl;
-  if (data.charName) dom.charName.textContent = data.charName;
+if (data.charAvatarUrl) dom.avatar.src = data.charAvatarUrl;
+if (data.charName) dom.charName.textContent = data.charName;
 
-  // 必须用 !== undefined
-  if (data.playlist !== undefined) {
-    const newPlaylist = normalizePlaylist(data.playlist);
+// 必须用 !== undefined
+if (data.playlist !== undefined) {
+const newPlaylist = normalizePlaylist(data.playlist);
 
     // 必须用语义比较，禁止 JSON.stringify
     const isSamePlaylist = (oldList, newList) => {
@@ -334,15 +337,16 @@ case "context-update":
         renderPlaylist();
       }
     }
-  }
-  break;
+
+}
+break;
 ​```
 
 #### `resumeTrack` 字段（刷新恢复）
 
 用户开启"记忆播放进度"后，主系统在 `set-initial-playlist` 时附带 `resumeTrack`：
 
-​```javascript
+​`javascript
 {
   playlist: [...],
   charAvatarUrl: "...",
@@ -352,11 +356,11 @@ case "context-update":
     updatedAt: 1700000000000
   }
 }
-​```
+​`
 
 **处理逻辑**：
 
-​```javascript
+​`javascript
 let startIdx = 0;
 if (data.resumeTrack) {
   const rt = data.resumeTrack;
@@ -368,7 +372,7 @@ if (data.resumeTrack) {
   if (foundIdx > 0) startIdx = foundIdx;
 }
 loadTrack(startIdx, false);  // autoPlay=false，刷新后不自动播放
-​```
+​`
 
 **铁律**：
 
@@ -381,14 +385,14 @@ loadTrack(startIdx, false);  // autoPlay=false，刷新后不自动播放
 
 ​```javascript
 window.addEventListener("message", async (event) => {
-  if (event.data?.source !== "typing-indicator-host") return;
-  const { type, data } = event.data;
+if (event.data?.source !== "typing-indicator-host") return;
+const { type, data } = event.data;
 
-  switch (type) {
-    case "set-initial-playlist":
-    case "context-update":
-      // 见上文"正确处理空歌单"
-      break;
+switch (type) {
+case "set-initial-playlist":
+case "context-update":
+// 见上文"正确处理空歌单"
+break;
 
     case "append-songs-to-playlist":
       if (Array.isArray(data) && data.length > 0) {
@@ -460,7 +464,8 @@ window.addEventListener("message", async (event) => {
       clearInterval(intervalId);
       ThemeUtils.sendMessage("graceful-shutdown-response");
       break;
-  }
+
+}
 });
 ​```
 
@@ -495,7 +500,7 @@ window.addEventListener("message", async (event) => {
 
 每个播放器主题都必须在 iframeJS 里定义这个 helper 函数（写法已固化，不要修改）：
 
-​```javascript
+​``javascript
 function requestSearchFromHost(title, artist, excludeSources = []) {
   return new Promise((resolve) => {
     const reqId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -515,7 +520,7 @@ function requestSearchFromHost(title, artist, excludeSources = []) {
     ThemeUtils.sendMessage("request-search", { reqId, title, artist, excludeSources });
   });
 }
-​```
+​``
 
 ### 3. 返回数据格式
 
@@ -536,8 +541,8 @@ function requestSearchFromHost(title, artist, excludeSources = []) {
 
 ### 4. 何时委托、何时不委托（分类清单）
 
-| 场景                                         | 委托吗   | 原因                             |
-| -------------------------------------------- | -------- | -------------------------------- |
+| 场景                                         | 委托吗    | 原因                             |
+| -------------------------------------------- | --------- | -------------------------------- |
 | **音频 onerror 后的跨源换源**                | ✅ 委托   | 按 title+artist 找替代源         |
 | **试听版换源**（loadedmetadata < 60s）       | ✅ 委托   | 按 title+artist 找替代源         |
 | **loadTrack 缺 audioUrl 的兜底**             | ✅ 委托   | 按 title+artist 找音源           |
@@ -553,18 +558,18 @@ function requestSearchFromHost(title, artist, excludeSources = []) {
 
 ​```javascript
 async function tryFallbackSource(title, artist, excludeSources = [], autoPlay) {
-  const result = await requestSearchFromHost(title, artist, excludeSources);
+const result = await requestSearchFromHost(title, artist, excludeSources);
 
-  if (result && result.audioUrl) {
-    const track = state.playlist[state.currentIndex];
-    track.id = result.id;
-    track.source = result.source;
-    track.audioUrl = result.audioUrl;
-    track.lyricsContent = result.lyricsContent || "";
-    track.tlyricContent = result.tlyricContent || "";
-    track.coverUrl = result.coverUrl || track.coverUrl;
-    track._fromCache = true;  // 主插件已写好缓存,设置标记避免重复写入
-    track._triedSources = [...excludeSources, result.source];
+if (result && result.audioUrl) {
+const track = state.playlist[state.currentIndex];
+track.id = result.id;
+track.source = result.source;
+track.audioUrl = result.audioUrl;
+track.lyricsContent = result.lyricsContent || "";
+track.tlyricContent = result.tlyricContent || "";
+track.coverUrl = result.coverUrl || track.coverUrl;
+track.\_fromCache = true; // 主插件已写好缓存,设置标记避免重复写入
+track.\_triedSources = [...excludeSources, result.source];
 
     // 应用到播放器
     dom.audio.src = getAudioSource(result.audioUrl);
@@ -574,11 +579,12 @@ async function tryFallbackSource(title, artist, excludeSources = [], autoPlay) {
     }
     if (autoPlay) dom.audio.play().catch(() => {});
     return;
-  }
 
-  // 主插件也搜不到——可能所有源都熔断了或是冷门歌
-  showError("无可用音源");
-  setTimeout(() => nextTrack(), 2000);
+}
+
+// 主插件也搜不到——可能所有源都熔断了或是冷门歌
+showError("无可用音源");
+setTimeout(() => nextTrack(), 2000);
 }
 ​```
 
@@ -600,56 +606,56 @@ async function tryFallbackSource(title, artist, excludeSources = [], autoPlay) {
 
 ​```javascript
 async function loadTrack(index, autoPlay) {
-  let track = state.playlist[index];
+let track = state.playlist[index];
 
-  // 状态重置
-  state.isChangingTrack = true;
-  if (track) track._refreshed = false;
-  enterLoadingState();
+// 状态重置
+state.isChangingTrack = true;
+if (track) track.\_refreshed = false;
+enterLoadingState();
 
-  // 🔴 关键:补全 id/source,让 fetchSongUrl 能走缓存通道
-  if (!track.audioUrl && (!track.id || !track.source) && window.MusicCache) {
-    const searchTitle = track.originalTitle || track.title || "";
-    const searchArtist = track.originalArtist || track.artist || "";
-    if (searchTitle) {
-      const cachedSearch = window.MusicCache.getSearch(searchTitle, searchArtist);
-      if (cachedSearch && cachedSearch.id && cachedSearch.source) {
-        track.id = cachedSearch.id;
-        track.source = cachedSearch.source;
-        if (!track.coverUrl) track.coverUrl = cachedSearch.coverUrl || "";
-        if (!track.originalTitle) track.originalTitle = searchTitle;
-        if (!track.originalArtist) track.originalArtist = searchArtist;
-        state.playlist[index] = track;
-      }
-    }
-  }
+// 🔴 关键:补全 id/source,让 fetchSongUrl 能走缓存通道
+if (!track.audioUrl && (!track.id || !track.source) && window.MusicCache) {
+const searchTitle = track.originalTitle || track.title || "";
+const searchArtist = track.originalArtist || track.artist || "";
+if (searchTitle) {
+const cachedSearch = window.MusicCache.getSearch(searchTitle, searchArtist);
+if (cachedSearch && cachedSearch.id && cachedSearch.source) {
+track.id = cachedSearch.id;
+track.source = cachedSearch.source;
+if (!track.coverUrl) track.coverUrl = cachedSearch.coverUrl || "";
+if (!track.originalTitle) track.originalTitle = searchTitle;
+if (!track.originalArtist) track.originalArtist = searchArtist;
+state.playlist[index] = track;
+}
+}
+}
 
-  // 现在 track.id+source 已就绪,fetchSongUrl 会先命中 audio 缓存
-  if (!track.audioUrl && track.id && track.source) {
-    const songData = await fetchSongUrl(track.id, track.source);
-    if (songData) {
-      track.audioUrl = songData.audioUrl || "";
-      track.lyricsContent = track.lyricsContent || songData.lyricsContent || "";
-      if (songData._fromCache) track._fromCache = true;
-      state.playlist[index] = track;
-    }
-  }
+// 现在 track.id+source 已就绪,fetchSongUrl 会先命中 audio 缓存
+if (!track.audioUrl && track.id && track.source) {
+const songData = await fetchSongUrl(track.id, track.source);
+if (songData) {
+track.audioUrl = songData.audioUrl || "";
+track.lyricsContent = track.lyricsContent || songData.lyricsContent || "";
+if (songData.\_fromCache) track.\_fromCache = true;
+state.playlist[index] = track;
+}
+}
 
-  // 还是没拿到 audioUrl,这才走 fallback 真的去网上搜
-  if (!track.audioUrl) {
-    const title = track.originalTitle || track.title;
-    const artist = track.originalArtist || track.artist;
-    if (title && artist) {
-      await tryFallbackSource(title, artist, track._triedSources || [], autoPlay);
-      return;
-    }
-  }
+// 还是没拿到 audioUrl,这才走 fallback 真的去网上搜
+if (!track.audioUrl) {
+const title = track.originalTitle || track.title;
+const artist = track.originalArtist || track.artist;
+if (title && artist) {
+await tryFallbackSource(title, artist, track.\_triedSources || [], autoPlay);
+return;
+}
+}
 
-  // ...继续正常加载流程
+// ...继续正常加载流程
 }
 ​```
 
-### 【建议】切歌竞态保护：_activeLoadId
+### 【建议】切歌竞态保护：\_activeLoadId
 
 `loadTrack` 里有大量 `await`（fetchSongUrl、fetchAndParseLRC、fetchLyricsFromAPI...），单次执行可能耗时数秒。如果用户在加载过程中又点了下一首，会出现两个 loadTrack 同时跑、互相覆盖 src 和 lyrics 的情况。
 
@@ -665,7 +671,7 @@ async function loadTrack(index, autoPlay) {
 
   if (!track.audioUrl && track.id && track.source) {
     const songData = await fetchSongUrl(track.id, track.source);
-    if (myLoadId !== _activeLoadId) return;  // 我已经过气了，让位给新 loadTrack
+    if (myLoadId !== _activeLoadId) return; // 我已经过气了，让位给新 loadTrack
     // ...处理 songData
   }
 
@@ -751,11 +757,12 @@ dom.audio.addEventListener("error", async (e) => {
   const audioSrc = dom.audio.src || "";
   const errMsg = dom.audio.error?.message || "";
   const baseUrl = window.location.origin + "/";
-  const isEmptySrc = !audioSrc
-    || audioSrc === window.location.href
-    || audioSrc === baseUrl
-    || audioSrc.startsWith("about:")
-    || /Empty src attribute/i.test(errMsg);
+  const isEmptySrc =
+    !audioSrc ||
+    audioSrc === window.location.href ||
+    audioSrc === baseUrl ||
+    audioSrc.startsWith("about:") ||
+    /Empty src attribute/i.test(errMsg);
   if (isEmptySrc) return;
 
   // 守卫2:防止并发 error 事件叠加
@@ -774,7 +781,7 @@ dom.audio.addEventListener("error", async (e) => {
     showError("播放列表错误");
     if (state.isPlaying) pauseTrack();
     state.consecutiveErrors = 0;
-    isHandlingAudioError = false;  // 🔴 必须释放,否则后续所有 error 都会被守卫3吞掉
+    isHandlingAudioError = false; // 🔴 必须释放,否则后续所有 error 都会被守卫3吞掉
     return;
   }
   state.consecutiveErrors++;
@@ -784,13 +791,21 @@ dom.audio.addEventListener("error", async (e) => {
 
   // ━━━ 第一级：让主系统刷新 URL ━━━
   // 仅对有 id+source 且未尝试过刷新的搜索歌生效
-  if (track && track.id && track.source && !track._refreshed && !track._isDirectLink) {
+  if (
+    track &&
+    track.id &&
+    track.source &&
+    !track._refreshed &&
+    !track._isDirectLink
+  ) {
     track._refreshed = true;
     if (window.MusicCache) {
       window.MusicCache.invalidateAudio(track.id, track.source);
     }
     ThemeUtils.sendMessage("audio-playback-failed", {
-      id: track.id, source: track.source, trackIndex: state.currentIndex,
+      id: track.id,
+      source: track.source,
+      trackIndex: state.currentIndex,
     });
     isHandlingAudioError = false;
     return;
@@ -809,7 +824,7 @@ dom.audio.addEventListener("error", async (e) => {
       track._isDirectLink = false;
       track.audioUrl = "";
     }
-    track._refreshed = false;  // 换源成功后允许下次再刷
+    track._refreshed = false; // 换源成功后允许下次再刷
     await tryFallbackSource(title, artist, track._triedSources, wantAutoPlay);
     isHandlingAudioError = false;
     return;
@@ -834,14 +849,14 @@ dom.audio.addEventListener("error", async (e) => {
 
 **正确发送方式**:
 
-​```javascript
+​`javascript
 ThemeUtils.sendMessage("audio-playback-failed", {
   id: track.id,
   source: track.source,
   trackIndex: state.currentIndex,
   // 不要传 excludeSources!让主系统自己判断
 });
-​```
+​`
 
 如果新拿到的 URL 还是 502,会触发**第二次** error,这时 `_refreshed` 已经是 true,会自动走第二级"前端跨源换源",这才是真正排除当前源的时机。
 
@@ -864,7 +879,7 @@ window.addEventListener("message", (event) => {
     } = event.data.data;
 
     if (trackIndex < 0 || trackIndex >= state.playlist.length) return;
-    if (!audioUrl) return;  // 刷新失败，前端的换源逻辑会兜底
+    if (!audioUrl) return; // 刷新失败，前端的换源逻辑会兜底
 
     const track = state.playlist[trackIndex];
     track.audioUrl = audioUrl;
@@ -891,7 +906,11 @@ window.addEventListener("message", (event) => {
       track.lyricsContent = lyricsContent || "";
       track.tlyricContent = tlyricContent || "";
       if (trackIndex === state.currentIndex && lyricsContent) {
-        state.lyrics = parseLRC(lyricsContent, tlyricContent, newSource || track.source);
+        state.lyrics = parseLRC(
+          lyricsContent,
+          tlyricContent,
+          newSource || track.source,
+        );
         renderLyrics();
       }
     }
@@ -900,12 +919,16 @@ window.addEventListener("message", (event) => {
     if (trackIndex === state.currentIndex) {
       const currentTime = dom.audio.currentTime;
       dom.audio.src = getProxyUrl(audioUrl);
-      dom.audio.addEventListener("loadedmetadata", () => {
-        if (currentTime > 0.5) dom.audio.currentTime = currentTime;
-        if (state.isPlaying || state.shouldAutoPlay) {
-          dom.audio.play().catch(() => {});
-        }
-      }, { once: true });
+      dom.audio.addEventListener(
+        "loadedmetadata",
+        () => {
+          if (currentTime > 0.5) dom.audio.currentTime = currentTime;
+          if (state.isPlaying || state.shouldAutoPlay) {
+            dom.audio.play().catch(() => {});
+          }
+        },
+        { once: true },
+      );
     }
   }
 });
@@ -916,7 +939,7 @@ window.addEventListener("message", (event) => {
 ```javascript
 async function loadTrack(index, autoPlay) {
   const track = state.playlist[index];
-  if (track) track._refreshed = false;  // 关键！否则换源后下次坏链刷不动
+  if (track) track._refreshed = false; // 关键！否则换源后下次坏链刷不动
   // ...其他逻辑
 }
 ```
@@ -953,18 +976,18 @@ async function tryFallbackSource(title, artist, excludeSources = [], autoPlay) {
 
 ​```javascript
 dom.audio.addEventListener("loadedmetadata", () => {
-  const duration = dom.audio.duration;
-  if (!duration) return;
+const duration = dom.audio.duration;
+if (!duration) return;
 
-  // 从主插件读取阈值（默认 60 秒），低于此值判定为试听版
-  const minDuration = window.parent.MusicUtils?.MIN_PLAYABLE_DURATION || 60;
-  if (duration > 0 && duration <= minDuration) {
-    console.warn(`检测到试听版 (${duration.toFixed(1)}s)，换源中...`);
-    dom.audio.pause();
-    dom.audio.src = "";  // 彻底中止
-    const track = state.playlist[state.currentIndex];
-    if (track) handleFallbackSearch(track.title, track.artist);
-  }
+// 从主插件读取阈值（默认 60 秒），低于此值判定为试听版
+const minDuration = window.parent.MusicUtils?.MIN_PLAYABLE_DURATION || 60;
+if (duration > 0 && duration <= minDuration) {
+console.warn(`检测到试听版 (${duration.toFixed(1)}s)，换源中...`);
+dom.audio.pause();
+dom.audio.src = ""; // 彻底中止
+const track = state.playlist[state.currentIndex];
+if (track) handleFallbackSearch(track.title, track.artist);
+}
 });
 ​```
 
@@ -987,26 +1010,26 @@ dom.audio.addEventListener("loadedmetadata", () => {
 // A. isChangingTrack：换源/换歌过程
 let isChangingTrack = false;
 async function loadTrack(index, autoPlay = false) {
-  isChangingTrack = true;
-  // ...异步加载...
-  isChangingTrack = false;
+isChangingTrack = true;
+// ...异步加载...
+isChangingTrack = false;
 }
 dom.audio.addEventListener("error", async (e) => {
-  if (isChangingTrack) return;  // 换源中忽略错误
-  // ...错误处理...
+if (isChangingTrack) return; // 换源中忽略错误
+// ...错误处理...
 });
 
 // B. shouldAutoPlay：记住播放意图
 let shouldAutoPlay = false;
 async function loadTrack(index, autoPlay = false) {
-  shouldAutoPlay = autoPlay;
-  // ...异步加载，可能清空 audio.src...
+shouldAutoPlay = autoPlay;
+// ...异步加载，可能清空 audio.src...
 }
 dom.audio.addEventListener("loadedmetadata", () => {
-  if (shouldAutoPlay) {
-    shouldAutoPlay = false;
-    play();
-  }
+if (shouldAutoPlay) {
+shouldAutoPlay = false;
+play();
+}
 });
 ​```
 
@@ -1016,7 +1039,7 @@ dom.audio.addEventListener("loadedmetadata", () => {
 
 调用 `/song` 接口拿播放 URL 时，后端可能返回 `{ _needFallback: true }`，表示当前源所有 API 都失败了，需要跨源：
 
-​```javascript
+​``javascript
 const urlData = await fetch(`/api/plugins/g-player-proxy/song?id=${id}&source=tencent`).then(r => r.json());
 if (urlData?._needFallback) {
   // 不要自己写 for 循环搜三源!委托主插件
@@ -1026,7 +1049,7 @@ if (urlData?._needFallback) {
   }
   return;
 }
-​```
+​``
 
 #### B. 跨源换源 = 必须委托主插件
 
@@ -1037,13 +1060,13 @@ if (urlData?._needFallback) {
 const sources = ["tencent", "netease", "kuwo"];
 for (const source of sources) {
   const r = await fetch(`/api/plugins/g-player-proxy/search?...&source=${source}`);
-  // ...自己挑选最佳匹配...
+// ...自己挑选最佳匹配...
 }
 
 // ✅ 正确写法
 const result = await requestSearchFromHost(title, artist, excludeSources);
 if (result && result.audioUrl) {
-  // 直接用，主插件已过滤试听版、已写缓存
+// 直接用，主插件已过滤试听版、已写缓存
 }
 ​```
 
@@ -1063,8 +1086,8 @@ if (result && result.audioUrl) {
 
 ```javascript
 let state = {
-  consecutiveErrors: 0,    // 连续失败次数
-  fallbackAttempts: 0,     // 当前歌的换源次数
+  consecutiveErrors: 0, // 连续失败次数
+  fallbackAttempts: 0, // 当前歌的换源次数
   maxFallbackAttempts: 3,
 };
 
@@ -1080,8 +1103,8 @@ async function tryFallbackSource(title, artist, excludeSources, autoPlay) {
 
   // 检查 2：可用音源是否还有
   const allSources = ["tencent", "netease", "kuwo"];
-  const availableSources = allSources.filter(s =>
-    !excludeSources.includes(capitalize(s))
+  const availableSources = allSources.filter(
+    (s) => !excludeSources.includes(capitalize(s)),
   );
   if (availableSources.length === 0) {
     showError("所有音源都已尝试");
@@ -1097,7 +1120,10 @@ audio.addEventListener("error", async (e) => {
   // 注意:return 前必须释放 isHandlingAudioError,否则后续所有 error 都会被守卫吞掉
 
   // 检查 3：防止整个列表雪崩(阈值 × 2 + 3,给单首歌足够的换源重试空间)
-  if (state.playlist.length > 0 && state.consecutiveErrors >= state.playlist.length * 2 + 3) {
+  if (
+    state.playlist.length > 0 &&
+    state.consecutiveErrors >= state.playlist.length * 2 + 3
+  ) {
     showError("播放列表错误");
     if (state.isPlaying) pauseTrack();
     state.consecutiveErrors = 0;
@@ -1109,7 +1135,7 @@ audio.addEventListener("error", async (e) => {
 });
 
 async function loadTrack(index, autoPlay) {
-  state.consecutiveErrors = 0;   // 切新歌就清零
+  state.consecutiveErrors = 0; // 切新歌就清零
   state.fallbackAttempts = 0;
   // ...
 }
@@ -1125,7 +1151,7 @@ async function loadTrack(index, autoPlay) {
 
 **禁止**只匹配歌手名或匹配失败后取第一条结果：
 
-```javascript
+````javascript
 // ❌ 错误一：直接取第一条结果
 const track = searchData.data[0];  // 会播错歌
 
@@ -1178,7 +1204,7 @@ const track = MusicUtils.selectBestMatch
     });
 
 if (!track) return null;
-```
+````
 
 **`selectBestMatch` 的打分规则**（从主插件 `MusicUtils` 暴露）：
 
@@ -1243,7 +1269,7 @@ function getAudioSource(audioUrl) {
   const needProxy = needProxyDomains.some(d => audioUrl.includes(d));
   return needProxy
     ? `/api/plugins/g-player-proxy/stream?url=${encodeURIComponent(audioUrl)}`
-    : audioUrl;
+: audioUrl;
 }
 
 dom.audio.src = getAudioSource(track.audioUrl);
@@ -1260,7 +1286,7 @@ dom.audio.src = getAudioSource(track.audioUrl);
 - 你的主题切歌时会更新封面 `<img>` 的 `src` 吗？
   - 会 → 必须按本节做兜底
   - 不会，永远显示角色头像 → 跳过本节，无需做兜底
-  
+
 **问题背景**：搜索接口返回的封面 URL 可能挂掉。如果 `<img>` 加载失败又没兜底，用户看到的就是浏览器默认的破图标，体验很糟糕。
 
 **两层兜底策略**：
@@ -1283,7 +1309,11 @@ async function loadTrack(index, autoPlay) {
     // 第一层：qijieya meting 兜底
     if (!coverFallbackTried && track.id && track.source) {
       coverFallbackTried = true;
-      const sourceMap = { Netease: "netease", Tencent: "tencent", Kuwo: "kuwo" };
+      const sourceMap = {
+        Netease: "netease",
+        Tencent: "tencent",
+        Kuwo: "kuwo",
+      };
       const apiSource = sourceMap[track.source] || track.source.toLowerCase();
       const fallbackUrl = `https://api.qijieya.cn/meting/?server=${apiSource}&type=pic&id=${track.id}&size=500`;
       track.coverUrl = fallbackUrl;
@@ -1353,8 +1383,11 @@ async function handleSearchResultAction(btn, action) {
     const songData = await fetchSongUrl(id, source);
     if (songData && songData.audioUrl) {
       trackData = {
-        id, source,
-        name: title, title, artist,
+        id,
+        source,
+        name: title,
+        title,
+        artist,
         coverUrl: cover,
         audioUrl: songData.audioUrl,
         lyricsContent: songData.lyricsContent || "",
@@ -1364,7 +1397,11 @@ async function handleSearchResultAction(btn, action) {
       // 写回搜索缓存（让后续命中 cache）
       if (window.MusicCache && title && artist) {
         window.MusicCache.setSearch(title, artist, {
-          id, source, title, artist, coverUrl: cover,
+          id,
+          source,
+          title,
+          artist,
+          coverUrl: cover,
         });
       }
     }
@@ -1386,7 +1423,7 @@ async function handleSearchResultAction(btn, action) {
 
 后端返回的 `lrc` 字段可能是**歌词文本**（`[` 开头）或 **URL**（`http` 开头），需要分别处理：
 
-​```javascript
+​`javascript
 async function loadTrack(index, autoPlay = false) {
   const track = state.playlist[index];
   if (track.lyricsUrl) {
@@ -1406,7 +1443,7 @@ async function loadTrack(index, autoPlay = false) {
     renderLyrics();
   }
 }
-​```
+​`
 
 ### 2. 多格式双语 LRC 解析
 
@@ -1482,214 +1519,212 @@ async function loadTrack(index, autoPlay = false) {
 
 ​```javascript
 function parseLRCText(lrcText, tlyricText = "", source = "") {
-  if (source && source.toLowerCase() === "kuwo") {
-    state.parsedLRC = parseLRCKuwo(lrcText);
-    return;
-  }
-  if (!lrcText && !tlyricText) {
-    state.parsedLRC = [];
-    return;
-  }
+if (source && source.toLowerCase() === "kuwo") {
+state.parsedLRC = parseLRCKuwo(lrcText);
+return;
+}
+if (!lrcText && !tlyricText) {
+state.parsedLRC = [];
+return;
+}
 
-  const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
+const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/g;
 
-  function parseLines(text) {
-    if (!text) return [];
-    const lines = [];
-    text.split("\n").forEach(line => {
-      const content = line.replace(timeRegex, "").trim();
-      if (!content) return;
-      if (content === "//" || /^\/+$/.test(content)) return;
-      if (/^(作词|作曲|编曲|制作|Lyrics|Composed|Written)\s*[:：]/i.test(content)) return;
-      timeRegex.lastIndex = 0;
-      let match;
-      while ((match = timeRegex.exec(line))) {
-        const time = parseInt(match[1])* 60 + parseInt(match[2])
-                   + parseInt(match[3].padEnd(3, "0")) / 1000;
-        lines.push({ time, text: content });
-      }
-    });
-    return lines;
-  }
+function parseLines(text) {
+if (!text) return [];
+const lines = [];
+text.split("\n").forEach(line => {
+const content = line.replace(timeRegex, "").trim();
+if (!content) return;
+if (content === "//" || /^\/+$/.test(content)) return;
+if (/^(作词|作曲|编曲|制作|Lyrics|Composed|Written)\s*[:：]/i.test(content)) return;
+timeRegex.lastIndex = 0;
+let match;
+while ((match = timeRegex.exec(line))) {
+const time = parseInt(match[1])* 60 + parseInt(match[2]) + parseInt(match[3].padEnd(3, "0")) / 1000;
+lines.push({ time, text: content });
+}
+});
+return lines;
+}
 
-  const isChinese = t => /[\u4e00-\u9fa5]/.test(t);
-  const isJapanese = t => /[\u3040-\u309f\u30a0-\u30ff]/.test(t);
-  const isKorean = t => /[\uac00-\ud7af]/.test(t);
-  const isAsian = t => isChinese(t) || isJapanese(t) || isKorean(t);
+const isChinese = t => /[\u4e00-\u9fa5]/.test(t);
+const isJapanese = t => /[\u3040-\u309f\u30a0-\u30ff]/.test(t);
+const isKorean = t => /[\uac00-\ud7af]/.test(t);
+const isAsian = t => isChinese(t) || isJapanese(t) || isKorean(t);
 
-  let mainLines = parseLines(lrcText);
-  let transLines = parseLines(tlyricText);
+let mainLines = parseLines(lrcText);
+let transLines = parseLines(tlyricText);
 
-  if (mainLines.length === 0 && transLines.length === 0) {
-    state.parsedLRC = [];
-    return;
-  }
+if (mainLines.length === 0 && transLines.length === 0) {
+state.parsedLRC = [];
+return;
+}
 
-  // 优先级 1：独立翻译文本（带容差匹配）
-  if (tlyricText && transLines.length > 0) {
-    mainLines.sort((a, b) => a.time - b.time);
-    transLines.sort((a, b) => a.time - b.time);
-    state.parsedLRC = mainLines.map(line => {
-      let bestMatch = null;
-      let minDiff = 0.5;
-      for (const trans of transLines) {
-        const diff = Math.abs(trans.time - line.time);
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestMatch = trans.text;
-        }
-      }
-      return { time: line.time, text: line.text, translated: bestMatch };
-    });
-    return;
-  }
+// 优先级 1：独立翻译文本（带容差匹配）
+if (tlyricText && transLines.length > 0) {
+mainLines.sort((a, b) => a.time - b.time);
+transLines.sort((a, b) => a.time - b.time);
+state.parsedLRC = mainLines.map(line => {
+let bestMatch = null;
+let minDiff = 0.5;
+for (const trans of transLines) {
+const diff = Math.abs(trans.time - line.time);
+if (diff < minDiff) {
+minDiff = diff;
+bestMatch = trans.text;
+}
+}
+return { time: line.time, text: line.text, translated: bestMatch };
+});
+return;
+}
 
-  // 优先级 2：分离格式（时间回退 > 30 秒）
-  let splitIndex = -1;
-  for (let i = 1; i < mainLines.length; i++) {
-    if (mainLines[i].time < mainLines[i - 1].time - 30) {
-      splitIndex = i;
-      break;
-    }
-  }
-  if (splitIndex > 0) {
-    const firstPart = mainLines.slice(0, splitIndex);
-    const secondPart = mainLines.slice(splitIndex);
-    const firstHasChinese = firstPart.some(l => isChinese(l.text));
-    const secondHasChinese = secondPart.some(l => isChinese(l.text));
-    let originalPart, transPart;
-    if (!firstHasChinese && secondHasChinese) {
-      originalPart = firstPart;
-      transPart = secondPart;
-    } else if (firstHasChinese && !secondHasChinese) {
-      originalPart = secondPart;
-      transPart = firstPart;
-    } else {
-      originalPart = firstPart;
-      transPart = secondPart;
-    }
-    originalPart.sort((a, b) => a.time - b.time);
-    transPart.sort((a, b) => a.time - b.time);
-    state.parsedLRC = originalPart.map(line => {
-      let bestMatch = null;
-      let minDiff = 0.5;
-      for (const trans of transPart) {
-        const diff = Math.abs(trans.time - line.time);
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestMatch = trans.text;
-        }
-      }
-      return { time: line.time, text: line.text, translated: bestMatch };
-    });
-    return;
-  }
+// 优先级 2：分离格式（时间回退 > 30 秒）
+let splitIndex = -1;
+for (let i = 1; i < mainLines.length; i++) {
+if (mainLines[i].time < mainLines[i - 1].time - 30) {
+splitIndex = i;
+break;
+}
+}
+if (splitIndex > 0) {
+const firstPart = mainLines.slice(0, splitIndex);
+const secondPart = mainLines.slice(splitIndex);
+const firstHasChinese = firstPart.some(l => isChinese(l.text));
+const secondHasChinese = secondPart.some(l => isChinese(l.text));
+let originalPart, transPart;
+if (!firstHasChinese && secondHasChinese) {
+originalPart = firstPart;
+transPart = secondPart;
+} else if (firstHasChinese && !secondHasChinese) {
+originalPart = secondPart;
+transPart = firstPart;
+} else {
+originalPart = firstPart;
+transPart = secondPart;
+}
+originalPart.sort((a, b) => a.time - b.time);
+transPart.sort((a, b) => a.time - b.time);
+state.parsedLRC = originalPart.map(line => {
+let bestMatch = null;
+let minDiff = 0.5;
+for (const trans of transPart) {
+const diff = Math.abs(trans.time - line.time);
+if (diff < minDiff) {
+minDiff = diff;
+bestMatch = trans.text;
+}
+}
+return { time: line.time, text: line.text, translated: bestMatch };
+});
+return;
+}
 
-  mainLines.sort((a, b) => a.time - b.time);
+mainLines.sort((a, b) => a.time - b.time);
 
-  // 优先级 3：交替格式
-  let hasAlternatingPattern = false;
-  if (mainLines.length >= 4) {
-    let alternateCount = 0;
-    for (let i = 0; i < Math.min(mainLines.length - 1, 20); i++) {
-      if (isAsian(mainLines[i].text) !== isAsian(mainLines[i + 1].text)) {
-        alternateCount++;
-      }
-    }
-    hasAlternatingPattern = alternateCount >= Math.min(mainLines.length - 1, 20) * 0.7;
-  }
-  if (hasAlternatingPattern) {
-    const merged = [];
-    let i = 0;
-    while (i < mainLines.length) {
-      const curr = mainLines[i];
-      const next = mainLines[i + 1];
-      if (next) {
-        const currIsAsian = isAsian(curr.text);
-        const nextIsAsian = isAsian(next.text);
-        if (!currIsAsian && nextIsAsian) {
-          merged.push({ time: curr.time, text: curr.text, translated: next.text });
-          i += 2; continue;
-        } else if (currIsAsian && !nextIsAsian) {
-          merged.push({ time: curr.time, text: next.text, translated: curr.text });
-          i += 2; continue;
-        }
-      }
-      merged.push({ time: curr.time, text: curr.text, translated: null });
-      i++;
-    }
-    state.parsedLRC = merged;
-    return;
-  }
+// 优先级 3：交替格式
+let hasAlternatingPattern = false;
+if (mainLines.length >= 4) {
+let alternateCount = 0;
+for (let i = 0; i < Math.min(mainLines.length - 1, 20); i++) {
+if (isAsian(mainLines[i].text) !== isAsian(mainLines[i + 1].text)) {
+alternateCount++;
+}
+}
+hasAlternatingPattern = alternateCount >= Math.min(mainLines.length - 1, 20) \* 0.7;
+}
+if (hasAlternatingPattern) {
+const merged = [];
+let i = 0;
+while (i < mainLines.length) {
+const curr = mainLines[i];
+const next = mainLines[i + 1];
+if (next) {
+const currIsAsian = isAsian(curr.text);
+const nextIsAsian = isAsian(next.text);
+if (!currIsAsian && nextIsAsian) {
+merged.push({ time: curr.time, text: curr.text, translated: next.text });
+i += 2; continue;
+} else if (currIsAsian && !nextIsAsian) {
+merged.push({ time: curr.time, text: next.text, translated: curr.text });
+i += 2; continue;
+}
+}
+merged.push({ time: curr.time, text: curr.text, translated: null });
+i++;
+}
+state.parsedLRC = merged;
+return;
+}
 
-  // 优先级 4：同时间戳格式
-  const merged = [];
-  for (let i = 0; i < mainLines.length; i++) {
-    const current = mainLines[i];
-    const next = mainLines[i + 1];
-    if (next && Math.abs(next.time - current.time) < 0.05) {
-      const currentIsAsian = isAsian(current.text);
-      const nextIsAsian = isAsian(next.text);
-      if (currentIsAsian && !nextIsAsian) {
-        merged.push({ time: current.time, text: next.text, translated: current.text });
-      } else {
-        merged.push({ time: current.time, text: current.text, translated: next.text });
-      }
-      i++;
-      continue;
-    }
-    merged.push({ time: current.time, text: current.text, translated: null });
-  }
-  state.parsedLRC = merged;
+// 优先级 4：同时间戳格式
+const merged = [];
+for (let i = 0; i < mainLines.length; i++) {
+const current = mainLines[i];
+const next = mainLines[i + 1];
+if (next && Math.abs(next.time - current.time) < 0.05) {
+const currentIsAsian = isAsian(current.text);
+const nextIsAsian = isAsian(next.text);
+if (currentIsAsian && !nextIsAsian) {
+merged.push({ time: current.time, text: next.text, translated: current.text });
+} else {
+merged.push({ time: current.time, text: current.text, translated: next.text });
+}
+i++;
+continue;
+}
+merged.push({ time: current.time, text: current.text, translated: null });
+}
+state.parsedLRC = merged;
 }
 
 function parseLRCKuwo(lrcData) {
-  if (!lrcData || typeof lrcData !== "string") return [];
-  const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
-  const lines = lrcData.split("\n");
+if (!lrcData || typeof lrcData !== "string") return [];
+const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/;
+const lines = lrcData.split("\n");
 
-  const parsed = [];
-  for (const line of lines) {
-    const match = line.match(timeRegex);
-    if (!match) continue;
-    const content = line.replace(/\[[\d:.]+\]/g, "").trim();
-    if (!content || /^\/+$/.test(content)) continue;
-    const time = parseInt(match[1]) * 60 + parseInt(match[2])
-               + parseInt(match[3].padEnd(3, "0")) / 1000;
-    parsed.push({ time, text: content });
-  }
+const parsed = [];
+for (const line of lines) {
+const match = line.match(timeRegex);
+if (!match) continue;
+const content = line.replace(/\[[\d:.]+\]/g, "").trim();
+if (!content || /^\/+$/.test(content)) continue;
+const time = parseInt(match[1]) \* 60 + parseInt(match[2]) + parseInt(match[3].padEnd(3, "0")) / 1000;
+parsed.push({ time, text: content });
+}
 
-  const timeGroups = new Map();
-  for (const item of parsed) {
-    const key = item.time.toFixed(3);
-    if (!timeGroups.has(key)) timeGroups.set(key, []);
-    timeGroups.get(key).push(item.text);
-  }
+const timeGroups = new Map();
+for (const item of parsed) {
+const key = item.time.toFixed(3);
+if (!timeGroups.has(key)) timeGroups.set(key, []);
+timeGroups.get(key).push(item.text);
+}
 
-  const result = [];
-  const sortedTimes = Array.from(timeGroups.keys()).sort((a, b) => parseFloat(a) - parseFloat(b));
-  for (const timeKey of sortedTimes) {
-    const time = parseFloat(timeKey);
-    const texts = timeGroups.get(timeKey);
-    if (texts.length === 1) {
-      result.push({ time, text: texts[0], translated: null });
-    } else if (texts.length >= 2) {
-      if (result.length > 0 && !result[result.length - 1].translated) {
-        result[result.length - 1].translated = texts[0];
-      }
-      result.push({ time, text: texts[1], translated: null });
-    }
-  }
-  return result;
+const result = [];
+const sortedTimes = Array.from(timeGroups.keys()).sort((a, b) => parseFloat(a) - parseFloat(b));
+for (const timeKey of sortedTimes) {
+const time = parseFloat(timeKey);
+const texts = timeGroups.get(timeKey);
+if (texts.length === 1) {
+result.push({ time, text: texts[0], translated: null });
+} else if (texts.length >= 2) {
+if (result.length > 0 && !result[result.length - 1].translated) {
+result[result.length - 1].translated = texts[0];
+}
+result.push({ time, text: texts[1], translated: null });
+}
+}
+return result;
 }
 ​```
 
 **调用时传入 source 参数**：
 
-​```javascript
+​`javascript
 const track = state.playlist[index];
 parseLRCText(lyricsContent, tlyricContent, track.source);
-​```
+​`
 
 ### 3. 悬浮歌词支持
 
@@ -1705,7 +1740,7 @@ parseLRCText(lyricsContent, tlyricContent, track.source);
 
 ```javascript
 const lyrics = [
-  { time: 0,    text: "Music intro...",     translated: null },
+  { time: 0, text: "Music intro...", translated: null },
   { time: 15.5, text: "All alone with you", translated: "独自与你在一起" },
 ];
 ```
@@ -1716,42 +1751,42 @@ const lyrics = [
 
 ```javascript
 dom.audio.onplay = () => {
-    state.isPlaying = true;
-    const currentTrack = state.playlist[state.currentIndex];
-    if (currentTrack && typeof ThemeUtils !== "undefined") {
-        ThemeUtils.sendMessage("playback-state-changed", {
-            isPlaying: true,
-            currentTrack: {
-                title: currentTrack.name,
-                name: currentTrack.name,
-                artist: Array.isArray(currentTrack.artist)
-                    ? currentTrack.artist.join(" / ")
-                    : currentTrack.artist,
-                coverUrl: currentTrack.coverUrl,
-                originalTitle: currentTrack.originalTitle,
-                originalArtist: currentTrack.originalArtist,
-            },
-            lyrics: state.parsedLRC,  // 悬浮歌词数据
-        });
-    }
+  state.isPlaying = true;
+  const currentTrack = state.playlist[state.currentIndex];
+  if (currentTrack && typeof ThemeUtils !== "undefined") {
+    ThemeUtils.sendMessage("playback-state-changed", {
+      isPlaying: true,
+      currentTrack: {
+        title: currentTrack.name,
+        name: currentTrack.name,
+        artist: Array.isArray(currentTrack.artist)
+          ? currentTrack.artist.join(" / ")
+          : currentTrack.artist,
+        coverUrl: currentTrack.coverUrl,
+        originalTitle: currentTrack.originalTitle,
+        originalArtist: currentTrack.originalArtist,
+      },
+      lyrics: state.parsedLRC, // 悬浮歌词数据
+    });
+  }
 };
 
 dom.audio.onpause = () => {
-    state.isPlaying = false;
-    const currentTrack = state.playlist[state.currentIndex];
-    if (currentTrack && typeof ThemeUtils !== "undefined") {
-        ThemeUtils.sendMessage("playback-state-changed", {
-            isPlaying: false,
-            currentTrack: {
-                title: currentTrack.name,
-                artist: Array.isArray(currentTrack.artist)
-                    ? currentTrack.artist.join(" / ")
-                    : currentTrack.artist,
-                originalTitle: currentTrack.originalTitle,
-                originalArtist: currentTrack.originalArtist,
-            },
-        });
-    }
+  state.isPlaying = false;
+  const currentTrack = state.playlist[state.currentIndex];
+  if (currentTrack && typeof ThemeUtils !== "undefined") {
+    ThemeUtils.sendMessage("playback-state-changed", {
+      isPlaying: false,
+      currentTrack: {
+        title: currentTrack.name,
+        artist: Array.isArray(currentTrack.artist)
+          ? currentTrack.artist.join(" / ")
+          : currentTrack.artist,
+        originalTitle: currentTrack.originalTitle,
+        originalArtist: currentTrack.originalArtist,
+      },
+    });
+  }
 };
 ```
 
@@ -1763,41 +1798,41 @@ dom.audio.onpause = () => {
 let lyricsAnimationId = null;
 
 function sendLyricsProgress() {
-    if (!state.isPlaying) return;
+  if (!state.isPlaying) return;
 
-    const ct = dom.audio.currentTime || 0;
-    const duration = dom.audio.duration || 0;
-    const progress = duration > 0 ? (ct / duration) * 100 : 0;
-    const currentTrack = state.playlist[state.currentIndex];
+  const ct = dom.audio.currentTime || 0;
+  const duration = dom.audio.duration || 0;
+  const progress = duration > 0 ? (ct / duration) * 100 : 0;
+  const currentTrack = state.playlist[state.currentIndex];
 
-    if (currentTrack && typeof ThemeUtils !== "undefined") {
-        ThemeUtils.sendMessage("playback-progress", {
-            currentTrack: {
-                title: currentTrack.name,
-                artist: Array.isArray(currentTrack.artist)
-                    ? currentTrack.artist.join(" / ")
-                    : currentTrack.artist,
-                originalTitle: currentTrack.originalTitle,
-                originalArtist: currentTrack.originalArtist,
-            },
-            progress: progress,
-            currentTime: formatTime(ct),
-            duration: formatTime(duration),
-            currentTimeRaw: ct,   // 悬浮歌词需要这个原始秒数
-        });
-    }
+  if (currentTrack && typeof ThemeUtils !== "undefined") {
+    ThemeUtils.sendMessage("playback-progress", {
+      currentTrack: {
+        title: currentTrack.name,
+        artist: Array.isArray(currentTrack.artist)
+          ? currentTrack.artist.join(" / ")
+          : currentTrack.artist,
+        originalTitle: currentTrack.originalTitle,
+        originalArtist: currentTrack.originalArtist,
+      },
+      progress: progress,
+      currentTime: formatTime(ct),
+      duration: formatTime(duration),
+      currentTimeRaw: ct, // 悬浮歌词需要这个原始秒数
+    });
+  }
 
-    lyricsAnimationId = requestAnimationFrame(sendLyricsProgress);
+  lyricsAnimationId = requestAnimationFrame(sendLyricsProgress);
 }
 
 // 在 audio 的事件里启动/停止
 dom.audio.onplay = () => {
-    cancelAnimationFrame(lyricsAnimationId);
-    sendLyricsProgress();
+  cancelAnimationFrame(lyricsAnimationId);
+  sendLyricsProgress();
 };
 
 dom.audio.onpause = () => {
-    cancelAnimationFrame(lyricsAnimationId);
+  cancelAnimationFrame(lyricsAnimationId);
 };
 ```
 
@@ -1805,30 +1840,30 @@ dom.audio.onpause = () => {
 
 ```javascript
 dom.audio.onplay = () => {
-    state.isPlaying = true;
-    const currentTrack = state.playlist[state.currentIndex];
+  state.isPlaying = true;
+  const currentTrack = state.playlist[state.currentIndex];
 
-    // 广播状态
-    if (currentTrack && typeof ThemeUtils !== "undefined") {
-        ThemeUtils.sendMessage("playback-state-changed", {
-            isPlaying: true,
-            currentTrack: {
-                title: currentTrack.name,
-                name: currentTrack.name,
-                artist: Array.isArray(currentTrack.artist)
-                    ? currentTrack.artist.join(" / ")
-                    : currentTrack.artist,
-                coverUrl: currentTrack.coverUrl,
-                originalTitle: currentTrack.originalTitle,
-                originalArtist: currentTrack.originalArtist,
-            },
-            lyrics: state.parsedLRC,
-        });
-    }
+  // 广播状态
+  if (currentTrack && typeof ThemeUtils !== "undefined") {
+    ThemeUtils.sendMessage("playback-state-changed", {
+      isPlaying: true,
+      currentTrack: {
+        title: currentTrack.name,
+        name: currentTrack.name,
+        artist: Array.isArray(currentTrack.artist)
+          ? currentTrack.artist.join(" / ")
+          : currentTrack.artist,
+        coverUrl: currentTrack.coverUrl,
+        originalTitle: currentTrack.originalTitle,
+        originalArtist: currentTrack.originalArtist,
+      },
+      lyrics: state.parsedLRC,
+    });
+  }
 
-    // 启动 RAF 进度推送
-    cancelAnimationFrame(lyricsAnimationId);
-    sendLyricsProgress();
+  // 启动 RAF 进度推送
+  cancelAnimationFrame(lyricsAnimationId);
+  sendLyricsProgress();
 };
 ```
 
@@ -1854,7 +1889,7 @@ const response = await fetch("<https://api.vkeys.cn/v2/music/tencent?word=周杰
 
 // 正确 ✅ - 通过后端代理
 const response = await fetch(
-  `/api/plugins/g-player-proxy/search?query=${encodeURIComponent("周杰伦")}&source=tencent`
+`/api/plugins/g-player-proxy/search?query=${encodeURIComponent("周杰伦")}&source=tencent`
 );
 const data = await response.json();
 ​```
@@ -1864,9 +1899,9 @@ const data = await response.json();
 ​```javascript
 // 搜索响应
 {
-  "data": [
-    { "id": "12345", "song": "歌曲名", "singer": "歌手名", "cover": "封面URL" }
-  ]
+"data": [
+{ "id": "12345", "song": "歌曲名", "singer": "歌手名", "cover": "封面URL" }
+]
 }
 
 // 获取歌曲（网易云）
@@ -1876,7 +1911,7 @@ const data = await response.json();
 { "data": { "url": "...", "lrc": "..." } }
 
 // 换源标记
-{ "_needFallback": true, "_reason": "all_sources_failed_or_mp4" }
+{ "\_needFallback": true, "\_reason": "all_sources_failed_or_mp4" }
 ​```
 
 ### 4. 【铁律】调用 `/lyric` 必须传 `title` 和 `artist`
@@ -1889,12 +1924,12 @@ const response = await fetch(`/api/plugins/g-player-proxy/lyric?id=${id}&source=
 
 // 正确 ✅
 function buildLyricUrl(id, source, title, artist) {
-  const sourceMap = { Netease: "netease", Tencent: "tencent", Kuwo: "kuwo" };
-  const apiSource = sourceMap[source] || source.toLowerCase();
-  let url = `/api/plugins/g-player-proxy/lyric?id=${id}&source=${apiSource}`;
-  if (title) url += `&title=${encodeURIComponent(title)}`;
-  if (artist) url += `&artist=${encodeURIComponent(artist)}`;
-  return url;
+const sourceMap = { Netease: "netease", Tencent: "tencent", Kuwo: "kuwo" };
+const apiSource = sourceMap[source] || source.toLowerCase();
+let url = `/api/plugins/g-player-proxy/lyric?id=${id}&source=${apiSource}`;
+if (title) url += `&title=${encodeURIComponent(title)}`;
+if (artist) url += `&artist=${encodeURIComponent(artist)}`;
+return url;
 }
 ​```
 
@@ -1916,9 +1951,9 @@ async function fetchFullSongDetails(trackInfo) {
   try {
     // 第一步：拿音频
     const songResponse = await fetch(`/api/plugins/g-player-proxy/song?id=${trackInfo.id}&source=${trackInfo.source}`);
-    const songData = await songResponse.json();
-    const audioUrl = songData?.data?.url || (Array.isArray(songData?.data) && songData.data[0]?.url);
-    if (!audioUrl) throw new Error("无法获取音频链接");
+const songData = await songResponse.json();
+const audioUrl = songData?.data?.url || (Array.isArray(songData?.data) && songData.data[0]?.url);
+if (!audioUrl) throw new Error("无法获取音频链接");
 
     // 第二步：拿歌词（必须传 title/artist）
     let lyricsContent = "", tlyricContent = "";
@@ -1938,10 +1973,11 @@ async function fetchFullSongDetails(trackInfo) {
     }
 
     return { ...trackInfo, audioUrl, lyricsContent, tlyricContent };
-  } catch (error) {
-    console.error(`获取歌曲 ${trackInfo.title} 详情失败:`, error);
-    return null;
-  }
+
+} catch (error) {
+console.error(`获取歌曲 ${trackInfo.title} 详情失败:`, error);
+return null;
+}
 }
 ​```
 
@@ -1959,7 +1995,7 @@ async function fetchFullSongDetails(trackInfo) {
 
 主系统的歌曲缓存对象自动注入到所有 iframe 主题中：
 
-​```javascript
+​`javascript
 const MusicCache = window.MusicCache;
 if (MusicCache) {
   const cached = MusicCache.getSearch(title, artist);
@@ -1970,7 +2006,7 @@ if (MusicCache) {
     }
   }
 }
-​```
+​`
 
 | 方法                          | 说明                                                      | 返回值                                              |
 | ----------------------------- | --------------------------------------------------------- | --------------------------------------------------- |
@@ -1992,12 +2028,12 @@ if (MusicCache) {
 - **整套数据**（搜歌结果、音频、歌词、封面一起拿到了）→ 一定要发 `cache-track-data`
 - **零散写入**（比如只想更新一个 audioUrl）→ 可以直接调 `MusicCache.setAudio`，但要意识到它不会触发面板刷新
 - **读取**（getXxx）→ 直接调，没限制
-通过 `requestSearchFromHost` 委托得到的 `result`，**主插件已经自动写好了缓存**（search/audio/lyrics/cover 全套），所以拿到结果后**不需要**再发 `cache-track-data`。只在以下场景需要主动发：
+  通过 `requestSearchFromHost` 委托得到的 `result`，**主插件已经自动写好了缓存**（search/audio/lyrics/cover 全套），所以拿到结果后**不需要**再发 `cache-track-data`。只在以下场景需要主动发：
 
 - 直链歌（角色卡 BGM 世界书里的 catbox 链接）首次播放成功后
 - 用户从搜索面板点击播放、用 id+source 直接拿到 audioUrl 之后
 - 任何**不是通过 `requestSearchFromHost` 拿到**的成功播放数据
-​```javascript
+  ​`javascript
 ThemeUtils.sendMessage("cache-track-data", {
   title: "歌曲名",        // 搜索缓存 key
   artist: "歌手名",       // 搜索缓存 key
@@ -2011,22 +2047,22 @@ ThemeUtils.sendMessage("cache-track-data", {
   tlyricContent: "[00:00.00]翻译...",  // 可选
   coverUrl: "https://...",
 });
-​```
+​`
 
 ### 3. 用 `_fromCache` 标记避免重复写入
 
 ​```javascript
-if (!track._fromCache) {
-  sendCacheWriteback(track);
-  track._fromCache = true;
+if (!track.\_fromCache) {
+sendCacheWriteback(track);
+track.\_fromCache = true;
 }
 
 // normalizePlaylist 中保留标记
 function normalizePlaylist(playlist) {
-  return playlist.map(song => ({
-    // ...其他字段...
-    _fromCache: song._fromCache || false,
-  }));
+return playlist.map(song => ({
+// ...其他字段...
+\_fromCache: song.\_fromCache || false,
+}));
 }
 ​```
 
@@ -2040,7 +2076,7 @@ function normalizePlaylist(playlist) {
 
 ### 1. 修改 `normalizePlaylist`
 
-​```javascript
+​`javascript
 function normalizePlaylist(playlist) {
   if (!Array.isArray(playlist)) return [];
   return playlist.map(song => ({
@@ -2058,11 +2094,11 @@ function normalizePlaylist(playlist) {
     originalArtist: song.originalArtist || null,
   }));
 }
-​```
+​`
 
 ### 2. 发送状态时附带
 
-​```javascript
+​`javascript
 function sendPlaybackState(isPlaying) {
   const currentTrack = state.playlist[state.currentTrackIndex];
   if (currentTrack && typeof ThemeUtils !== "undefined") {
@@ -2079,7 +2115,7 @@ function sendPlaybackState(isPlaying) {
     });
   }
 }
-​```
+​`
 
 `playback-progress` 消息也要附带这两个字段。
 
@@ -2102,7 +2138,7 @@ function sendPlaybackState(isPlaying) {
 
 ```javascript
 function normalizePlaylist(playlist) {
-  return playlist.map(song => ({
+  return playlist.map((song) => ({
     title: song.title || song.name,
     artist: song.artist,
     audioUrl: song.audioUrl || song.url || "",
@@ -2133,30 +2169,30 @@ function normalizePlaylist(playlist) {
 ​```javascript
 // 1. loadTrack 开头：每首歌切换时重置
 async function loadTrack(index, autoPlay) {
-  const track = state.playlist[index];
-  if (track) track._refreshed = false;  // 关键！否则换源后下次坏链刷不动
-  // ...
+const track = state.playlist[index];
+if (track) track.\_refreshed = false; // 关键！否则换源后下次坏链刷不动
+// ...
 }
 
 // 2. 错误处理：第一次刷新前设为 true
 audio.addEventListener("error", async () => {
-  if (track && track.id && track.source && !track._refreshed) {
-    track._refreshed = true;
-    ThemeUtils.sendMessage("audio-playback-failed", {...});
-    return;
-  }
-  // 已经刷新过还失败 → 走前端跨源换源
+if (track && track.id && track.source && !track.\_refreshed) {
+track.\_refreshed = true;
+ThemeUtils.sendMessage("audio-playback-failed", {...});
+return;
+}
+// 已经刷新过还失败 → 走前端跨源换源
 });
 
 // 3. 收到刷新结果时重置（让下次坏链能再刷）
 case "audio-url-refreshed":
-  track._refreshed = false;
-  break;
+track.\_refreshed = false;
+break;
 
 // 4. 前端跨源换源成功时也重置
 async function tryFallbackSource(...) {
-  // 换源成功后
-  track._refreshed = false;
+// 换源成功后
+track.\_refreshed = false;
 }
 ​```
 
@@ -2177,9 +2213,9 @@ async function tryFallbackSource(...) {
 设置阈值（比如 80 首），少于阈值时直接全量渲染；超过阈值时启用虚拟滚动：只渲染可视区附近的项，其他用一个撑开高度的占位元素填充滚动条。
 
 ```javascript
-const VPL_ITEM_HEIGHT = 46;   // 单项固定高度，必须和 CSS 一致
-const VPL_BUFFER = 5;         // 上下额外渲染的缓冲行数
-const VPL_THRESHOLD = 80;     // 启用虚拟滚动的阈值
+const VPL_ITEM_HEIGHT = 46; // 单项固定高度，必须和 CSS 一致
+const VPL_BUFFER = 5; // 上下额外渲染的缓冲行数
+const VPL_THRESHOLD = 80; // 启用虚拟滚动的阈值
 
 let vplScrollHandler = null;
 let vplRafId = null;
@@ -2214,8 +2250,14 @@ function renderPlaylist() {
   const renderVisible = () => {
     const scrollTop = listEl.scrollTop;
     const viewHeight = listEl.clientHeight || 300;
-    const start = Math.max(0, Math.floor(scrollTop / VPL_ITEM_HEIGHT) - VPL_BUFFER);
-    const end = Math.min(total, Math.ceil((scrollTop + viewHeight) / VPL_ITEM_HEIGHT) + VPL_BUFFER);
+    const start = Math.max(
+      0,
+      Math.floor(scrollTop / VPL_ITEM_HEIGHT) - VPL_BUFFER,
+    );
+    const end = Math.min(
+      total,
+      Math.ceil((scrollTop + viewHeight) / VPL_ITEM_HEIGHT) + VPL_BUFFER,
+    );
 
     // 撑开总高度的占位元素 + 可视区的真实项
     const parts = [
@@ -2281,27 +2323,27 @@ function buildItemHtml(track, index, virtual) {
 ​```javascript
 let preloadAudio = null;
 let isPreloading = false;
-const PREFETCH_COUNT = 3;  // 预获取后续 N 首的 URL（不预加载音频）
+const PREFETCH_COUNT = 3; // 预获取后续 N 首的 URL（不预加载音频）
 
 async function preloadNextTrack() {
-  if (state.playlist.length <= 1) return;
-  if (isPreloading) return;
-  isPreloading = true;
+if (state.playlist.length <= 1) return;
+if (isPreloading) return;
+isPreloading = true;
 
-  try {
-    // 第一阶段：批量预获取后续 N 首的 audioUrl（轻量，只是拿链接）
-    for (
-      let offset = 1;
-      offset <= Math.min(PREFETCH_COUNT, state.playlist.length - 1);
-      offset++
-    ) {
-      const idx = (state.currentTrackIndex + offset) % state.playlist.length;
-      const track = state.playlist[idx];
-      if (!track) continue;
-      if (track.audioUrl && track.audioUrl.startsWith("http")) continue;
+try {
+// 第一阶段：批量预获取后续 N 首的 audioUrl（轻量，只是拿链接）
+for (
+let offset = 1;
+offset <= Math.min(PREFETCH_COUNT, state.playlist.length - 1);
+offset++
+) {
+const idx = (state.currentTrackIndex + offset) % state.playlist.length;
+const track = state.playlist[idx];
+if (!track) continue;
+if (track.audioUrl && track.audioUrl.startsWith("http")) continue;
 
       // 缺 id/source 时先查 search 缓存补全（chat 来的歌经常缺这俩）
-      
+
       if ((!track.id || !track.source) && window.MusicCache) {
         const searchTitle = track.originalTitle || track.title || track.name;
         const searchArtist = track.originalArtist || track.artist || "";
@@ -2363,11 +2405,12 @@ async function preloadNextTrack() {
       preloadAudio.dataset.trackId = trackKey;
       preloadAudio.src = nextSrc;
     }
-  } catch (e) {
-    // 静默失败
-  }
 
-  isPreloading = false;
+} catch (e) {
+// 静默失败
+}
+
+isPreloading = false;
 }
 ​```
 
@@ -2462,7 +2505,7 @@ function handleStuckPlayback() {
             track.originalTitle || track.title,
             track.originalArtist || track.artist,
             track._triedSources || [],
-            true
+            true,
           );
         });
       }, 500);
@@ -2511,13 +2554,13 @@ AI 输出 `[bgm]歌曲名-歌手[/bgm]` 时，主系统自动搜索并添加。
 - **JSON 配置**：`width` 和 `height` 设为最小状态（迷你模式）的**固定像素**
 - **【禁止】**：用 `maxWidth` 或 `vw`
 
-​```json
+​`json
 { "draggable": { "width": "80px", "height": "100px" } }
-​```
+​`
 
 **工作原理**：通过 `ThemeUtils.sendMessage('resize-iframe', ...)` 主动命令外部容器在不同状态间改变大小：
 
-​```javascript
+​`javascript
 function toggleExpand(expand) {
   if (expand) {
     ThemeUtils.sendMessage("resize-iframe", { width: "340px", height: "520px" });
@@ -2527,30 +2570,85 @@ function toggleExpand(expand) {
     ThemeUtils.sendMessage("player-collapsing");
   }
 }
-​```
+​`
 
 ---
 
-## 十五、输出格式要求
+## 十五、后台播放与锁屏支持（Media Session）
+
+### 1. 框架自动注入，你只需做两件事
+
+主系统会自动给所有播放器主题注入 Media Session 处理代码（就是让操作系统在锁屏和通知栏画出"正在播放"卡片的那段逻辑），**你不需要自己调`navigator.mediaSession`**。
+
+你需要配合做的只有两件事：
+
+####第一件：切歌/开始播放时广播元数据
+
+在 `play()`、`dom.audio.onplay` 等开始播放的地方，在发送 `playback-state-changed` 之前，先派发一个同步的内部事件（CustomEvent，浏览器内建的同窗口广播，不走网络、不需要收件方在线）：
+
+```javascript
+try {
+  window.dispatchEvent(
+    new CustomEvent("theme-track-changed", {
+      detail: {
+        title: currentTrack.name || currentTrack.title,
+        artist: Array.isArray(currentTrack.artist)
+          ? currentTrack.artist.join(" / ")
+          : currentTrack.artist || "",
+        coverUrl: currentTrack.coverUrl || "",
+      },
+    }),
+  );
+} catch (e) {}
+```
+
+**为什么要这样做**：`playback-state-changed` 走 postMessage（跨窗口通信），手机切到后台时浏览器会节流（就像快递中转站夜班只剩一个人值班），消息可能延迟几秒甚至丢掉。直接在 iframe 内部广播的 CustomEvent 不受这个影响，注入代码立刻就能收到，锁屏元数据瞬间更新。
+
+#### 第二件：在初始化末尾监听媒体键
+
+在 `DOMContentLoaded` 最末尾（就在 `ThemeUtils.sendMessage("player-initialized")` 前面），加上：
+
+```javascript
+window.addEventListener("theme-media-action", (e) => {
+  const action = e.detail?.action;
+  if (action === "previous")
+    prevTrack(); // 换成你的上一首函数
+  else if (action === "next") nextTrack(); // 换成你的下一首函数
+});
+```
+
+锁屏的上一首/下一首/◀◀▶▶（快退/快进）按钮信号都会经过这里。快退/快进不需要你处理，注入代码已经直接操作 `<audio>` 元素的 `currentTime`（音频当前播放时间点，单位是秒）。
+
+### 2. 平台兼容说明
+
+| 系统             | 锁屏显示 | 上下首按钮         | 快退/快进  | 后台不断播                                                                                                          |
+| ---------------- | -------- | ------------------ | ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| Android Chrome   | ✅       | ✅（需做第二件事） | ✅（自动） | ✅                                                                                                                  |
+| iOS Safari       | ✅       | ✅（需做第二件事） | ✅（自动） | ⚠️受限（默认暂停；已加入 AudioSession API 申请，Safari 16.4+ 有效，成功率因版本而异；用户切回页面时会自动尝试恢复） |
+| 桌面 Chrome/Edge | ✅       | ✅                 | ✅         | ✅                                                                                                                  |
+
+---
+
+## 十六、输出格式要求
 
 请根据用户的播放器主题需求提供方案。务必为用户提供**完整的、可直接复制粘贴的代码块**。
 
 --- HTML Structure ---
-​```html
+​`html
 ...完整HTML代码...
-​```
+​`
 
 --- CSS Style (for iframe) ---
-​```css
+​`css
 ...完整CSS代码...
-​```
+​`
 
 --- JavaScript Code (for iframe) ---
-​```javascript
+​`javascript
 ...完整JS代码...
-​```
+​`
 
 --- 尺寸配置（JSON） ---
-​```json
+​`json
 ...完整JSON配置...
-​```
+​`
