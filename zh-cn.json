@@ -382,5 +382,13 @@
 "Theme Binding": "主题绑定",
 "Bind a dedicated theme to the current UI theme": "为当前界面主题绑定专属主题",
 "Applies to the current UI theme. Overrides global settings, but is overridden by the character-specific theme.": "应用于当前界面主题。覆盖全局设置，但会被角色专属主题覆盖。",
-"Current UI Theme": "当前界面主题"
-}
+"Current UI Theme": "当前界面主题",
+"iframe Themes": "iframe 动画主题",
+"CSS Themes": "CSS 主题",
+"Built-in": "内置",
+"User Created": "自建",
+"Search by name...": "按名称搜索...",
+"Toggle All Groups": "展开 / 折叠全部分组",
+"No matching items": "没有匹配的项目",
+"items": "项",
+"Please select...": "请选择..."}

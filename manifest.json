@@ -1,17 +1,19 @@
 {
-  "display_name": "打字指示器",
-  "loading_order": 777,
-  "requires": [],
-  "optional": [],
-  "js": "index.js",
-  "css": "style.css",
-  "author": "Sanjs333",
-  "version": "4.5",
-  "homePage": "https://github.com/Sanjs333/SillyTavern-TypingIndicatorThemes",
-  "auto_update": true,
+    "display_name": "打字指示器",
+    "loading_order": 777,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "Sanjs333",
+    "version": "4.5.1",
+    "homePage": "https://github.com/Sanjs333/SillyTavern-TypingIndicatorThemes",
+    "auto_update": true,
   "i18n": {
     "zh-cn": "zh-cn.json",
     "zh-tw": "zh-tw.json",
-    "th": "th.json"
+    "zh-hk": "zh-tw.json",
+    "th": "th.json",
+    "th-th": "th.json"
   }
 }

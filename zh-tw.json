@@ -382,4 +382,13 @@
 "Theme Binding": "主題綁定",
 "Bind a dedicated theme to the current UI theme": "為目前的 UI 主題綁定專屬主題",
 "Applies to the current UI theme. Overrides global settings, but is overridden by the character-specific theme.": "套用至目前的 UI 主題。會覆蓋全域設定，但會被角色專屬主題覆蓋。",
-"Current UI Theme": "目前的 UI 主題"}
+"Current UI Theme": "目前的 UI 主題",
+"iframe Themes": "iframe 動畫主題",
+"CSS Themes": "CSS 主題",
+"Built-in": "內建",
+"User Created": "自建",
+"Search by name...": "依名稱搜尋...",
+"Toggle All Groups": "展開 / 收合全部分組",
+"No matching items": "沒有符合的項目",
+"items": "項",
+"Please select...": "請選擇..."}

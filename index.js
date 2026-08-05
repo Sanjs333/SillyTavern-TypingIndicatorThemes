@@ -95,7 +95,7 @@ window.TI_FPS = FPSMonitor;
 let acornPromise = null;
 let messageFlushScheduled = false;
 let _hiddenIndicator = null;
-const PLUGIN_VERSION = "4.5";
+const PLUGIN_VERSION = "4.5.1";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -145,64 +145,38 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  4.5: {
-    date: "2026-7-22",
+  "4.5.1": {
+    date: "2026-8-5",
     title: {
-      zh: "后台播放锁屏支持、指示器缓存优化与编辑体验改善",
-      en: "Lock Screen Playback, Indicator Cache & Editor Improvements",
-      th: "รองรับล็อคสกรีน, แคชตัวบ่งชี้ และปรับปรุงประสบการณ์การแก้ไข",
+      zh: "指示器下拉框升级为可搜索折叠面板",
+      en: "Searchable, Collapsible Dropdown Panels",
+      th: "อัปเกรดดรอปดาวน์เป็นแผงค้นหาและพับได้",
     },
     content: {
-      zh: `### 新增
-- 新增 Media Session/AudioSession 支持：后台播放时锁屏/通知栏显示歌曲封面、标题、艺术家，可直接在锁屏/通知栏操作暂停/上一首/下一首
-- 锁屏/通知栏快退/快进按钮（◀◀ ▶▶）支持，每次跳转 10 秒
-- 新增非持久模式下 iframe 主题缓存：相同角色连续触发相同主题时直接复用iframe，跳过重新解析和执行代码的开销
-
-### 修复
-- 修复点击「测试显示」时因美化主题绑定导致显示错误主题的问题，现在始终以下拉框选中的主题为准
-
-### 优化
-- 点击「应用推荐」后，预览区自动刷新，无需再手动按预览按钮
-- 在指示器/播放器主题编辑区修改内容时，停手 0.6 秒后自动刷新预览（仅在预览区已打开时触发）
-
-### 提醒
-- 如需为您的自定义播放器启用上述后台播放与锁屏控制功能，请重新下载最新版的「工具-播放器主题指南」，并参阅第十五节“后台播放与锁屏支持”进行相应调整。
+      zh: `### 优化
+- 主题与文本预设的下拉框改为自定义面板，支持按名称、作者搜索
+- 面板按类型分组并可折叠：美化主题分为 iframe 与 CSS 两组，文本预设、播放器主题、气泡样式分为内置与自建两组
+- 面板宽度不再受选择框限制，会自动向设置面板右侧扩展；下方空间不足时自动改为向上弹出
+- 打开面板时自动定位到当前选中项，主题名称中的作者信息单独淡显
+- 指示器位置、动画样式等短列表仍使用原生下拉框
 
 > 更新后建议刷新或重启 SillyTavern，以确保完全更新
 `,
-      en: `### New Features
-- Added Media Session API and AudioSession API support: lock screen / notification shade shows album art, title, and artist during background playback, with working pause/previous/next buttons
-- Added seekbackward/seekforward (◀◀ ▶▶) lock screen button support (10-second jumps)
-- Added iframe theme caching for non-persistent mode: when the same theme and character trigger consecutively, the existing iframe is reused instead of being fully rebuilt
-
-### Bug Fixes
-- Fixed the test button showing the wrong theme when a UI theme binding is active; it now always uses the currently selected theme in the dropdown
-- Fixed lock screen metadata not updating immediately after switching tracks; now synced directly from inside the theme iframe without relying on the host plugin
-
-### UX Improvements
-- Applying a recommended preset/theme now automatically refreshes the preview without needing to click the preview button again
-- Editing CSS, HTML, JS, or preset text triggers an automatic preview refresh 0.6s after you stop typing (only when the preview area is already open)
-
-### Reminder
-- To enable the new background playback and lock screen controls for your custom player, please re-download the latest version of "Tools - Player Theme Guide" and refer to Section 15 "Background Playback & Lock Screen Support" for adaptation.
+      en: `### UX Improvements
+- Theme and text preset dropdowns are now custom panels with name/author search
+- Items are grouped and collapsible: indicator themes split into iframe and CSS, while presets, player themes and bubble styles split into built-in and user created
+- Panel width is no longer limited by the select box; it expands past the right edge of the settings panel, and flips upward when there is not enough space below
+- The panel scrolls to the current selection on open, and author names are shown as a dimmed suffix
+- Short lists such as indicator position keep using the native dropdown
 
 > Please refresh or restart SillyTavern after updating to ensure the update is fully applied
 `,
-      th: `### ฟีเจอร์ใหม่
-- เพิ่มการรองรับ Media Session API และ AudioSession API: หน้าจอล็อค/แถบแจ้งเตือนแสดงรูปปกชื่อเพลง และศิลปินขณะเล่นในพื้นหลัง พร้อมปุ่มหยุด/ก่อนหน้า/ถัดไป
-- เพิ่มการรองรับปุ่มกรอหน้า/หลัง (◀◀ ▶▶) บนหน้าจอล็อค (กระโดด10 วินาที)
-- เพิ่มการแคช iframe ธีมในโหมดไม่ถาวร: เมื่อธีมและตัวละครเดิมถูกเรียกซ้ำ จะนำ iframe เดิมกลับมาใช้แทนการสร้างใหม่
-
-### การแก้ไขข้อบกพร่อง
-- แก้ไขปุ่มทดสอบแสดงธีมผิดเมื่อมีการผูกธีม UI ตอนนี้จะใช้ธีมที่เลือกในดรอปดาวน์เสมอ
-- แก้ไขข้อมูลการ์ดล็อคสกรีนไม่อัปเดตทันทีหลังเปลี่ยนเพลง ตอนนี้ซิงก์จากภายใน iframe โดยตรง
-
-### การปรับปรุงประสบการณ์
-- การคลิก "ใช้ที่แนะนำ" จะรีเฟรชตัวอย่างโดยอัตโนมัติ ไม่ต้องกดปุ่มอีกครั้ง
-- การแก้ไข CSS, HTML, JS หรือข้อความพรีเซ็ตในตัวแก้ไข จะรีเฟรชตัวอย่างอัตโนมัติ0.6 วินาทีหลังหยุดพิมพ์
-
-### คำเตือน
-- หากต้องการเปิดใช้การเล่นพื้นหลังและการควบคุมหน้าจอล็อคสำหรับเครื่องเล่นที่คุณปรับแต่งเอง โปรดดาวน์โหลด "เครื่องมือ - คู่มือธีมเครื่องเล่น" เวอร์ชันล่าสุดอีกครั้ง และดูหัวข้อที่ 15 "การเล่นพื้นหลังและการรองรับหน้าจอล็อค" เพื่อปรับแต่ง
+      th: `### การปรับปรุงประสบการณ์
+- ดรอปดาวน์ธีมและพรีเซ็ตข้อความเปลี่ยนเป็นแผงแบบกำหนดเอง ค้นหาด้วยชื่อหรือผู้สร้างได้
+- รายการถูกจัดกลุ่มและพับได้: ธีมตัวบ่งชี้แยกเป็น iframe และ CSS ส่วนพรีเซ็ต ธีมเครื่องเล่น และสไตล์ฟองอากาศแยกเป็นในตัวและสร้างเอง
+- ความกว้างของแผงไม่ถูกจำกัดด้วยกล่องเลือกอีกต่อไป จะขยายเลยขอบขวาของแผงตั้งค่า และเปิดขึ้นด้านบนเมื่อพื้นที่ด้านล่างไม่พอ
+- เปิดแผงแล้วเลื่อนไปยังรายการที่เลือกอยู่ และแสดงชื่อผู้สร้างแบบจาง
+- รายการสั้น เช่น ตำแหน่งตัวบ่งชี้ ยังใช้ดรอปดาวน์เดิม
 
 > หลังอัปเดต แนะนำให้รีเฟรชหรือรีสตาร์ท SillyTavern
 `,
@@ -6336,6 +6310,7 @@ function setupPlayerAutoHide() {
     if (
       $target.closest(
         "#music_player, #floating_lyrics, #chat, #send_form, #form_sheld, " +
+          ".ti-dd-panel, .ti-song-more-popover, " +
           "dialog[open], .popup, #shadow_popup, " +
           ".ih-folder-dropdown-portal, .ih-dialog-overlay, " +
           ".input-helper-settings, #extensions_settings, #extensions_settings2, " +
@@ -7021,6 +6996,505 @@ function updateGlobalDefs(itemToProcess = null) {
   });
 }
 
+// ==================== 自定义下拉面板（搜索 + 分组折叠） ====================
+
+const TI_DROPDOWN_KINDS = {
+  ti_theme_select: "indicatorTheme",
+  ti_char_theme_select: "indicatorTheme",
+  ti_binding_theme_select: "indicatorTheme",
+  ti_preset_select: "textPreset",
+  ti_char_preset_select: "textPreset",
+  ti_binding_preset_select: "textPreset",
+  ti_player_theme_select: "playerTheme",
+  ti_bubble_style_select: "bubbleStyle",
+};
+
+const TiDropdown = {
+  _collapsed: new Map(),
+  _open: null,
+
+  groupsOf(kind) {
+    if (kind === "indicatorTheme") {
+      return [
+        { key: "iframe", label: t`iframe Themes`, icon: "fa-film" },
+        { key: "css", label: t`CSS Themes`, icon: "fa-paintbrush" },
+      ];
+    }
+    return [
+      { key: "builtin", label: t`Built-in`, icon: "fa-cube" },
+      { key: "custom", label: t`User Created`, icon: "fa-user-pen" },
+    ];
+  },
+
+  groupOfValue(kind, value) {
+    if (!value) return null;
+    const settings = getSettings();
+    if (kind === "indicatorTheme") {
+      const theme = (settings.themes || []).find((x) => x.id === value);
+      return theme && theme.useIframe ? "iframe" : "css";
+    }
+    let list = settings.themes;
+    if (kind === "textPreset") list = settings.textPresets;
+    else if (kind === "bubbleStyle") list = settings.bubbleStyles;
+    const item = (list || []).find((x) => x.id === value);
+    return item && item.isBuiltIn ? "builtin" : "custom";
+  },
+
+  parseLabel(rawText) {
+    let text = (rawText || "").trim();
+    let tag = "";
+    const tagMatch = text.match(/\s*\[(iframe|CSS)\]\s*$/i);
+    if (tagMatch) {
+      tag = tagMatch[1].toLowerCase();
+      text = text.slice(0, tagMatch.index).trim();
+    }
+    let author = "";
+    const authorMatch = text.match(/^(.*?)\s*[（(]\s*by\s+(.+?)\s*[）)]\s*$/i);
+    if (authorMatch) {
+      text = authorMatch[1].trim();
+      author = authorMatch[2].trim();
+    }
+    return { text, tag, author };
+  },
+  applyTint(panel) {
+    try {
+      const rootCs = window.getComputedStyle(document.documentElement);
+      const tintRaw = rootCs
+        .getPropertyValue("--SmartThemeBlurTintColor")
+        .trim();
+      let r = 26;
+      let g = 26;
+      let b = 46;
+      let a = 1;
+      if (tintRaw) {
+        const probe = document.createElement("div");
+        probe.style.cssText = "color:" + tintRaw + ";display:none;";
+        document.body.appendChild(probe);
+        const parsed = window.getComputedStyle(probe).color;
+        probe.remove();
+        const m = parsed.match(
+          /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,/\s]+([\d.]+))?/,
+        );
+        if (m) {
+          r = Math.round(parseFloat(m[1]));
+          g = Math.round(parseFloat(m[2]));
+          b = Math.round(parseFloat(m[3]));
+          a = m[4] !== undefined ? parseFloat(m[4]) : 1;
+        }
+      }
+      const MIN_PANEL_ALPHA = 0.8; /* 面板背景最低不透明度，可自定义 */
+      if (!isFinite(a) || a > 1) a = 1;
+      if (a < MIN_PANEL_ALPHA) a = MIN_PANEL_ALPHA;
+      panel.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+    } catch (e) {
+      debugWarn("[TI] 下拉面板底色计算失败:", e);
+    }
+  },
+
+  enhanceAll(root) {
+    this.close();
+    document.querySelectorAll(".ti-dd-panel").forEach((p) => p.remove());
+    if (!root) return;
+    Object.keys(TI_DROPDOWN_KINDS).forEach((id) => {
+      const select = root.querySelector(`#${id}`);
+      if (select) this.enhance(select, TI_DROPDOWN_KINDS[id]);
+    });
+  },
+
+  enhance(select, kind) {
+    if (!select) return;
+    if (select._tiDd) {
+      select._tiDd.sync();
+      return;
+    }
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = `ti-dd-trigger ${select.className || ""}`.trim();
+    const inlineStyle = select.getAttribute("style");
+    if (inlineStyle) trigger.setAttribute("style", inlineStyle);
+    trigger.innerHTML =
+      '<span class="ti-dd-trigger-label"></span>' +
+      '<span class="ti-dd-trigger-tag"></span>' +
+      '<i class="fa-solid fa-chevron-down ti-dd-trigger-caret"></i>';
+    select.parentNode.insertBefore(trigger, select);
+    select.style.display = "none";
+
+    const api = { select, trigger, kind };
+    api.sync = () => this.syncTrigger(api);
+    select._tiDd = api;
+
+    try {
+      const desc = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        "value",
+      );
+      Object.defineProperty(select, "value", {
+        configurable: true,
+        get() {
+          return desc.get.call(select);
+        },
+        set(v) {
+          desc.set.call(select, v);
+          api.sync();
+        },
+      });
+    } catch (e) {
+      debugWarn("[TI] 下拉框 value 钩子注册失败:", e);
+    }
+
+    api.observer = new MutationObserver(() => api.sync());
+    api.observer.observe(select, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    select.addEventListener("change", () => api.sync());
+    trigger.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.toggle(api);
+    });
+
+    api.sync();
+  },
+
+  syncTrigger(api) {
+    const { select, trigger } = api;
+    if (!trigger.isConnected) return;
+    const labelEl = trigger.querySelector(".ti-dd-trigger-label");
+    const tagEl = trigger.querySelector(".ti-dd-trigger-tag");
+    if (!labelEl || !tagEl) return;
+    const opt = select.options[select.selectedIndex];
+    if (!opt) {
+      labelEl.textContent = t`Please select...`;
+      tagEl.textContent = "";
+      tagEl.style.display = "none";
+    } else {
+      const info = this.parseLabel(opt.textContent);
+      labelEl.textContent = info.text || opt.textContent;
+      if (info.tag) {
+        tagEl.textContent = info.tag;
+        tagEl.style.display = "";
+      } else {
+        tagEl.textContent = "";
+        tagEl.style.display = "none";
+      }
+    }
+    if (this._open && this._open.api === api) {
+      this.renderList();
+    }
+  },
+
+  toggle(api) {
+    if (this._open && this._open.api === api) {
+      this.close();
+    } else {
+      this.open(api);
+    }
+  },
+
+  close() {
+    const state = this._open;
+    this._open = null;
+    if (!state) return;
+    if (state.api && state.api.trigger) {
+      state.api.trigger.classList.remove("open");
+    }
+    window.removeEventListener("resize", state.onReflow);
+    window.removeEventListener("scroll", state.onReflow, true);
+    document.removeEventListener("click", state.onDocClick, true);
+    document.removeEventListener("keydown", state.onEscape, true);
+    const panel = state.panel;
+    if (panel) {
+      panel.classList.add("closing");
+      setTimeout(() => panel.remove(), 120);
+    }
+  },
+
+  open(api) {
+    this.close();
+    const panel = document.createElement("div");
+    panel.className = "ti-dd-panel";
+    panel.innerHTML =
+      '<div class="ti-dd-head">' +
+      '<div class="ti-dd-search-wrap">' +
+      '<i class="fa-solid fa-magnifying-glass ti-dd-search-icon"></i>' +
+      `<input type="text" class="ti-dd-search" placeholder="${t`Search by name...`}">` +
+      `<button type="button" class="ti-dd-search-clear" title="${t`Clear`}"><i class="fa-solid fa-xmark"></i></button>` +
+      "</div>" +
+      `<button type="button" class="ti-dd-collapse-all" title="${t`Toggle All Groups`}"><i class="fa-solid fa-layer-group"></i></button>` +
+      "</div>" +
+      '<div class="ti-dd-list"></div>' +
+      '<div class="ti-dd-foot"><span class="ti-dd-count"></span></div>';
+    document.body.appendChild(panel);
+    api.trigger.classList.add("open");
+    this.applyTint(panel);
+    [
+      "click",
+      "mousedown",
+      "mouseup",
+      "pointerdown",
+      "pointerup",
+      "touchstart",
+      "touchend",
+    ].forEach((evt) => {
+      panel.addEventListener(evt, (e) => e.stopPropagation());
+    });
+
+    const state = { api, panel, query: "" };
+    state.onReflow = () => this.position(state);
+    state.onDocClick = (e) => {
+      if (panel.contains(e.target) || api.trigger.contains(e.target)) {
+        return;
+      }
+      this.close();
+    };
+    state.onEscape = (e) => {
+      if (e.key !== "Escape") return;
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      e.preventDefault();
+      this.close();
+    };
+    this._open = state;
+
+    const input = panel.querySelector(".ti-dd-search");
+    const clearBtn = panel.querySelector(".ti-dd-search-clear");
+
+    input.addEventListener("input", () => {
+      state.query = input.value;
+      clearBtn.classList.toggle("show", !!input.value);
+      this.renderList();
+    });
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Escape") {
+        e.preventDefault();
+        this.close();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        const first = panel.querySelector(".ti-dd-item:not(.ti-dd-hidden)");
+        if (first) this.choose(state, first.dataset.value);
+      }
+    });
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      state.query = "";
+      clearBtn.classList.remove("show");
+      this.renderList();
+      input.focus();
+    });
+    panel.querySelector(".ti-dd-collapse-all").addEventListener("click", () => {
+      const groups = this.groupsOf(api.kind);
+      const allCollapsed = groups.every((g) =>
+        this._collapsed.get(`${api.select.id}:${g.key}`),
+      );
+      groups.forEach((g) =>
+        this._collapsed.set(`${api.select.id}:${g.key}`, !allCollapsed),
+      );
+      this.renderList();
+    });
+    panel.addEventListener("click", (e) => {
+      const head = e.target.closest(".ti-dd-group-head");
+      if (head) {
+        const key = `${api.select.id}:${head.dataset.group}`;
+        this._collapsed.set(key, !this._collapsed.get(key));
+        this.renderList();
+        return;
+      }
+      const item = e.target.closest(".ti-dd-item");
+      if (item) this.choose(state, item.dataset.value);
+    });
+
+    this.renderList();
+    window.addEventListener("resize", state.onReflow);
+    window.addEventListener("scroll", state.onReflow, true);
+    document.addEventListener("keydown", state.onEscape, true);
+    setTimeout(
+      () => document.addEventListener("click", state.onDocClick, true),
+      0,
+    );
+    if (window.innerWidth >= 900) {
+      setTimeout(() => input.focus(), 30);
+    }
+  },
+
+  choose(state, value) {
+    if (value === undefined || value === null) return;
+    const select = state.api.select;
+    if (select.value !== value) {
+      select.value = value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    this.close();
+  },
+
+  renderList() {
+    const state = this._open;
+    if (!state) return;
+    const { api, panel } = state;
+    const listEl = panel.querySelector(".ti-dd-list");
+    if (!listEl) return;
+    const query = (state.query || "").trim().toLowerCase();
+    const groups = this.groupsOf(api.kind);
+    const buckets = new Map(groups.map((g) => [g.key, []]));
+    const plain = [];
+    let total = 0;
+    let matched = 0;
+    const currentValue = api.select.value;
+
+    Array.from(api.select.options).forEach((opt) => {
+      const info = this.parseLabel(opt.textContent);
+      const haystack = `${info.text} ${info.author} ${info.tag}`.toLowerCase();
+      const hit = !query || haystack.includes(query);
+      const entry = {
+        value: opt.value,
+        label: info.text || opt.textContent,
+        author: info.author,
+        tag: info.tag,
+        selected: opt.value === currentValue,
+        hit,
+      };
+      total++;
+      if (hit) matched++;
+      const groupKey = this.groupOfValue(api.kind, opt.value);
+      if (!groupKey || !buckets.has(groupKey)) {
+        plain.push(entry);
+      } else {
+        buckets.get(groupKey).push(entry);
+      }
+    });
+
+    const itemHtml = (e) =>
+      `<button type="button" class="ti-dd-item${
+        e.selected ? " selected" : ""
+      }${e.hit ? "" : " ti-dd-hidden"}" data-value="${e.value}">` +
+      '<span class="ti-dd-item-check"><i class="fa-solid fa-check"></i></span>' +
+      `<span class="ti-dd-item-label">${escapeHtml(e.label)}</span>` +
+      (e.author
+        ? `<span class="ti-dd-item-author">${escapeHtml(e.author)}</span>`
+        : "") +
+      (e.tag
+        ? `<span class="ti-dd-item-tag">${escapeHtml(e.tag)}</span>`
+        : "") +
+      "</button>";
+
+    let html = plain.map(itemHtml).join("");
+
+    groups.forEach((g) => {
+      const items = buckets.get(g.key) || [];
+      if (items.length === 0) return;
+      const hits = items.filter((x) => x.hit).length;
+      if (query && hits === 0) return;
+      const collapsed = query
+        ? false
+        : !!this._collapsed.get(`${api.select.id}:${g.key}`);
+      const hasSelected = items.some((x) => x.selected);
+      html +=
+        `<div class="ti-dd-group${collapsed ? " collapsed" : ""}">` +
+        `<button type="button" class="ti-dd-group-head" data-group="${g.key}">` +
+        '<span class="ti-dd-caret"></span>' +
+        `<i class="fa-solid ${g.icon} ti-dd-group-icon"></i>` +
+        `<span class="ti-dd-group-label">${escapeHtml(g.label)}</span>` +
+        (hasSelected ? '<span class="ti-dd-group-dot"></span>' : "") +
+        `<span class="ti-dd-group-count">${
+          query ? `${hits}/${items.length}` : items.length
+        }</span>` +
+        "</button>" +
+        `<div class="ti-dd-group-body">${items.map(itemHtml).join("")}</div>` +
+        "</div>";
+    });
+
+    if (matched === 0) {
+      html = `<div class="ti-dd-empty">${t`No matching items`}</div>`;
+    }
+    listEl.innerHTML = html;
+
+    const countEl = panel.querySelector(".ti-dd-count");
+    if (countEl) {
+      countEl.textContent = query
+        ? `${matched} / ${total}`
+        : `${total} ${t`items`}`;
+    }
+
+    this.position(state);
+
+    if (!query) {
+      const selEl = listEl.querySelector(
+        ".ti-dd-item.selected:not(.ti-dd-hidden)",
+      );
+      if (selEl) {
+        requestAnimationFrame(() => {
+          if (!selEl.isConnected) return;
+          const offset =
+            selEl.offsetTop -
+            listEl.offsetTop -
+            listEl.clientHeight / 2 +
+            selEl.clientHeight / 2;
+          listEl.scrollTop = Math.max(0, offset);
+        });
+      }
+    }
+  },
+
+  position(state) {
+    const { api, panel } = state;
+    if (!api.trigger.isConnected || !panel.isConnected) {
+      this.close();
+      return;
+    }
+    const rect = api.trigger.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      this.close();
+      return;
+    }
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const host = document.getElementById("typing_indicator_settings");
+    const hostRect = host ? host.getBoundingClientRect() : null;
+    const GAP = 6; /* 面板与选择框的垂直间距 */
+    const EDGE = 8; /* 面板距屏幕左右边缘的最小留白 */
+    const OVERHANG = 120; /* 向设置面板右侧多探出的宽度 */
+    const MIN_WIDTH = 300; /* 桌面端面板最小宽度 */
+    const FLIP_THRESHOLD = 220; /* 下方剩余空间小于此值时改为向上弹出 */
+
+    let left = rect.left;
+    let width;
+    if (vw >= 768) {
+      let right = rect.right + OVERHANG;
+      if (hostRect) {
+        right = Math.max(right, hostRect.right + OVERHANG);
+      }
+      right = Math.min(right, vw - EDGE);
+      width = Math.max(right - left, MIN_WIDTH);
+    } else {
+      width = Math.max(rect.width, 260);
+    }
+    width = Math.min(width, vw - EDGE * 2);
+    if (left + width > vw - EDGE) left = vw - EDGE - width;
+    if (left < EDGE) left = EDGE;
+
+    panel.style.width = `${Math.round(width)}px`;
+
+    const spaceBelow = vh - rect.bottom - GAP - EDGE;
+    const spaceAbove = rect.top - GAP - EDGE;
+    const useAbove = spaceBelow < FLIP_THRESHOLD && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(
+      160,
+      Math.min(vh * 0.62, useAbove ? spaceAbove : spaceBelow),
+    );
+    panel.style.maxHeight = `${Math.round(maxHeight)}px`;
+    panel.style.left = `${Math.round(left)}px`;
+    if (useAbove) {
+      panel.style.top = `${Math.round(
+        Math.max(EDGE, rect.top - GAP - panel.offsetHeight),
+      )}px`;
+    } else {
+      panel.style.top = `${Math.round(rect.bottom + GAP)}px`;
+    }
+  },
+};
 // ==================== 扩展设置界面 ====================
 function showThemeInfoPopup(theme) {
   if (!theme || !theme.readme) return;
@@ -8004,6 +8478,7 @@ function addExtensionSettings() {
     initializePlayerSettings();
     initializePlaylistSettings();
     initializeToolsSettings();
+    TiDropdown.enhanceAll(section);
     if (
       isDrawerOpen &&
       currentActiveTab === "playlist" &&

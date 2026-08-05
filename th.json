@@ -382,5 +382,14 @@
 "Theme Binding": "การผูกธีม",
 "Bind a dedicated theme to the current UI theme": "ผูกธีมเฉพาะให้กับธีม UI ปัจจุบัน",
 "Applies to the current UI theme. Overrides global settings, but is overridden by the character-specific theme.": "ใช้กับธีม UI ปัจจุบัน แทนที่การตั้งค่าส่วนกลาง แต่จะถูกแทนที่ด้วยธีมเฉพาะของตัวละคร",
-"Current UI Theme": "ธีม UI ปัจจุบัน"
+"Current UI Theme": "ธีม UI ปัจจุบัน",
+    "iframe Themes": "ธีม iframe",
+    "CSS Themes": "ธีม CSS",
+    "Built-in": "ในตัว",
+    "User Created": "สร้างเอง",
+    "Search by name...": "ค้นหาด้วยชื่อ...",
+    "Toggle All Groups": "ขยาย / พับทุกกลุ่ม",
+    "No matching items": "ไม่มีรายการที่ตรงกัน",
+    "items": "รายการ",
+    "Please select...": "กรุณาเลือก..."
 }
