@@ -14,6 +14,18 @@
 
 使用以下 URL 通过内置扩展管理器进行安装并启用即可：[https://github.com/Sanjs333/SillyTavern-TypingIndicatorThemes]
 
+
+## 4.6.0 安装与更新
+
+本次音乐播放器更新需要同时更新两个组件：
+
+- **前端扩展**：在 SillyTavern 扩展管理器安装或更新本仓库。
+- **播放器后端**：[g-player-proxy](https://github.com/Sanjs333/g-player-proxy)，安装在 SillyTavern/plugins/g-player-proxy；请按后端 README 启用服务端插件并安装依赖。
+
+已安装的用户也需要更新后端，然后完全退出并重新启动 SillyTavern。只刷新网页不会更新已加载的后端代码。仅使用打字指示器样式、不使用音乐功能时，不需要安装音乐后端。
+
+酷我备用线路的 token 由用户自行在扩展“工具”页填写，发行包不包含个人 token 或个人歌单。使用指南、主题创作指南和指示器模板可在扩展设置内查看或下载。
+
 ## 📜 致谢与许可
 本拓展是在 **Cohee1207** 的原始项目基础上进行的二次创作。对原作者的卓越工作和无私分享表示衷心的感谢。同样感谢 **长青青** 老师提供的精美主题。
 

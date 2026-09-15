@@ -1,0 +1,21 @@
+# 不上传：本地备份与开发环境
+.patch_backups/
+.vscode/
+.idea/
+.kilo/
+.kilocode/
+node_modules/
+
+# 不上传：维护者自用文档
+发布清单.md
+
+# 不上传：系统与日志垃圾
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 仅开发使用，不进入用户发布包
+tests/
+MUSIC_CORE.md
+NEXT_SESSION.md
