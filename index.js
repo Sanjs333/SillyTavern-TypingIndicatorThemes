@@ -173,7 +173,7 @@ window.TI_FPS = FPSMonitor;
 let acornPromise = null;
 let messageFlushScheduled = false;
 let _hiddenIndicator = null;
-const PLUGIN_VERSION = "4.6.0";
+const PLUGIN_VERSION = "4.6.1";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -223,6 +223,19 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
+    "4.6.1": {
+        "date": "2026-09-21",
+        "title": {
+            "zh": "流式卡顿修复",
+            "en": "Streaming Performance Fix",
+            "th": "แก้ไขการกระตุกขณะสตรีม"
+        },
+        "content": {
+            "zh": "### 修复\n- 修复开启动态主题后，流式输出越到后段越卡顿的问题（酒馆 1.19 起 token 推送更密集，此问题更明显）\n\n> 更新后请彻底重启 SillyTavern，以确保后端插件同步更新\n",
+            "en": "### Fixes\n- Fixed increasing stutter during streaming when Dynamic Themes is enabled (more noticeable since SillyTavern 1.19, which pushes tokens more frequently)\n\n> Please fully restart SillyTavern after updating to ensure the backend plugin is updated\n",
+            "th": "### แก้ไข\n- แก้ปัญหากระตุกที่เพิ่มขึ้นระหว่างสตรีมเมื่อเปิดใช้ธีมไดนามิก (สังเกตได้ชัดขึ้นตั้งแต่ SillyTavern 1.19 ที่ส่ง token ถี่ขึ้น)\n\n> หลังอัปเดต โปรดรีสตาร์ท SillyTavern อย่างสมบูรณ์ เพื่อให้ปลั๊กอินฝั่งเซิร์ฟเวอร์อัปเดตตามไปด้วย\n"
+        }
+    },
     "4.6.0": {
         "date": "2026-09-15",
         "title": {
@@ -2616,6 +2629,9 @@ let currentlyAppliedConfig = { themeId: null, presetId: null };
 let manualOverrideActive = false;
 let renderTimeout;
 let accumulatedStreamedText = "";
+let streamThemeScanIndex = 0;
+let lastStreamThemeName = null;
+const THEME_MARK_OVERLAP = 256;
 let currentDynamicThemeId = null;
 let currentDynamicPresetId = null;
 let dynamicThemeTimeoutId = null;
@@ -17027,6 +17043,8 @@ function initializeObservers() {
             clearTimeout(dynamicThemeTimeoutId);
             dynamicThemeTimeoutId = null;
             accumulatedStreamedText = "";
+            streamThemeScanIndex = 0;
+            lastStreamThemeName = null;
             if (currentDynamicThemeId) {
                 revertDynamicTheme("new_action_started");
             }
@@ -17087,8 +17105,16 @@ function initializeObservers() {
             isStreamingEnabled()
         ) {
             accumulatedStreamedText += token;
-            const themeName = parseThemeFromText(accumulatedStreamedText);
-            if (themeName) applyDynamicTheme(themeName);
+            const scanFrom = Math.max(
+                0,
+                streamThemeScanIndex - THEME_MARK_OVERLAP,
+            );
+            const themeName = parseThemeFromText(
+                accumulatedStreamedText.slice(scanFrom),
+            );
+            streamThemeScanIndex = accumulatedStreamedText.length;
+            if (themeName) lastStreamThemeName = themeName;
+            if (lastStreamThemeName) applyDynamicTheme(lastStreamThemeName);
         }
     });
 
