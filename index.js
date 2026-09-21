@@ -24,6 +24,8 @@ import {
   themes as defaultThemes,
 } from "./definitions.js";
 import { showDiagnosePopup } from "./diagnose-ui.js";
+import { createStreamThemeParser } from "./stream-theme-parser.js";
+import { installThemeRuntime } from "./theme-runtime.js";
 import {
   createMusicService,
   createPlaybackStallWatchdog,
@@ -169,7 +171,7 @@ window.TI_FPS = FPSMonitor;
 let acornPromise = null;
 let messageFlushScheduled = false;
 let _hiddenIndicator = null;
-const PLUGIN_VERSION = "4.6.1";
+const PLUGIN_VERSION = "4.6.2";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -219,6 +221,19 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
+  "4.6.2": {
+    date: "2026-09-21",
+    title: {
+      zh: "流式性能优化与隐藏主题修复",
+      en: "Streaming Performance and Hidden Theme Fixes",
+      th: "ปรับปรุงประสิทธิภาพสตรีมและแก้ไขธีมที่ซ่อนอยู่",
+    },
+    content: {
+      zh: "### 修复与优化\n- 修复 4.6.1 中仍存在的流式文本重复累积问题，避免开启动态主题后，长回复越输出越卡。\n- 动态主题关闭时，不再逐次读取页面样式和检查完整设置，减少无效开销。\n- 修复部分非播放器主题隐藏后仍在后台执行定时更新的问题；隐藏时暂停，重新显示后恢复。\n- 兼容分多次输出的主题标记，并在停止生成、切换聊天或关闭功能时清理解析状态。\n\n### 使用说明\n- 动态主题仍会在完整的 `[Theme:主题名]` 标记出现后实时切换，无需等待回复结束。\n- 不降低可见动画帧率，不改变动态主题停留时长；播放器后台播放不受本次暂停处理影响。\n- 本次修复已确认的性能问题，并不保证所有主题或扩展组合下的卡顿都已解决。\n\n> 更新后请刷新 SillyTavern 页面。本次为前端修复，无需为此更新播放器后端。\n",
+      en: "### Fixes and Improvements\n- Fixed repeated accumulation of streamed text that remained in 4.6.1, preventing increasing stutter during long replies with Dynamic Themes enabled.\n- When Dynamic Themes is disabled, stream events no longer read page styles or run full settings checks unnecessarily.\n- Fixed periodic updates continuing in some hidden non-player themes. Updates now pause while hidden and resume when shown again.\n- Preserved support for theme tags split across streamed updates, and clear parser state when generation stops, chats change, or the feature is disabled.\n\n### Notes\n- Dynamic Themes still switches as soon as a complete `[Theme:theme name]` tag arrives, without waiting for the reply to finish.\n- Visible animation frame rates and dynamic theme hold durations are unchanged. This pause handling does not affect background music playback.\n- This release fixes confirmed performance issues; it does not guarantee that every theme or extension combination is free of stutter.\n\n> Refresh the SillyTavern page after updating. This is a frontend fix and does not require a music backend update.\n",
+      th: "### แก้ไขและปรับปรุง\n- แก้ปัญหาข้อความสตรีมถูกสะสมซ้ำที่ยังหลงเหลือใน 4.6.1 เพื่อป้องกันการกระตุกที่เพิ่มขึ้นระหว่างคำตอบยาวเมื่อเปิดธีมไดนามิก\n- เมื่อปิดธีมไดนามิก จะไม่อ่านสไตล์หน้าเว็บหรือตรวจสอบการตั้งค่าทั้งหมดซ้ำในทุกเหตุการณ์สตรีม\n- แก้ไขธีมบางแบบที่ไม่ใช่เครื่องเล่นซึ่งยังอัปเดตด้วยตัวจับเวลาขณะถูกซ่อน โดยหยุดการอัปเดตเมื่อซ่อนและกลับมาทำงานเมื่อแสดงอีกครั้ง\n- รองรับแท็กธีมที่ถูกแบ่งส่งหลายครั้ง และล้างสถานะการอ่านแท็กเมื่อหยุดสร้างคำตอบ เปลี่ยนแชท หรือปิดฟีเจอร์\n\n### หมายเหตุ\n- ธีมไดนามิกยังเปลี่ยนทันทีที่ได้รับแท็ก `[Theme:ชื่อธีม]` ครบ โดยไม่ต้องรอให้คำตอบจบ\n- ไม่ลดอัตราเฟรมของแอนิเมชันที่แสดงอยู่ ไม่เปลี่ยนระยะเวลาคงธีม และการหยุดอัปเดตนี้ไม่กระทบการเล่นเพลงเบื้องหลัง\n- รุ่นนี้แก้ปัญหาประสิทธิภาพที่ยืนยันแล้ว แต่ไม่ได้รับประกันว่าทุกชุดธีมหรือส่วนขยายจะไม่กระตุก\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern การแก้ไขครั้งนี้อยู่ที่ส่วนหน้าและไม่จำเป็นต้องอัปเดตส่วนหลังของเครื่องเล่นเพลง\n",
+    },
+  },
   "4.6.1": {
     date: "2026-09-21",
     title: {
@@ -1110,6 +1125,7 @@ async function createUnifiedIframeOriginal(
   const finalJS = `
         (function() {
             window.addEventListener('error', function(e) { console.error('[Theme Error]:', e.error ? e.error.stack : e.message); });
+            ${isPlayerTheme ? "" : `(${installThemeRuntime.toString()})(window, ${indicatorElement.style.display === "none"});`}
             window.themeData = {
                 id: '${jsEscape(theme.id || "preview")}',
                 containerId: '${jsEscape(indicatorElement.id)}',
@@ -1145,6 +1161,18 @@ async function createUnifiedIframeOriginal(
     const timer = setTimeout(() => resolve(iframe), 3000);
     iframe.onload = () => {
       clearTimeout(timer);
+      if (!isPlayerTheme) {
+        iframe.contentWindow?.postMessage(
+          {
+            source: "typing-indicator-host",
+            type:
+              indicatorElement.style.display === "none"
+                ? "pause-theme"
+                : "resume-theme",
+          },
+          "*",
+        );
+      }
       resolve(iframe);
     };
     iframe.onerror = () => {
@@ -2580,10 +2608,7 @@ let stopButtonObserver = null;
 let currentlyAppliedConfig = { themeId: null, presetId: null };
 let manualOverrideActive = false;
 let renderTimeout;
-let accumulatedStreamedText = "";
-let streamThemeScanIndex = 0;
-let lastStreamThemeName = null;
-const THEME_MARK_OVERLAP = 256;
+const streamThemeParser = createStreamThemeParser();
 let currentDynamicThemeId = null;
 let currentDynamicPresetId = null;
 let dynamicThemeTimeoutId = null;
@@ -5767,12 +5792,11 @@ async function hideTypingIndicator() {
 }
 
 function isHostGenerating() {
-  const stopButton = document.getElementById("mes_stop");
-  if (stopButton && window.getComputedStyle(stopButton).display !== "none") {
-    return true;
-  }
   if (document.body.dataset.generating === "true") return true;
-  return false;
+  const stopButton = document.getElementById("mes_stop");
+  return !!(
+    stopButton && window.getComputedStyle(stopButton).display !== "none"
+  );
 }
 
 function isIndicatorVisible() {
@@ -9050,6 +9074,7 @@ function addExtensionSettings() {
 
     section.querySelector("#ti_enabled").addEventListener("change", (e) => {
       settings.enabled = e.target.checked;
+      streamThemeParser.reset();
       saveSettingsDebounced();
       if (!settings.enabled) {
         isIndicatorPersisted = false;
@@ -9118,6 +9143,7 @@ function addExtensionSettings() {
       .querySelector("#ti_persistent_mode")
       .addEventListener("change", (e) => {
         settings.persistentMode = e.target.checked;
+        streamThemeParser.reset();
         saveSettingsDebounced();
         const testPosBtn = section.querySelector("#ti_test_position");
         if (testPosBtn) {
@@ -9159,6 +9185,7 @@ function addExtensionSettings() {
 
     dynamicThemesToggle.addEventListener("change", (e) => {
       settings.enableDynamicThemes = e.target.checked;
+      streamThemeParser.reset();
       dynamicOptionsContainer.style.display = e.target.checked
         ? "block"
         : "none";
@@ -9189,6 +9216,7 @@ function addExtensionSettings() {
       .querySelector("#ti_dynamic_themes_in_persistent")
       .addEventListener("change", (e) => {
         settings.dynamicThemesInPersistent = e.target.checked;
+        streamThemeParser.reset();
         saveSettingsDebounced();
       });
   }
@@ -16095,9 +16123,7 @@ function initializeObservers() {
       if (dryRun) return;
       clearTimeout(dynamicThemeTimeoutId);
       dynamicThemeTimeoutId = null;
-      accumulatedStreamedText = "";
-      streamThemeScanIndex = 0;
-      lastStreamThemeName = null;
+      streamThemeParser.reset();
       if (currentDynamicThemeId) {
         revertDynamicTheme("new_action_started");
       }
@@ -16106,6 +16132,7 @@ function initializeObservers() {
 
   eventSource.on(event_types.GENERATION_STARTED, (type, args, dryRun) => {
     if (dryRun) return;
+    streamThemeParser.reset();
     generationLifecycleToken++;
     clearTimeout(generationEndSafetyTimer);
     generationEndSafetyTimer = null;
@@ -16143,30 +16170,27 @@ function initializeObservers() {
     }
   });
 
-  eventSource.on("stream_token_received", (token) => {
-    // Late tokens must not revive a stopped/old chat or an excluded generation.
+  eventSource.on("stream_token_received", (text) => {
+    const settings = extension_settings[MODULE];
+    if (
+      !settings?.enabled ||
+      !settings.enableDynamicThemes ||
+      (settings.persistentMode && !settings.dynamicThemesInPersistent)
+    ) {
+      streamThemeParser.reset();
+      return;
+    }
+    // Late snapshots must not revive a stopped/old chat or an excluded generation.
     if (
       indicatorGenerationStopped ||
       ["quiet", "impersonate"].includes(indicatorGenerationType) ||
+      !isStreamingEnabled() ||
       !isHostGenerating()
     )
       return;
-    const settings = getSettings();
-    if (
-      settings.enabled &&
-      settings.enableDynamicThemes &&
-      (!settings.persistentMode || settings.dynamicThemesInPersistent) &&
-      isStreamingEnabled()
-    ) {
-      accumulatedStreamedText += token;
-      const scanFrom = Math.max(0, streamThemeScanIndex - THEME_MARK_OVERLAP);
-      const themeName = parseThemeFromText(
-        accumulatedStreamedText.slice(scanFrom),
-      );
-      streamThemeScanIndex = accumulatedStreamedText.length;
-      if (themeName) lastStreamThemeName = themeName;
-      if (lastStreamThemeName) applyDynamicTheme(lastStreamThemeName);
-    }
+
+    const themeName = streamThemeParser.scan(text);
+    if (themeName) applyDynamicTheme(themeName);
   });
 
   eventSource.on(event_types.GENERATION_ENDED, (messageId) => {
@@ -16178,6 +16202,7 @@ function initializeObservers() {
       window.getComputedStyle(activeStopButton).display !== "none"
     )
       return;
+    streamThemeParser.reset();
     clearTimeout(generationStartedSafetyTimer);
     generationStartedSafetyTimer = null;
     stopButtonHasAppearedFlag = false;
@@ -16464,6 +16489,7 @@ function initializeObservers() {
   });
 
   eventSource.on(event_types.GENERATION_STOPPED, (messageId) => {
+    streamThemeParser.reset();
     indicatorGenerationStopped = true;
     generationLifecycleToken++;
     clearTimeout(generationStartedSafetyTimer);
@@ -16533,6 +16559,7 @@ function initializeObservers() {
   });
 
   eventSource.on(event_types.CHAT_CHANGED, (chatId) => {
+    streamThemeParser.reset();
     indicatorGenerationStopped = true;
     indicatorGenerationType = null;
     isTestIndicatorActive = false;
