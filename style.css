@@ -1872,3 +1872,48 @@
         justify-content: center;
     }
 }
+#typing_indicator_settings .ti-editor-heading {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-bottom: 5px;
+    min-width: 0;
+}
+#typing_indicator_settings .ti-editor-heading > label {
+    flex: 1 1 0;
+    margin: 0 !important;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: bold;
+}
+#typing_indicator_settings .ti-editor-heading > :is(.ti-editor-maximize, .ih-floating-editor-actions-pair) {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+}
+#typing_indicator_settings .ti-editor-heading > .menu_button {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    white-space: nowrap;
+}
+#typing_indicator_settings .ti-editor-heading .ti-editor-maximize {
+    appearance: none;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    margin-block: 0;
+    margin-inline-end: 0;
+}
+#typing_indicator_settings .ti-editor-heading .ti-editor-maximize:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 2px;
+}
+#typing_indicator_settings .ti-editor-heading .ti-editor-maximize:is(:disabled, [aria-disabled="true"]),
+#typing_indicator_settings .ti-editor-heading .ih-floating-editor-actions-pair:has(.editor_maximize:disabled) .ih-floating-editor-launch {
+    filter: brightness(75%);
+    opacity: 0.3;
+    cursor: not-allowed;
+}

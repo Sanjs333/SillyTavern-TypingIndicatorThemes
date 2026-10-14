@@ -4,32 +4,28 @@
 
 ## ✨ 功能特性
 
-*   **多种内置主题**：提供包括像素风、简约透明、可爱风等多种预设主题，即装即用。
-*   **完全自定义**：用户可以轻松修改现有主题的CSS，或者创建全新的主题。
-*   **自定义文本**：支持修改提示文本，可以使用 `{{char}}` 变量来动态显示角色名称。
-*   **方案管理**：支持新增、删除、导入、导出文本方案和主题样式，方便分享和备份。
-*   **位置调整**：可将指示器放置在聊天窗口的多个位置（如输入框上方或聊天区底部）。
+- **多种内置主题**：提供包括像素风、简约透明、可爱风等多种预设主题，即装即用。
+- **完全自定义**：用户可以轻松修改现有主题的CSS，或者创建全新的主题。
+- **自定义文本**：支持修改提示文本，可以使用 `{{char}}` 变量来动态显示角色名称。
+- **方案管理**：支持新增、删除、导入、导出文本方案和主题样式，方便分享和备份。
+- **位置调整**：可将指示器放置在聊天窗口的多个位置（如输入框上方或聊天区底部）。
 
 ## 🛠️ 使用方法
 
 使用以下 URL 通过内置扩展管理器进行安装并启用即可：[https://github.com/Sanjs333/SillyTavern-TypingIndicatorThemes]
 
+## 安装与更新
 
-## 4.6.0 安装与更新
-
-本次音乐播放器更新需要同时更新两个组件：
+若使用插件内的音乐播放器，需要同时安装两个组件：
 
 - **前端扩展**：在 SillyTavern 扩展管理器安装或更新本仓库。
 - **播放器后端**：[g-player-proxy](https://github.com/Sanjs333/g-player-proxy)，安装在 SillyTavern/plugins/g-player-proxy；请按后端 README 启用服务端插件并安装依赖。
 
-已安装的用户也需要更新后端，然后完全退出并重新启动 SillyTavern。只刷新网页不会更新已加载的后端代码。仅使用打字指示器样式、不使用音乐功能时，不需要安装音乐后端。
-
-酷我备用线路的 token 由用户自行在扩展“工具”页填写，发行包不包含个人 token 或个人歌单。使用指南、主题创作指南和指示器模板可在扩展设置内查看或下载。
-
 ## 📜 致谢与许可
+
 本拓展是在 **Cohee1207** 的原始项目基础上进行的二次创作。对原作者的卓越工作和无私分享表示衷心的感谢。同样感谢 **长青青** 老师提供的精美主题。
 
--   **原始项目**: [https://github.com/SillyTavern/Extension-TypingIndicator](https://github.com/SillyTavern/Extension-TypingIndicator)
--   **原作者**: [Cohee1207](https://github.com/Cohee1207)
+- **原始项目**: [https://github.com/SillyTavern/Extension-TypingIndicator](https://github.com/SillyTavern/Extension-TypingIndicator)
+- **原作者**: [Cohee1207](https://github.com/Cohee1207)
 
 本项目同样遵循 **GNU Affero General Public License v3.0 (AGPL-3.0)** 协议。您可以在本仓库的 `LICENSE` 文件中查看协议全文。任何基于本项目的修改和分发，都必须以同样的 AGPL-3.0 协议开源，并注明原作者及本项目的来源。

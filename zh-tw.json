@@ -443,5 +443,6 @@
     "The page will reload automatically once you close the extensions panel.": "關閉擴充功能面板後，頁面將自動重新載入。",
     "Waiting...": "等待中…",
     "Saved in your SillyTavern settings and used only for requests to this backup source. No token is bundled with the extension.": "儲存在你的 SillyTavern 設定中，僅用於請求此備用音源。插件不內建任何 token。",
-    "Run tests only when troubleshooting. Avoid repeated tests in a short period to reduce load on upstream services.": "請僅在排查問題時測試，避免短時間內反覆點擊，以減少上游服務壓力。"
+    "Run tests only when troubleshooting. Avoid repeated tests in a short period to reduce load on upstream services.": "請僅在排查問題時測試，避免短時間內反覆點擊，以減少上游服務壓力。",
+    "Expand editor": "放大編輯器"
 }

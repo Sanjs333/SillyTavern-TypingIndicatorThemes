@@ -440,5 +440,6 @@
     "The page will reload automatically once you close the extensions panel.": "หน้าจะโหลดใหม่อัตโนมัติเมื่อคุณปิดแผงส่วนขยาย",
     "Waiting...": "กำลังรอ...",
     "Saved in your SillyTavern settings and used only for requests to this backup source. No token is bundled with the extension.": "บันทึกไว้ในการตั้งค่า SillyTavern ของคุณ และใช้เฉพาะคำขอไปยังแหล่งสำรองนี้เท่านั้น ส่วนขยายไม่มี token ติดมาด้วย",
-    "Run tests only when troubleshooting. Avoid repeated tests in a short period to reduce load on upstream services.": "ทดสอบเฉพาะเมื่อต้องการแก้ไขปัญหา และหลีกเลี่ยงการทดสอบซ้ำในช่วงเวลาสั้น ๆ เพื่อลดภาระของบริการต้นทาง"
+    "Run tests only when troubleshooting. Avoid repeated tests in a short period to reduce load on upstream services.": "ทดสอบเฉพาะเมื่อต้องการแก้ไขปัญหา และหลีกเลี่ยงการทดสอบซ้ำในช่วงเวลาสั้น ๆ เพื่อลดภาระของบริการต้นทาง",
+    "Expand editor": "ขยายตัวแก้ไข"
 }

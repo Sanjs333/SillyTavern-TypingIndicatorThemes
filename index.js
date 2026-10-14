@@ -24,6 +24,7 @@ import {
   themes as defaultThemes,
 } from "./definitions.js";
 import { showDiagnosePopup } from "./diagnose-ui.js";
+import { destroyEditorEnhancements, installEditorEnhancements } from "./editor-enhancements.js";
 import { createStreamThemeParser } from "./stream-theme-parser.js";
 import { installThemeRuntime } from "./theme-runtime.js";
 import {
@@ -171,7 +172,7 @@ window.TI_FPS = FPSMonitor;
 let acornPromise = null;
 let messageFlushScheduled = false;
 let _hiddenIndicator = null;
-const PLUGIN_VERSION = "4.6.2";
+const PLUGIN_VERSION = "4.6.3";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -221,30 +222,17 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "4.6.2": {
-    date: "2026-09-21",
+  "4.6.3": {
+    date: "2026-10-14",
     title: {
-      zh: "流式性能优化与隐藏主题修复",
-      en: "Streaming Performance and Hidden Theme Fixes",
-      th: "ปรับปรุงประสิทธิภาพสตรีมและแก้ไขธีมที่ซ่อนอยู่",
+      zh: "编辑器放大与悬浮编辑兼容",
+      en: "Expanded Editors and Floating Editor Integration",
+      th: "ขยายช่องแก้ไขและรองรับหน้าต่างแก้ไขลอย",
     },
     content: {
-      zh: "### 修复与优化\n- 修复 4.6.1 中仍存在的流式文本重复累积问题，避免开启动态主题后，长回复越输出越卡。\n- 动态主题关闭时，不再逐次读取页面样式和检查完整设置，减少无效开销。\n- 修复部分非播放器主题隐藏后仍在后台执行定时更新的问题；隐藏时暂停，重新显示后恢复。\n- 兼容分多次输出的主题标记，并在停止生成、切换聊天或关闭功能时清理解析状态。\n\n### 使用说明\n- 动态主题仍会在完整的 `[Theme:主题名]` 标记出现后实时切换，无需等待回复结束。\n- 不降低可见动画帧率，不改变动态主题停留时长；播放器后台播放不受本次暂停处理影响。\n- 本次修复已确认的性能问题，并不保证所有主题或扩展组合下的卡顿都已解决。\n\n> 更新后请刷新 SillyTavern 页面。本次为前端修复，无需为此更新播放器后端。\n",
-      en: "### Fixes and Improvements\n- Fixed repeated accumulation of streamed text that remained in 4.6.1, preventing increasing stutter during long replies with Dynamic Themes enabled.\n- When Dynamic Themes is disabled, stream events no longer read page styles or run full settings checks unnecessarily.\n- Fixed periodic updates continuing in some hidden non-player themes. Updates now pause while hidden and resume when shown again.\n- Preserved support for theme tags split across streamed updates, and clear parser state when generation stops, chats change, or the feature is disabled.\n\n### Notes\n- Dynamic Themes still switches as soon as a complete `[Theme:theme name]` tag arrives, without waiting for the reply to finish.\n- Visible animation frame rates and dynamic theme hold durations are unchanged. This pause handling does not affect background music playback.\n- This release fixes confirmed performance issues; it does not guarantee that every theme or extension combination is free of stutter.\n\n> Refresh the SillyTavern page after updating. This is a frontend fix and does not require a music backend update.\n",
-      th: "### แก้ไขและปรับปรุง\n- แก้ปัญหาข้อความสตรีมถูกสะสมซ้ำที่ยังหลงเหลือใน 4.6.1 เพื่อป้องกันการกระตุกที่เพิ่มขึ้นระหว่างคำตอบยาวเมื่อเปิดธีมไดนามิก\n- เมื่อปิดธีมไดนามิก จะไม่อ่านสไตล์หน้าเว็บหรือตรวจสอบการตั้งค่าทั้งหมดซ้ำในทุกเหตุการณ์สตรีม\n- แก้ไขธีมบางแบบที่ไม่ใช่เครื่องเล่นซึ่งยังอัปเดตด้วยตัวจับเวลาขณะถูกซ่อน โดยหยุดการอัปเดตเมื่อซ่อนและกลับมาทำงานเมื่อแสดงอีกครั้ง\n- รองรับแท็กธีมที่ถูกแบ่งส่งหลายครั้ง และล้างสถานะการอ่านแท็กเมื่อหยุดสร้างคำตอบ เปลี่ยนแชท หรือปิดฟีเจอร์\n\n### หมายเหตุ\n- ธีมไดนามิกยังเปลี่ยนทันทีที่ได้รับแท็ก `[Theme:ชื่อธีม]` ครบ โดยไม่ต้องรอให้คำตอบจบ\n- ไม่ลดอัตราเฟรมของแอนิเมชันที่แสดงอยู่ ไม่เปลี่ยนระยะเวลาคงธีม และการหยุดอัปเดตนี้ไม่กระทบการเล่นเพลงเบื้องหลัง\n- รุ่นนี้แก้ปัญหาประสิทธิภาพที่ยืนยันแล้ว แต่ไม่ได้รับประกันว่าทุกชุดธีมหรือส่วนขยายจะไม่กระตุก\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern การแก้ไขครั้งนี้อยู่ที่ส่วนหน้าและไม่จำเป็นต้องอัปเดตส่วนหลังของเครื่องเล่นเพลง\n",
-    },
-  },
-  "4.6.1": {
-    date: "2026-09-21",
-    title: {
-      zh: "流式卡顿修复",
-      en: "Streaming Performance Fix",
-      th: "แก้ไขการกระตุกขณะสตรีม",
-    },
-    content: {
-      zh: "### 修复\n- 修复开启动态主题后，流式输出越到后段越卡顿的问题（酒馆 1.19 起 token 推送更密集，此问题更明显）\n\n### 说明\n- 若无动态主题需求，可将该项取消勾选。\n- 动态主题效果为：LLM 在文中输出主题名标记（如 `[Theme:雪]`）后，指示器会自动启用对应名称的主题并显示，以烘托正文氛围。\n- 该功能在流式状态下消耗偏大，请按需求开启。\n\n> 更新后请刷新 SillyTavern 页面，以确保更改生效\n",
-      en: "### Fixes\n- Fixed increasing stutter during streaming when Dynamic Themes is enabled (more noticeable since SillyTavern 1.19, which pushes tokens more frequently)\n\n### Notes\n- If you don't need Dynamic Themes, you can uncheck this option.\n- How it works: when the LLM outputs a theme name tag in the text, such as `[Theme:雪]`, the indicator will automatically enable and display the theme with the matching name to enhance the atmosphere of the text.\n- This feature has higher resource usage during streaming, so enable it only if needed.\n\n> Please refresh the SillyTavern page after updating to ensure the changes take effect\n",
-      th: "### แก้ไข\n- แก้ปัญหากระตุกที่เพิ่มขึ้นระหว่างสตรีมเมื่อเปิดใช้ธีมไดนามิก (สังเกตได้ชัดขึ้นตั้งแต่ SillyTavern 1.19 ที่ส่ง token ถี่ขึ้น)\n\n### หมายเหตุ\n- หากไม่ต้องการใช้ธีมไดนามิก สามารถยกเลิกการติ๊กตัวเลือกนี้ได้\n- วิธีการทำงาน: เมื่อ LLM ส่งแท็กชื่อธีมในข้อความ เช่น `[Theme:雪]` อินดิเคเตอร์จะเปิดใช้งานและแสดงธีมที่มีชื่อตรงกันโดยอัตโนมัติ เพื่อเสริมบรรยากาศของเนื้อหา\n- ฟีเจอร์นี้ใช้ทรัพยากรค่อนข้างมากระหว่างการสตรีม โปรดเปิดตามความจำเป็น\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern เพื่อให้แน่ใจว่าการเปลี่ยนแปลงมีผล\n",
+      zh: "### 新增与优化\n- 为设置内的 16 个多行编辑框添加酒馆原生放大按钮，覆盖文本预设、指示器主题、播放器主题和气泡样式中的正文、代码、尺寸 JSON 与说明。\n- 兼容 QuickBar 悬浮编辑入口，保留原放大按钮和 JSON 格式化按钮；窄屏与触屏下增大按钮点击区域。\n- 补齐放大编辑后的输入通知，使现有实时预览与 JSON 校验正常更新，避免同一次输入重复触发。\n- 增加切换主题、方案或编辑模式时的保护，避免旧悬浮窗和未完成的加载、保存操作影响新内容。\n\n### 使用说明\n- 普通放大无需安装 QuickBar；如需悬浮编辑和对象切换保护，请同时更新 QuickBar 至 3.3.3 或更高版本，并启用其悬浮编辑窗功能。\n- 放大与悬浮编辑只修改当前编辑区，仍须点击对应的保存按钮；JSON 格式化不会自动保存。\n- 切换、导入覆盖或重新加载编辑区后，旧悬浮窗会锁定并保留内容供复制。部分保存或重命名操作会重新加载编辑区，继续编辑时请重新打开窗口。\n\n> 更新后请刷新 SillyTavern 页面。本次为前端更新，无需为此更新播放器后端。\n",
+      en: "### New Features and Improvements\n- Added native SillyTavern expand buttons to all 16 multiline settings fields, covering text presets, indicator themes, player themes and bubble styles, including content, code, size JSON and descriptions.\n- Integrated QuickBar floating editor entries while retaining the original expand and JSON format buttons. Buttons have larger touch targets on narrow screens and touch devices.\n- Bridged input notifications from expanded editors so existing live previews and JSON validation update correctly without processing the same input twice.\n- Added protection when switching themes, presets or editing modes, so old floating windows and unfinished loads or saves cannot affect the newly selected content.\n\n### Notes\n- Native expansion works without QuickBar. For floating editing and object-switch protection, also update QuickBar to 3.3.3 or later and enable its floating editor feature.\n- Expanded and floating editors only update the current editing fields. Use the corresponding Save button to persist changes; formatting JSON does not save automatically.\n- Switching objects, importing replacements or reloading the editing fields locks old floating windows and preserves their text for copying. Some save or rename actions reload the fields; reopen the window to continue editing.\n\n> Refresh the SillyTavern page after updating. This is a frontend update and does not require a music backend update.\n",
+      th: "### เพิ่มและปรับปรุง\n- เพิ่มปุ่มขยายช่องแก้ไขแบบเดิมของ SillyTavern ให้ช่องข้อความหลายบรรทัดทั้ง 16 ช่องในการตั้งค่า ครอบคลุมพรีเซ็ตข้อความ ธีมอินดิเคเตอร์ ธีมเครื่องเล่น และรูปแบบบับเบิล รวมถึงเนื้อหา โค้ด JSON ขนาด และคำอธิบาย\n- รองรับปุ่มเปิดหน้าต่างแก้ไขลอยของ QuickBar โดยยังคงปุ่มขยายเดิมและปุ่มจัดรูปแบบ JSON พร้อมเพิ่มพื้นที่กดบนหน้าจอแคบและอุปกรณ์สัมผัส\n- เชื่อมการแจ้งเตือนอินพุตจากช่องแก้ไขที่ขยายแล้ว เพื่อให้ตัวอย่างแบบเรียลไทม์และการตรวจสอบ JSON อัปเดตตามปกติ โดยไม่ประมวลผลอินพุตเดียวกันซ้ำ\n- เพิ่มการป้องกันเมื่อสลับธีม พรีเซ็ต หรือโหมดแก้ไข เพื่อไม่ให้หน้าต่างลอยเก่าและการโหลดหรือบันทึกที่ยังไม่เสร็จส่งผลต่อเนื้อหาที่เลือกใหม่\n\n### หมายเหตุ\n- ปุ่มขยายปกติใช้งานได้โดยไม่ต้องติดตั้ง QuickBar หากต้องการหน้าต่างแก้ไขลอยและการป้องกันเมื่อสลับรายการ โปรดอัปเดต QuickBar เป็น 3.3.3 หรือใหม่กว่า และเปิดฟังก์ชันหน้าต่างแก้ไขลอย\n- การแก้ไขในหน้าต่างขยายหรือหน้าต่างลอยจะเปลี่ยนเฉพาะช่องแก้ไขปัจจุบัน ยังต้องกดปุ่มบันทึกของรายการนั้น การจัดรูปแบบ JSON ไม่ได้บันทึกโดยอัตโนมัติ\n- เมื่อสลับรายการ นำเข้าทับ หรือโหลดช่องแก้ไขใหม่ หน้าต่างลอยเก่าจะถูกล็อกและเก็บข้อความไว้ให้คัดลอก การบันทึกหรือเปลี่ยนชื่อบางอย่างจะโหลดช่องแก้ไขใหม่ หากต้องการแก้ไขต่อ ให้เปิดหน้าต่างใหม่\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern ครั้งนี้เป็นการอัปเดตส่วนหน้า ไม่จำเป็นต้องอัปเดตส่วนหลังของเครื่องเล่นเพลง\n",
     },
   },
 };
@@ -6736,7 +6724,10 @@ function requestSettingsRender(preserveDrawerState = true) {
     const allPanels = document.querySelectorAll("#typing_indicator_settings");
     if (allPanels.length > 1) {
       allPanels.forEach((panel, index) => {
-        if (index > 0) panel.remove();
+        if (index > 0) {
+          destroyEditorEnhancements(panel);
+          panel.remove();
+        }
       });
     }
 
@@ -6758,6 +6749,7 @@ function requestSettingsRender(preserveDrawerState = true) {
       window._tiPlaylistPanelNotify = null;
       listeningStatsUpdateCallback = null;
       _updatePlaylistPlayingState = null;
+      destroyEditorEnhancements(oldSection);
       oldSection.remove();
     }
 
@@ -7998,6 +7990,7 @@ function addExtensionSettings() {
   const drawerContent = section.querySelector(".inline-drawer-content");
   let contentInitialized = false;
   let hasCheckedChangelog = false;
+  let editorEnhancements;
 
   const initializeContent = () => {
     if (contentInitialized) return;
@@ -8031,6 +8024,7 @@ function addExtensionSettings() {
   });
 
   const renderContent = () => {
+    editorEnhancements?.destroy();
     drawerContent.innerHTML = `
             <div class="ti-tabs-container">
                 <div class="ti-tab-buttons">
@@ -8896,6 +8890,19 @@ function addExtensionSettings() {
       });
     });
 
+    editorEnhancements = installEditorEnhancements(section, {
+      jquery: window.jQuery,
+      labels: {
+        expand: t`Expand editor`,
+        presetText: t`Text Preset`,
+        groups: {
+          preset: t`Indicator Text Presets`,
+          theme: t`Indicator Style Themes`,
+          player: t`Music Player Themes`,
+          bubble: t`BGM Bubble Style`,
+        },
+      },
+    });
     initializeMainSettings();
     initializeIndicatorSettings();
     initializePlayerSettings();
@@ -9326,12 +9333,13 @@ function addExtensionSettings() {
     section
       .querySelector("#ti_test_draggable")
       .addEventListener("click", toggleTestIndicator);
-    updateCharSpecificUI();
-    updateBindingUI();
     populatePresets();
     setupPresetEventListeners();
     populateThemes();
     setupThemeEventListeners();
+    // Load the actual character-bound objects after the option lists exist.
+    updateCharSpecificUI();
+    updateBindingUI();
   }
 
   function initializePlayerSettings() {
@@ -9359,9 +9367,12 @@ function addExtensionSettings() {
       const currentStyle = settings.bubbleStyles.find(
         (s) => s.id === settings.selectedBubbleStyleId,
       );
+      select.value = currentStyle?.id || "";
+      const ticket = editorEnhancements.begin("bubble", currentStyle, { pending: true });
       if (htmlTextarea) htmlTextarea.value = currentStyle?.html || "";
       if (cssTextarea) cssTextarea.value = currentStyle?.css || "";
       bubbleReadme.load(currentStyle?.readme);
+      editorEnhancements.complete(ticket);
       updateBubblePreview();
     }
 
@@ -9434,7 +9445,7 @@ function addExtensionSettings() {
           const style = settings.bubbleStyles.find(
             (s) => s.id === settings.selectedBubbleStyleId,
           );
-          if (style) {
+          if (style && editorEnhancements.isReady("bubble")) {
             style.html = htmlTextarea.value;
             style.css = cssTextarea.value;
             const hasReadme = bubbleReadme.save(style);
@@ -13445,51 +13456,46 @@ function addExtensionSettings() {
   function loadThemeIntoMainEditor(themeId) {
     const globalThemeSelect = section.querySelector("#ti_theme_select");
     const themeToLoad = themeId || getSettings().selectedThemeId;
-
-    if (globalThemeSelect && globalThemeSelect.value !== themeToLoad) {
-      globalThemeSelect.value = themeToLoad;
-    }
-
     const theme = getSettings().themes.find((t) => t.id === themeToLoad);
-    if (!theme) {
-      debugWarn(`[TI] 找不到主题 ${themeToLoad}`);
-      return;
-    }
+    if (globalThemeSelect) globalThemeSelect.value = theme?.id || "";
+    if (!theme) debugWarn(`[TI] 找不到主题 ${themeToLoad}`);
+    queueThemeEditorLoad(theme, true);
+  }
 
-    debugLog(
-      `[TI] 加载主题到编辑器: ${theme.name}, useIframe: ${theme.useIframe}`,
-    );
-
+  // Invalidate synchronously, not inside rAF: an old QuickBar window must be locked
+  // even while the selected object's content is still waiting to be rendered.
+  function queueThemeEditorLoad(theme, applyAfterLoad = false) {
+    const ticket = editorEnhancements.begin("theme", theme, {
+      mode: theme?.useIframe ? "iframe" : "css",
+      pending: true,
+    });
     requestAnimationFrame(() => {
-      updateEditorMode(theme);
-      applyTheme(themeToLoad);
+      if (!section.isConnected || !editorEnhancements.isCurrent(ticket)) return;
+      updateEditorMode(theme, ticket);
+      if (applyAfterLoad && theme) applyTheme(theme.id);
     });
   }
 
   function loadPresetIntoMainEditor(presetId) {
     const globalPresetSelect = section.querySelector("#ti_preset_select");
-    const presetTextarea = section.querySelector("#ti_preset_text");
-
     const presetToLoadId = presetId || getSettings().selectedTextPresetId;
-    const presetToLoad =
-      getSettings().textPresets.find((p) => p.id === presetToLoadId) ||
-      getSettings().textPresets[0];
-
-    debugLog(`[TI] 加载预设到编辑器: ${presetToLoad.name}`);
-
-    if (globalPresetSelect && globalPresetSelect.value !== presetToLoadId) {
-      globalPresetSelect.value = presetToLoadId;
-    }
-
-    if (presetTextarea && presetTextarea.value !== presetToLoad.text) {
-      presetTextarea.value = presetToLoad.text;
-      debugLog(`[TI] 预设文本已更新到编辑器`);
-    }
+    const preset = getSettings().textPresets.find((p) => p.id === presetToLoadId)
+      || getSettings().textPresets[0];
+    if (globalPresetSelect) globalPresetSelect.value = preset?.id || "";
+    updatePresetEditor(preset);
   }
 
-  function populatePresets() {
+  function updatePresetEditor(preset) {
+    const ticket = editorEnhancements.begin("preset", preset, { pending: true });
+    const textarea = section.querySelector("#ti_preset_text");
+    if (textarea) textarea.value = preset?.text || "";
+    // Character-bound loads must replace README as well as the preset text.
+    presetReadme.load(preset?.readme);
+    editorEnhancements.complete(ticket);
+  }
+
+  function populatePresets(currentId = getSettings().selectedTextPresetId) {
     const settings = getSettings();
-    const currentId = settings.selectedTextPresetId;
     const tiPresetSelect = section.querySelector("#ti_preset_select");
     const tiPresetText = section.querySelector("#ti_preset_text");
 
@@ -13519,18 +13525,17 @@ function addExtensionSettings() {
     });
 
     const selectedPreset = settings.textPresets.find((p) => p.id === currentId);
-    if (!selectedPreset) {
-      settings.selectedTextPresetId = settings.textPresets[0]?.id;
+    if (!selectedPreset && settings.textPresets.length) {
+      settings.selectedTextPresetId = settings.textPresets[0].id;
       return populatePresets();
     }
-    tiPresetText.value = selectedPreset.text;
-    presetReadme.load(selectedPreset.readme);
+    tiPresetSelect.value = selectedPreset?.id || "";
+    updatePresetEditor(selectedPreset);
   }
 
-  function populateThemes() {
+  function populateThemes(currentId = getSettings().selectedThemeId) {
     const settings = getSettings();
     const tiThemeSelect = section.querySelector("#ti_theme_select");
-    const currentId = settings.selectedThemeId;
 
     if (!tiThemeSelect) return;
 
@@ -13574,12 +13579,13 @@ function addExtensionSettings() {
       sel.value = prevValue;
     });
 
-    const selectedTheme =
-      settings.themes.find((theme) => theme.id === currentId) ||
-      settings.themes[0];
-    requestAnimationFrame(() => {
-      updateEditorMode(selectedTheme);
-    });
+    const indicatorThemes = settings.themes.filter(
+      (theme) => !theme.name.startsWith("播放器") && !theme.name.startsWith("Player"),
+    );
+    const selectedTheme = indicatorThemes.find((theme) => theme.id === currentId)
+      || indicatorThemes[0];
+    tiThemeSelect.value = selectedTheme?.id || "";
+    queueThemeEditorLoad(selectedTheme);
   }
 
   function populatePlayerThemes() {
@@ -13604,99 +13610,59 @@ function addExtensionSettings() {
 
     const selectedTheme =
       playerThemes.find((theme) => theme.id === currentId) || playerThemes[0];
-    if (selectedTheme) {
-      updatePlayerEditorMode(selectedTheme);
-    } else {
-      const fields = [
-        "#ti_player_theme_html",
-        "#ti_player_theme_iframe_css",
-        "#ti_player_theme_iframe_js",
-        "#ti_player_theme_iframe_sizes",
-      ];
-      fields.forEach((id) => {
-        const el = section.querySelector(id);
-        if (el) el.value = "";
-      });
-      playerThemeReadme.load(undefined);
-    }
+    playerThemeSelect.value = selectedTheme?.id || "";
+    updatePlayerEditorMode(selectedTheme);
   }
 
-  function updateEditorMode(theme) {
+  function updateEditorMode(theme, ticket) {
+    ticket ||= editorEnhancements.begin("theme", theme, {
+      mode: theme?.useIframe ? "iframe" : "css",
+      pending: true,
+    });
+    if (!editorEnhancements.isCurrent(ticket)) return;
     const cssContainer = section.querySelector("#css_editor_container");
     const iframeContainer = section.querySelector("#iframe_editor_container");
-    const cssRadio = section.querySelector("#theme_mode_css");
-    const iframeRadio = section.querySelector("#theme_mode_iframe");
-    const cssTextarea = section.querySelector("#ti_theme_css");
-    const htmlTextarea = section.querySelector("#ti_theme_html");
-    const iframeCssTextarea = section.querySelector("#ti_theme_iframe_css");
-    const iframeJsTextarea = section.querySelector("#ti_theme_iframe_js");
-    const presetSection = section.querySelector("#ti_preset_section");
-    const sizesContainer = section.querySelector("#ti_sizes_container");
-    const sizesTextarea = section.querySelector("#ti_theme_iframe_sizes");
-
     if (!cssContainer || !iframeContainer) return;
 
-    if (theme.useIframe) {
-      iframeRadio.checked = true;
-      cssContainer.style.display = "none";
-      iframeContainer.style.display = "flex";
-      sizesContainer.style.display = "block";
-      presetSection.style.display = "none";
+    const useIframe = !!theme?.useIframe;
+    const cssRadio = section.querySelector("#theme_mode_css");
+    const iframeRadio = section.querySelector("#theme_mode_iframe");
+    cssRadio.checked = !useIframe;
+    iframeRadio.checked = useIframe;
+    cssRadio.disabled = iframeRadio.disabled = !theme;
+    cssContainer.style.display = useIframe ? "none" : "block";
+    iframeContainer.style.display = useIframe ? "flex" : "none";
+    section.querySelector("#ti_sizes_container").style.display = useIframe ? "block" : "none";
+    section.querySelector("#ti_preset_section").style.display = useIframe ? "none" : "block";
 
-      htmlTextarea.value = theme.html || "";
-      iframeCssTextarea.value = theme.iframeCSS || "";
-      iframeJsTextarea.value = theme.iframeJS || "";
-
-      if (theme.sizes) {
-        sizesTextarea.value = JSON.stringify(theme.sizes, null, 2);
-      } else {
-        sizesTextarea.value = "";
-      }
-
-      validateSizesJson();
-    } else {
-      cssRadio.checked = true;
-      cssContainer.style.display = "block";
-      iframeContainer.style.display = "none";
-      sizesContainer.style.display = "none";
-      presetSection.style.display = "block";
-      cssTextarea.value = (theme.css || "").trim();
-    }
-    themeReadme.load(theme.readme);
+    // Clear inactive fields too, so no hidden textarea retains another object's draft.
+    section.querySelector("#ti_theme_css").value = (theme?.css || "").trim();
+    section.querySelector("#ti_theme_html").value = theme?.html || "";
+    section.querySelector("#ti_theme_iframe_css").value = theme?.iframeCSS || "";
+    section.querySelector("#ti_theme_iframe_js").value = theme?.iframeJS || "";
+    section.querySelector("#ti_theme_iframe_sizes").value = theme?.sizes
+      ? JSON.stringify(theme.sizes, null, 2) : "";
+    validateSizesJson();
+    themeReadme.load(theme?.readme);
+    editorEnhancements.complete(ticket);
   }
 
-  function updatePlayerEditorMode(theme) {
-    const htmlTextarea = section.querySelector("#ti_player_theme_html");
-    const iframeCssTextarea = section.querySelector(
-      "#ti_player_theme_iframe_css",
-    );
-    const iframeJsTextarea = section.querySelector(
-      "#ti_player_theme_iframe_js",
-    );
-    const sizesTextarea = section.querySelector(
-      "#ti_player_theme_iframe_sizes",
-    );
-
-    if (
-      !htmlTextarea ||
-      !iframeCssTextarea ||
-      !iframeJsTextarea ||
-      !sizesTextarea
-    )
-      return;
-
-    htmlTextarea.value = theme.html || "";
-    iframeCssTextarea.value = theme.iframeCSS || "";
-    iframeJsTextarea.value = theme.iframeJS || "";
-
-    if (theme.sizes) {
-      sizesTextarea.value = JSON.stringify(theme.sizes, null, 2);
-    } else {
-      sizesTextarea.value = "";
+  function updatePlayerEditorMode(theme, ticket) {
+    ticket ||= editorEnhancements.begin("player", theme, { mode: "iframe", pending: true });
+    if (!editorEnhancements.isCurrent(ticket)) return;
+    const fields = {
+      ti_player_theme_html: theme?.html || "",
+      ti_player_theme_iframe_css: theme?.iframeCSS || "",
+      ti_player_theme_iframe_js: theme?.iframeJS || "",
+      ti_player_theme_iframe_sizes: theme?.sizes ? JSON.stringify(theme.sizes, null, 2) : "",
+    };
+    for (const [id, value] of Object.entries(fields)) {
+      const textarea = section.querySelector(`#${id}`);
+      if (textarea) textarea.value = value;
     }
-
     validatePlayerSizesJson();
-    playerThemeReadme.load(theme.readme);
+    playerThemeReadme.load(theme?.readme);
+    editorEnhancements.complete(ticket);
   }
 
   function validateSizesJson() {
@@ -13761,7 +13727,7 @@ function addExtensionSettings() {
       presetInfoBtn.addEventListener("click", () => {
         const settings = getSettings();
         const preset = settings.textPresets.find(
-          (p) => p.id === settings.selectedTextPresetId,
+          (p) => p.id === tiPresetSelect.value,
         );
         if (!preset) return;
         presetReadme.infoClick(preset);
@@ -13777,7 +13743,7 @@ function addExtensionSettings() {
       $("#suggestion-container-theme").remove();
 
       const selectedPreset = settings.textPresets.find(
-        (p) => p.id === settings.selectedTextPresetId,
+        (p) => p.id === tiPresetSelect.value,
       );
       if (!selectedPreset) return;
 
@@ -13839,7 +13805,7 @@ function addExtensionSettings() {
     section.querySelector("#ti_preset_save").addEventListener("click", () => {
       const settings = getSettings();
       const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
-      if (p) {
+      if (p && editorEnhancements.isReady("preset")) {
         p.text = tiPresetText.value;
         const hasReadme = presetReadme.save(p);
         saveSettingsDebounced();
@@ -13869,14 +13835,14 @@ function addExtensionSettings() {
     section.querySelector("#ti_preset_rename").addEventListener("click", () => {
       const settings = getSettings();
       const preset = settings.textPresets.find(
-        (p) => p.id === settings.selectedTextPresetId,
+        (p) => p.id === tiPresetSelect.value,
       );
       if (!preset) return;
 
       const newName = prompt(t`Enter new name for preset:`, preset.name);
       if (newName && newName.trim() !== "") {
         preset.name = newName.trim();
-        populatePresets();
+        populatePresets(preset.id);
         saveSettingsDebounced();
         toastr.success(t`Preset renamed successfully!`);
       }
@@ -13889,6 +13855,7 @@ function addExtensionSettings() {
         return;
       }
       const p = settings.textPresets.find((p) => p.id === tiPresetSelect.value);
+      if (!p) return;
       if (
         confirm(t`Are you sure you want to delete the preset "${p?.name}"?`)
       ) {
@@ -13933,7 +13900,7 @@ function addExtensionSettings() {
         createExportHandler(
           "preset",
           getSettings().textPresets,
-          getSettings().selectedTextPresetId,
+          tiPresetSelect.value,
         ),
       );
 
@@ -13961,7 +13928,7 @@ function addExtensionSettings() {
       themeInfoBtn.addEventListener("click", () => {
         const settings = getSettings();
         const theme = settings.themes.find(
-          (t) => t.id === settings.selectedThemeId,
+          (t) => t.id === tiThemeSelect.value,
         );
         if (!theme) return;
         themeReadme.infoClick(theme);
@@ -13974,7 +13941,7 @@ function addExtensionSettings() {
       settings.selectedThemeId = tiThemeSelect.value;
 
       const selectedTheme = settings.themes.find(
-        (t) => t.id === settings.selectedThemeId,
+        (t) => t.id === tiThemeSelect.value,
       );
       if (selectedTheme) {
         updateGlobalDefs(selectedTheme);
@@ -14069,12 +14036,12 @@ function addExtensionSettings() {
     function handleModeChange() {
       const settings = getSettings();
       const currentTheme = settings.themes.find(
-        (t) => t.id === settings.selectedThemeId,
+        (t) => t.id === tiThemeSelect.value,
       );
-      if (!currentTheme) return;
+      if (!currentTheme || !editorEnhancements.isReady("theme")) return;
       currentTheme.useIframe = iframeRadio.checked;
       updateEditorMode(currentTheme);
-      populateThemes();
+      populateThemes(currentTheme.id);
       updatePositionOptions();
     }
 
@@ -14088,7 +14055,9 @@ function addExtensionSettings() {
         const themeToSave = settings.themes.find(
           (theme) => theme.id === tiThemeSelect.value,
         );
-        if (!themeToSave) return;
+        if (!themeToSave || !editorEnhancements.isReady("theme")) return;
+        const ticket = editorEnhancements.current("theme");
+        if (ticket.id !== String(themeToSave.id)) return;
 
         const isModeIframe =
           section.querySelector("#theme_mode_iframe").checked;
@@ -14100,6 +14069,7 @@ function addExtensionSettings() {
           ).value;
           const validationResult =
             await validateJavaScriptSyntax(jsCodeToValidate);
+          if (!section.isConnected || !editorEnhancements.isCurrent(ticket)) return;
 
           if (!validationResult.isValid) {
             const err = validationResult.error;
@@ -14154,7 +14124,7 @@ function addExtensionSettings() {
         updateGlobalDefs(themeToSave);
         applyTheme(themeToSave.id);
         saveSettingsDebounced();
-        populateThemes();
+        populateThemes(themeToSave.id);
         savedToast(themeToSave.name, hasReadme);
         refreshLiveIndicators("theme_save");
         setTimeout(() => {
@@ -14174,7 +14144,7 @@ function addExtensionSettings() {
       if (!n) return;
       manualOverrideActive = true;
       const currentTheme = settings.themes.find(
-        (theme) => theme.id === settings.selectedThemeId,
+        (theme) => theme.id === tiThemeSelect.value,
       );
       const isNewThemeIframe = currentTheme ? currentTheme.useIframe : false;
       const newTheme = {
@@ -14204,14 +14174,14 @@ function addExtensionSettings() {
     section.querySelector("#ti_theme_rename").addEventListener("click", () => {
       const settings = getSettings();
       const theme = settings.themes.find(
-        (t) => t.id === settings.selectedThemeId,
+        (t) => t.id === tiThemeSelect.value,
       );
       if (!theme) return;
 
       const newName = prompt(t`Enter new name for theme:`, theme.name);
       if (newName && newName.trim() !== "") {
         theme.name = newName.trim();
-        populateThemes();
+        populateThemes(theme.id);
         saveSettingsDebounced();
         toastr.success(t`Theme renamed successfully!`);
       }
@@ -14226,6 +14196,7 @@ function addExtensionSettings() {
       const themeToDelete = settings.themes.find(
         (theme) => theme.id === tiThemeSelect.value,
       );
+      if (!themeToDelete) return;
       if (
         confirm(
           t`Are you sure you want to delete the theme "${themeToDelete?.name}"?`,
@@ -14436,7 +14407,7 @@ function addExtensionSettings() {
         createExportHandler(
           "theme",
           getSettings().themes,
-          getSettings().selectedThemeId,
+          tiThemeSelect.value,
         ),
       );
 
@@ -14445,6 +14416,7 @@ function addExtensionSettings() {
 
     if (formatSizesButton && sizesTextarea) {
       formatSizesButton.addEventListener("click", () => {
+        if (!editorEnhancements.isReady("theme") || sizesTextarea.disabled || sizesTextarea.readOnly) return;
         const text = sizesTextarea.value.trim();
         const defaultSizesJsonString = JSON.stringify(
           {
@@ -14470,7 +14442,7 @@ function addExtensionSettings() {
 
         if (!text) {
           sizesTextarea.value = defaultSizesJsonString;
-          validateSizesJson();
+          sizesTextarea.dispatchEvent(new Event("input", { bubbles: true }));
           toastr.success(t`Default size examples have been filled in.`, "", {
             timeOut: 1000,
           });
@@ -14480,7 +14452,7 @@ function addExtensionSettings() {
         try {
           const parsed = JSON.parse(text);
           sizesTextarea.value = JSON.stringify(parsed, null, 2);
-          validateSizesJson();
+          sizesTextarea.dispatchEvent(new Event("input", { bubbles: true }));
           toastr.success(t`JSON has been formatted.`, "", {
             timeOut: 1000,
           });
@@ -14528,7 +14500,7 @@ function addExtensionSettings() {
       playerThemeInfoBtn.addEventListener("click", () => {
         const settings = getSettings();
         const theme = settings.themes.find(
-          (t) => t.id === settings.selectedPlayerThemeId,
+          (t) => t.id === playerThemeSelect.value,
         );
         if (!theme) return;
         playerThemeReadme.infoClick(theme);
@@ -14540,11 +14512,16 @@ function addExtensionSettings() {
       saveSettingsDebounced();
 
       const selectedTheme = settings.themes.find(
-        (t) => t.id === settings.selectedPlayerThemeId,
+        (t) => t.id === playerThemeSelect.value,
       );
-      if (selectedTheme) {
-        requestAnimationFrame(() => updatePlayerEditorMode(selectedTheme));
-      }
+      const ticket = editorEnhancements.begin("player", selectedTheme, {
+        mode: "iframe",
+        pending: true,
+      });
+      requestAnimationFrame(() => {
+        if (!section.isConnected || !editorEnhancements.isCurrent(ticket)) return;
+        updatePlayerEditorMode(selectedTheme, ticket);
+      });
 
       if (settings.playerEnabled) {
         reloadPlayer();
@@ -14558,13 +14535,16 @@ function addExtensionSettings() {
         const themeToSave = settings.themes.find(
           (theme) => theme.id === playerThemeSelect.value,
         );
-        if (!themeToSave) return;
+        if (!themeToSave || !editorEnhancements.isReady("player")) return;
+        const ticket = editorEnhancements.current("player");
+        if (ticket.id !== String(themeToSave.id)) return;
 
         const jsCodeToValidate = section.querySelector(
           "#ti_player_theme_iframe_js",
         ).value;
         const validationResult =
           await validateJavaScriptSyntax(jsCodeToValidate);
+        if (!section.isConnected || !editorEnhancements.isCurrent(ticket)) return;
         if (!validationResult.isValid) {
           const err = validationResult.error;
           toastr.error(
@@ -14652,7 +14632,7 @@ function addExtensionSettings() {
       .addEventListener("click", () => {
         const settings = getSettings();
         const theme = settings.themes.find(
-          (t) => t.id === settings.selectedPlayerThemeId,
+          (t) => t.id === playerThemeSelect.value,
         );
         if (!theme) return;
 
@@ -14673,6 +14653,7 @@ function addExtensionSettings() {
         const themeToDelete = settings.themes.find(
           (theme) => theme.id === playerThemeSelect.value,
         );
+        if (!themeToDelete) return;
         if (
           confirm(
             t`Are you sure you want to delete the player theme "${themeToDelete?.name}"?`,
@@ -14739,7 +14720,7 @@ function addExtensionSettings() {
         createExportHandler(
           "theme",
           getSettings().themes,
-          getSettings().selectedPlayerThemeId,
+          playerThemeSelect.value,
         ),
       );
 
@@ -14752,6 +14733,7 @@ function addExtensionSettings() {
 
     if (formatSizesButton && sizesTextarea) {
       formatSizesButton.addEventListener("click", () => {
+        if (!editorEnhancements.isReady("player") || sizesTextarea.disabled || sizesTextarea.readOnly) return;
         const text = sizesTextarea.value.trim();
         const defaultSizesJsonString = JSON.stringify(
           {
@@ -14766,7 +14748,7 @@ function addExtensionSettings() {
 
         if (!text) {
           sizesTextarea.value = defaultSizesJsonString;
-          validatePlayerSizesJson();
+          sizesTextarea.dispatchEvent(new Event("input", { bubbles: true }));
           toastr.success(t`Default size examples have been filled in.`, "", {
             timeOut: 1000,
           });
@@ -14776,7 +14758,7 @@ function addExtensionSettings() {
         try {
           const parsed = JSON.parse(text);
           sizesTextarea.value = JSON.stringify(parsed, null, 2);
-          validatePlayerSizesJson();
+          sizesTextarea.dispatchEvent(new Event("input", { bubbles: true }));
           toastr.success(t`JSON has been formatted.`, "", {
             timeOut: 1000,
           });

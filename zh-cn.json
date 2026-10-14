@@ -444,5 +444,6 @@
     "Updated: ${0} added, ${1} existing songs kept. Source tracking is now enabled for this playlist.": "更新完成：新增 ${0} 首，保留 ${1} 首现有歌曲。已为此歌单启用来源跟踪。",
     "Updated: ${0} added, ${1} removed, ${2} manually added songs kept.": "更新完成：新增 ${0} 首，移除 ${1} 首，保留 ${2} 首手动添加的歌曲。",
     "Saved in your SillyTavern settings and used only for requests to this backup source. No token is bundled with the extension.": "保存在你的 SillyTavern 设置中，仅用于请求此备用音源。插件不内置任何 token。",
-    "Run tests only when troubleshooting. Avoid repeated tests in a short period to reduce load on upstream services.": "请仅在排查问题时测试，避免短时间内反复点击，以减少上游服务压力。"
+    "Run tests only when troubleshooting. Avoid repeated tests in a short period to reduce load on upstream services.": "请仅在排查问题时测试，避免短时间内反复点击，以减少上游服务压力。",
+    "Expand editor": "放大编辑器"
 }
