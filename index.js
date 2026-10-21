@@ -172,7 +172,7 @@ window.TI_FPS = FPSMonitor;
 let acornPromise = null;
 let messageFlushScheduled = false;
 let _hiddenIndicator = null;
-const PLUGIN_VERSION = "4.6.3";
+const PLUGIN_VERSION = "4.6.4";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -222,17 +222,17 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "4.6.3": {
-    date: "2026-10-14",
+  "4.6.4": {
+    date: "2026-10-21",
     title: {
-      zh: "编辑器放大与悬浮编辑兼容",
-      en: "Expanded Editors and Floating Editor Integration",
-      th: "ขยายช่องแก้ไขและรองรับหน้าต่างแก้ไขลอย",
+      zh: "主题批量导入与多端适配",
+      en: "Batch Theme Import and Responsive Import Dialog",
+      th: "นำเข้าธีมหลายรายการและปรับหน้าต่างให้เหมาะกับทุกหน้าจอ",
     },
     content: {
-      zh: "### 新增与优化\n- 为设置内的 16 个多行编辑框添加酒馆原生放大按钮，覆盖文本预设、指示器主题、播放器主题和气泡样式中的正文、代码、尺寸 JSON 与说明。\n- 兼容 QuickBar 悬浮编辑入口，保留原放大按钮和 JSON 格式化按钮；窄屏与触屏下增大按钮点击区域。\n- 补齐放大编辑后的输入通知，使现有实时预览与 JSON 校验正常更新，避免同一次输入重复触发。\n- 增加切换主题、方案或编辑模式时的保护，避免旧悬浮窗和未完成的加载、保存操作影响新内容。\n\n### 使用说明\n- 普通放大无需安装 QuickBar；如需悬浮编辑和对象切换保护，请同时更新 QuickBar 至 3.3.3 或更高版本，并启用其悬浮编辑窗功能。\n- 放大与悬浮编辑只修改当前编辑区，仍须点击对应的保存按钮；JSON 格式化不会自动保存。\n- 切换、导入覆盖或重新加载编辑区后，旧悬浮窗会锁定并保留内容供复制。部分保存或重命名操作会重新加载编辑区，继续编辑时请重新打开窗口。\n\n> 更新后请刷新 SillyTavern 页面。本次为前端更新，无需为此更新播放器后端。\n",
-      en: "### New Features and Improvements\n- Added native SillyTavern expand buttons to all 16 multiline settings fields, covering text presets, indicator themes, player themes and bubble styles, including content, code, size JSON and descriptions.\n- Integrated QuickBar floating editor entries while retaining the original expand and JSON format buttons. Buttons have larger touch targets on narrow screens and touch devices.\n- Bridged input notifications from expanded editors so existing live previews and JSON validation update correctly without processing the same input twice.\n- Added protection when switching themes, presets or editing modes, so old floating windows and unfinished loads or saves cannot affect the newly selected content.\n\n### Notes\n- Native expansion works without QuickBar. For floating editing and object-switch protection, also update QuickBar to 3.3.3 or later and enable its floating editor feature.\n- Expanded and floating editors only update the current editing fields. Use the corresponding Save button to persist changes; formatting JSON does not save automatically.\n- Switching objects, importing replacements or reloading the editing fields locks old floating windows and preserves their text for copying. Some save or rename actions reload the fields; reopen the window to continue editing.\n\n> Refresh the SillyTavern page after updating. This is a frontend update and does not require a music backend update.\n",
-      th: "### เพิ่มและปรับปรุง\n- เพิ่มปุ่มขยายช่องแก้ไขแบบเดิมของ SillyTavern ให้ช่องข้อความหลายบรรทัดทั้ง 16 ช่องในการตั้งค่า ครอบคลุมพรีเซ็ตข้อความ ธีมอินดิเคเตอร์ ธีมเครื่องเล่น และรูปแบบบับเบิล รวมถึงเนื้อหา โค้ด JSON ขนาด และคำอธิบาย\n- รองรับปุ่มเปิดหน้าต่างแก้ไขลอยของ QuickBar โดยยังคงปุ่มขยายเดิมและปุ่มจัดรูปแบบ JSON พร้อมเพิ่มพื้นที่กดบนหน้าจอแคบและอุปกรณ์สัมผัส\n- เชื่อมการแจ้งเตือนอินพุตจากช่องแก้ไขที่ขยายแล้ว เพื่อให้ตัวอย่างแบบเรียลไทม์และการตรวจสอบ JSON อัปเดตตามปกติ โดยไม่ประมวลผลอินพุตเดียวกันซ้ำ\n- เพิ่มการป้องกันเมื่อสลับธีม พรีเซ็ต หรือโหมดแก้ไข เพื่อไม่ให้หน้าต่างลอยเก่าและการโหลดหรือบันทึกที่ยังไม่เสร็จส่งผลต่อเนื้อหาที่เลือกใหม่\n\n### หมายเหตุ\n- ปุ่มขยายปกติใช้งานได้โดยไม่ต้องติดตั้ง QuickBar หากต้องการหน้าต่างแก้ไขลอยและการป้องกันเมื่อสลับรายการ โปรดอัปเดต QuickBar เป็น 3.3.3 หรือใหม่กว่า และเปิดฟังก์ชันหน้าต่างแก้ไขลอย\n- การแก้ไขในหน้าต่างขยายหรือหน้าต่างลอยจะเปลี่ยนเฉพาะช่องแก้ไขปัจจุบัน ยังต้องกดปุ่มบันทึกของรายการนั้น การจัดรูปแบบ JSON ไม่ได้บันทึกโดยอัตโนมัติ\n- เมื่อสลับรายการ นำเข้าทับ หรือโหลดช่องแก้ไขใหม่ หน้าต่างลอยเก่าจะถูกล็อกและเก็บข้อความไว้ให้คัดลอก การบันทึกหรือเปลี่ยนชื่อบางอย่างจะโหลดช่องแก้ไขใหม่ หากต้องการแก้ไขต่อ ให้เปิดหน้าต่างใหม่\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern ครั้งนี้เป็นการอัปเดตส่วนหน้า ไม่จำเป็นต้องอัปเดตส่วนหลังของเครื่องเล่นเพลง\n",
+      zh: "### 新增与优化\n- 新增统一的主题批量导入窗口，覆盖 CSS / iframe 指示器主题、播放器主题、气泡样式和文本预设，支持混合导入。\n- 新增“选择 ZIP 主题包”和“选择整个文件夹”：只需选一次包或目录，即可载入多个主题，再在插件内直接勾选，无需逐个选文件。文件夹包含子目录，ZIP 无需手动解压。\n- 保留 JSON 多选、分次追加、桌面拖放与 JSON 数组 / 合集导入；兼容原有单项导出文件。\n- 导入前可查看类别与来源、勾选条目；遇到同 ID 或同名内容时，可选择都保留、跳过或覆盖，坏文件单独提示，不影响其他有效条目。\n- 使用酒馆原生弹窗，适配桌面、手机和平板；优化窄屏换行、触屏按钮与列表滚动。\n- 批量保存只提交一次，不重载无关编辑区；关闭导入窗口后，不会因未完成的文件读取而继续导入。\n\n### 使用说明\n- 在“工具 → 批量导入主题”打开窗口；主题、播放器、气泡和文本预设原有的“导入”按钮也可批量导入。\n- 默认创建副本并保留当前选择；可勾选“导入后启用各类型的最后一项”。覆盖当前使用的条目会更新其效果和对应编辑区，请先保存未完成的编辑或导出备份。\n- 每批最多 500 个 JSON 文件 / 条目，单个 JSON 不超过 10 MiB，所选文件与解压后累计大小各不超过 50 MiB。ZIP 需为普通未加密单卷格式（非 ZIP64），只读取 JSON，不导入嵌套 ZIP 或外部素材。\n- 主题可能包含 JavaScript，请只导入可信作者的文件。手机文件选择器若只能单选，可直接选择一个 ZIP 主题包；文件夹入口不受支持时也可改用 ZIP。\n\n> 更新后请刷新 SillyTavern 页面。本次为前端更新，无需为此更新播放器后端。\n",
+      en: "### New Features and Improvements\n- Added a unified batch import dialog for CSS / iframe indicator themes, player themes, bubble styles and text presets, including mixed imports.\n- Added Choose ZIP package and Choose folder: select a package or directory once, then tick the themes directly in the extension. Subfolders are included and ZIP packages need no manual extraction.\n- Retains JSON multi-selection, adding files in several steps, desktop drag and drop, arrays and collections. Existing single-item exports remain compatible.\n- Review categories and sources and select individual items before importing. Choose to keep both, skip or replace matching IDs or names. Invalid files are reported separately without blocking valid items.\n- Uses the native SillyTavern popup with responsive desktop, phone and tablet layouts, improved narrow-screen wrapping, touch targets and list scrolling.\n- Saves each batch once without reloading unrelated editors. Closing the dialog prevents unfinished file reads from continuing the import.\n\n### Notes\n- Open Utilities → Batch Import Themes, or use the existing Import buttons for indicator themes, player themes, bubbles and text presets.\n- By default, duplicates become copies and current selections are kept. You can activate the last imported item of each type. Replacing an active item updates its appearance and editor, so save unfinished edits or export a backup first.\n- Each batch supports up to 500 JSON files / items and 10 MiB per JSON, with 50 MiB limits on both selected files and decompressed content. Use standard, unencrypted, single-volume ZIP archives, not ZIP64. Only JSON is read; nested ZIPs and external assets are not imported.\n- Themes may contain JavaScript. Only import files from authors you trust. If your mobile picker only allows one file or your browser does not support folder selection, choose one ZIP package instead.\n\n> Refresh the SillyTavern page after updating. This is a frontend update and does not require a music backend update.\n",
+      th: "### ฟีเจอร์ใหม่และการปรับปรุง\n- เพิ่มหน้าต่างนำเข้าธีมหลายรายการแบบรวม รองรับธีมอินดิเคเตอร์ CSS / iframe ธีมเครื่องเล่น รูปแบบบับเบิล และพรีเซ็ตข้อความ สามารถนำเข้าปะปนกันได้\n- เพิ่มปุ่มเลือกแพ็กเกจ ZIP และเลือกทั้งโฟลเดอร์ เลือกเพียงครั้งเดียวแล้วทำเครื่องหมายธีมในส่วนขยายได้โดยตรง รวมโฟลเดอร์ย่อยและไม่ต้องแตก ZIP เอง\n- ยังคงรองรับการเลือก JSON หลายไฟล์ การเพิ่มไฟล์หลายครั้ง การลากไฟล์บนเดสก์ท็อป อาร์เรย์ JSON และชุดธีม รวมถึงไฟล์ส่งออกรายการเดียวแบบเดิม\n- ตรวจสอบประเภทและแหล่งที่มา พร้อมเลือกรายการก่อนนำเข้า เมื่อ ID หรือชื่อซ้ำ สามารถเก็บทั้งคู่ ข้าม หรือแทนที่ได้ ไฟล์ที่ผิดพลาดจะแสดงแยกโดยไม่ขัดขวางรายการที่ถูกต้อง\n- ใช้หน้าต่างป๊อปอัปของ SillyTavern ปรับให้เหมาะกับเดสก์ท็อป โทรศัพท์ และแท็บเล็ต พร้อมปรับการตัดบรรทัด ปุ่มสัมผัส และการเลื่อนรายการบนหน้าจอแคบ\n- บันทึกแต่ละชุดเพียงครั้งเดียวโดยไม่โหลดช่องแก้ไขที่ไม่เกี่ยวข้องใหม่ เมื่อปิดหน้าต่าง การอ่านไฟล์ที่ยังไม่เสร็จจะไม่ทำให้นำเข้าต่อ\n\n### หมายเหตุ\n- เปิดจากเครื่องมือ → นำเข้าธีมหลายรายการ หรือใช้ปุ่มนำเข้าเดิมของธีมอินดิเคเตอร์ ธีมเครื่องเล่น บับเบิล และพรีเซ็ตข้อความ\n- ค่าเริ่มต้นจะสร้างสำเนาเมื่อพบรายการซ้ำและคงรายการที่เลือกอยู่ สามารถเลือกเปิดใช้รายการสุดท้ายของแต่ละประเภทหลังนำเข้าได้ การแทนที่รายการที่กำลังใช้จะอัปเดตรูปแบบและช่องแก้ไข โปรดบันทึกงานที่ยังไม่เสร็จหรือส่งออกข้อมูลสำรองก่อน\n- แต่ละชุดรองรับสูงสุด 500 ไฟล์ JSON / รายการ ขนาดไม่เกิน 10 MiB ต่อ JSON โดยไฟล์ที่เลือกและข้อมูลหลังแตกไฟล์รวมต้องไม่เกิน 50 MiB ใช้ ZIP มาตรฐานแบบไฟล์เดียวที่ไม่เข้ารหัสและไม่ใช่ ZIP64 อ่านเฉพาะ JSON โดยไม่นำเข้า ZIP ซ้อนหรือไฟล์สื่อภายนอก\n- ธีมอาจมี JavaScript โปรดนำเข้าเฉพาะไฟล์จากผู้สร้างที่เชื่อถือได้ หากมือถือเลือกได้ครั้งละไฟล์หรือเบราว์เซอร์ไม่รองรับการเลือกโฟลเดอร์ ให้เลือกแพ็กเกจ ZIP หนึ่งไฟล์แทน\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern ครั้งนี้เป็นการอัปเดตส่วนหน้า ไม่จำเป็นต้องอัปเดตส่วนหลังของเครื่องเล่นเพลง\n",
     },
   },
 };
@@ -1523,10 +1523,6 @@ const MusicUtils = {
   // 试听版判定阈值：音频时长 ≤ 此值（秒）视为试听版，需换源
   MIN_PLAYABLE_DURATION: 60,
 
-  /**
-   * 集中的音频时长检测（供所有播放器主题调用）
-   * 用法：await window.parent.MusicUtils.checkAudioDuration(url)
-   */
   async checkAudioDuration(audioUrl, timeoutMs = 3000) {
     const result = await MusicService.inspectAudio(
       audioUrl,
@@ -1535,10 +1531,6 @@ const MusicUtils = {
     return result.duration;
   },
 
-  /**
-   * 一步到位的试听版判定（推荐播放器使用）
-   * 用法：if (await window.parent.MusicUtils.isPreviewClip(url)) continue;
-   */
   async isPreviewClip(audioUrl) {
     const dur = await this.checkAudioDuration(audioUrl);
     return dur !== null && dur <= this.MIN_PLAYABLE_DURATION;
@@ -7991,6 +7983,7 @@ function addExtensionSettings() {
   let contentInitialized = false;
   let hasCheckedChangelog = false;
   let editorEnhancements;
+  let refreshImportedBubbleStyles = () => {};
 
   const initializeContent = () => {
     if (contentInitialized) return;
@@ -8128,7 +8121,7 @@ function addExtensionSettings() {
                                         <select id="ti_char_preset_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.textPresets
                                           .map(
                                             (p) =>
-                                              `<option value="${p.id}">${p.name}</option>`,
+                                              `<option value="${escapeOption(p.id)}">${escapeOption(p.name)}</option>`,
                                           )
                                           .join("")}</select>
                                     </div>
@@ -8141,7 +8134,7 @@ function addExtensionSettings() {
                                       )
                                       .map(
                                         (theme) =>
-                                          `<option value="${theme.id}">${theme.name}${
+                                          `<option value="${escapeOption(theme.id)}">${escapeOption(theme.name)}${
                                             theme.useIframe
                                               ? " [iframe]"
                                               : " [CSS]"
@@ -8168,7 +8161,7 @@ function addExtensionSettings() {
                                         <select id="ti_binding_preset_select" class="text_pole"><option value="">-- ${t`Use Global Settings`} --</option>${settings.textPresets
                                           .map(
                                             (p) =>
-                                              `<option value="${p.id}">${p.name}</option>`,
+                                              `<option value="${escapeOption(p.id)}">${escapeOption(p.name)}</option>`,
                                           )
                                           .join("")}</select>
                                     </div>
@@ -8181,7 +8174,7 @@ function addExtensionSettings() {
                                       )
                                       .map(
                                         (theme) =>
-                                          `<option value="${theme.id}">${theme.name}${
+                                          `<option value="${escapeOption(theme.id)}">${escapeOption(theme.name)}${
                                             theme.useIframe
                                               ? " [iframe]"
                                               : " [CSS]"
@@ -8254,7 +8247,7 @@ function addExtensionSettings() {
                 <i class="fa-solid fa-trash-can"></i>
                 <span>${t`Delete`}</span>
             </button>
-            <button id="ti_preset_import" class="menu_button" title="${t`Import`}">
+            <button id="ti_preset_import" class="menu_button" title="${t`Import / Batch Import`}" aria-label="${t`Import / Batch Import`}">
                 <i class="fa-solid fa-file-import"></i>
                 <span>${t`Import`}</span>
             </button>
@@ -8299,7 +8292,7 @@ function addExtensionSettings() {
                 <i class="fa-solid fa-trash-can"></i>
                 <span>${t`Delete`}</span>
             </button>
-            <button id="ti_theme_import" class="menu_button" title="${t`Import`}">
+            <button id="ti_theme_import" class="menu_button" title="${t`Import / Batch Import`}" aria-label="${t`Import / Batch Import`}">
                 <i class="fa-solid fa-file-import"></i>
                 <span>${t`Import`}</span>
             </button>
@@ -8449,7 +8442,7 @@ function addExtensionSettings() {
         <i class="fa-solid fa-trash-can"></i>
         <span>${t`Delete`}</span>
     </button>
-    <button id="ti_player_theme_import" class="menu_button" title="${t`Import`}">
+    <button id="ti_player_theme_import" class="menu_button" title="${t`Import / Batch Import`}" aria-label="${t`Import / Batch Import`}">
         <i class="fa-solid fa-file-import"></i>
         <span>${t`Import`}</span>
     </button>
@@ -8593,7 +8586,7 @@ function addExtensionSettings() {
                 <i class="fa-solid fa-trash-can"></i>
                 <span>${t`Delete`}</span>
             </button>
-            <button id="ti_bubble_import" class="menu_button" title="${t`Import`}">
+            <button id="ti_bubble_import" class="menu_button" title="${t`Import / Batch Import`}" aria-label="${t`Import / Batch Import`}">
                 <i class="fa-solid fa-file-import"></i>
                 <span>${t`Import`}</span>
             </button>
@@ -8796,6 +8789,7 @@ function addExtensionSettings() {
                         <div class="ti-section">
                             <h4>${t`Utilities`}</h4>
                             <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 10px;">
+                            <button id="ti_batch_theme_import" class="menu_button"><i class="fa-solid fa-file-import" aria-hidden="true"></i><span>${t`Batch Import Themes`}</span></button>
                             <button id="ti_usage_guide_btn" class="menu_button"><i class="fa-solid fa-circle-question"></i><span>${t`Usage Guide`}</span></button>
                                 <button id="ti_download_indicator_guide_btn" class="menu_button"><i class="fa-solid fa-palette"></i><span>${t`Indicator Theme Guide`}</span></button>
 <button id="ti_download_player_guide_btn" class="menu_button"><i class="fa-solid fa-music"></i><span>${t`Player Theme Guide`}</span></button>
@@ -9347,7 +9341,8 @@ function addExtensionSettings() {
     const playerEnabledCheckbox = section.querySelector("#ti_player_enabled");
     const playerControls = section.querySelector("#ti_player_controls");
     const lockCheckbox = section.querySelector("#ti_player_locked");
-    function populateBubbleStyles() {
+    refreshImportedBubbleStyles = populateBubbleStyles;
+    function populateBubbleStyles(reloadEditor = true) {
       const settings = getSettings();
       const select = section.querySelector("#ti_bubble_style_select");
       const htmlTextarea = section.querySelector("#ti_bubble_html");
@@ -9358,9 +9353,9 @@ function addExtensionSettings() {
       select.innerHTML = settings.bubbleStyles
         .map(
           (style) =>
-            `<option value="${style.id}" ${
+            `<option value="${escapeOption(style.id)}" ${
               style.id === settings.selectedBubbleStyleId ? "selected" : ""
-            }>${style.name}</option>`,
+            }>${escapeOption(style.name)}</option>`,
         )
         .join("");
 
@@ -9368,6 +9363,7 @@ function addExtensionSettings() {
         (s) => s.id === settings.selectedBubbleStyleId,
       );
       select.value = currentStyle?.id || "";
+      if (!reloadEditor) return;
       const ticket = editorEnhancements.begin("bubble", currentStyle, { pending: true });
       if (htmlTextarea) htmlTextarea.value = currentStyle?.html || "";
       if (cssTextarea) cssTextarea.value = currentStyle?.css || "";
@@ -9538,59 +9534,7 @@ function addExtensionSettings() {
 
       const importBtn = section.querySelector("#ti_bubble_import");
       if (importBtn) {
-        importBtn.addEventListener("click", () => {
-          const input = document.createElement("input");
-          input.type = "file";
-          input.accept = "application/json,.json";
-          input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              try {
-                const imported = JSON.parse(event.target.result);
-
-                if (!imported.name || !imported.html) {
-                  throw new Error(t`Invalid bubble style format.`);
-                }
-
-                const settings = getSettings();
-                const newStyle = {
-                  id: imported.id || "bubble_" + Date.now(),
-                  name: imported.name,
-                  html: imported.html || "",
-                  css: imported.css || "",
-                  isBuiltIn: false,
-                };
-                if (imported.readme) {
-                  newStyle.readme = imported.readme;
-                }
-
-                const existingIndex = settings.bubbleStyles.findIndex(
-                  (s) => s.id === newStyle.id,
-                );
-                if (existingIndex !== -1) {
-                  settings.bubbleStyles[existingIndex] = newStyle;
-                } else {
-                  settings.bubbleStyles.push(newStyle);
-                }
-
-                settings.selectedBubbleStyleId = newStyle.id;
-                saveSettingsDebounced();
-                populateBubbleStyles();
-                applyBubbleStyles();
-                refreshAllBubbles();
-                toastr.success(t`Bubble style "${newStyle.name}" imported.`);
-              } catch (error) {
-                toastr.error(
-                  t`Failed to import bubble style: ${error.message}`,
-                );
-              }
-            };
-            reader.readAsText(file);
-          };
-          input.click();
-        });
+        importBtn.addEventListener("click", () => createImportHandler("bubble"));
       }
 
       const exportBtn = section.querySelector("#ti_bubble_export");
@@ -10225,7 +10169,7 @@ function addExtensionSettings() {
         playlistSelect.innerHTML = list
           .map(
             (p) =>
-              `<option value="${p.id}" ${p.id === currentId ? "selected" : ""}>${escapeHtml(p.name)} (${p.songCount || 0})</option>`,
+              `<option value="${escapeOption(p.id)}" ${p.id === currentId ? "selected" : ""}>${escapeHtml(p.name)} (${p.songCount || 0})</option>`,
           )
           .join("");
       }
@@ -10246,7 +10190,7 @@ function addExtensionSettings() {
         list
           .map(
             (p) =>
-              `<option value="${p.id}" ${p.id === boundId ? "selected" : ""}>${escapeHtml(p.name)}</option>`,
+              `<option value="${escapeOption(p.id)}" ${p.id === boundId ? "selected" : ""}>${escapeHtml(p.name)}</option>`,
           )
           .join("");
     }
@@ -12245,6 +12189,7 @@ function addExtensionSettings() {
 
   function initializeToolsSettings() {
     const settings = getSettings();
+    section.querySelector("#ti_batch_theme_import").addEventListener("click", () => createImportHandler("theme"));
     const apicxTokenInput = section.querySelector("#ti_apicx_token");
     if (apicxTokenInput) {
       apicxTokenInput.value = settings.apicxToken || "";
@@ -13494,7 +13439,7 @@ function addExtensionSettings() {
     editorEnhancements.complete(ticket);
   }
 
-  function populatePresets(currentId = getSettings().selectedTextPresetId) {
+  function populatePresets(currentId = getSettings().selectedTextPresetId, reloadEditor = true) {
     const settings = getSettings();
     const tiPresetSelect = section.querySelector("#ti_preset_select");
     const tiPresetText = section.querySelector("#ti_preset_text");
@@ -13503,9 +13448,9 @@ function addExtensionSettings() {
     tiPresetSelect.innerHTML = settings.textPresets
       .map(
         (p) =>
-          `<option value="${p.id}" data-is-builtin="${
+          `<option value="${escapeOption(p.id)}" data-is-builtin="${
             p.isBuiltIn || false
-          }" ${p.id === currentId ? "selected" : ""}>${p.name}</option>`,
+          }" ${p.id === currentId ? "selected" : ""}>${escapeOption(p.name)}</option>`,
       )
       .join("");
 
@@ -13519,7 +13464,7 @@ function addExtensionSettings() {
       sel.innerHTML =
         `<option value="">-- ${t`Use Global Settings`} --</option>` +
         settings.textPresets
-          .map((p) => `<option value="${p.id}">${p.name}</option>`)
+          .map((p) => `<option value="${escapeOption(p.id)}">${escapeOption(p.name)}</option>`)
           .join("");
       sel.value = prevValue;
     });
@@ -13530,10 +13475,10 @@ function addExtensionSettings() {
       return populatePresets();
     }
     tiPresetSelect.value = selectedPreset?.id || "";
-    updatePresetEditor(selectedPreset);
+    if (reloadEditor) updatePresetEditor(selectedPreset);
   }
 
-  function populateThemes(currentId = getSettings().selectedThemeId) {
+  function populateThemes(currentId = getSettings().selectedThemeId, reloadEditor = true) {
     const settings = getSettings();
     const tiThemeSelect = section.querySelector("#ti_theme_select");
 
@@ -13546,10 +13491,10 @@ function addExtensionSettings() {
       )
       .map((theme) => {
         const modeIndicator = theme.useIframe ? " [iframe]" : " [CSS]";
-        return `<option value="${theme.id}" data-is-builtin="${
+        return `<option value="${escapeOption(theme.id)}" data-is-builtin="${
           theme.isBuiltIn || false
         }" ${theme.id === currentId ? "selected" : ""}>${
-          theme.name
+          escapeOption(theme.name)
         }${modeIndicator}</option>`;
       })
       .join("");
@@ -13571,7 +13516,7 @@ function addExtensionSettings() {
           )
           .map(
             (theme) =>
-              `<option value="${theme.id}">${theme.name}${
+              `<option value="${escapeOption(theme.id)}">${escapeOption(theme.name)}${
                 theme.useIframe ? " [iframe]" : " [CSS]"
               }</option>`,
           )
@@ -13585,10 +13530,10 @@ function addExtensionSettings() {
     const selectedTheme = indicatorThemes.find((theme) => theme.id === currentId)
       || indicatorThemes[0];
     tiThemeSelect.value = selectedTheme?.id || "";
-    queueThemeEditorLoad(selectedTheme);
+    if (reloadEditor) queueThemeEditorLoad(selectedTheme);
   }
 
-  function populatePlayerThemes() {
+  function populatePlayerThemes(reloadEditor = true) {
     const settings = getSettings();
     const playerThemeSelect = section.querySelector("#ti_player_theme_select");
 
@@ -13602,16 +13547,16 @@ function addExtensionSettings() {
     playerThemeSelect.innerHTML = playerThemes
       .map(
         (theme) =>
-          `<option value="${theme.id}" ${
+          `<option value="${escapeOption(theme.id)}" ${
             theme.id === currentId ? "selected" : ""
-          }>${theme.name}</option>`,
+          }>${escapeOption(theme.name)}</option>`,
       )
       .join("");
 
     const selectedTheme =
       playerThemes.find((theme) => theme.id === currentId) || playerThemes[0];
     playerThemeSelect.value = selectedTheme?.id || "";
-    updatePlayerEditorMode(selectedTheme);
+    if (reloadEditor) updatePlayerEditorMode(selectedTheme);
   }
 
   function updateEditorMode(theme, ticket) {
@@ -13885,14 +13830,7 @@ function addExtensionSettings() {
 
     // 导入导出
     section.querySelector("#ti_preset_import").addEventListener("click", () =>
-      createImportHandler(
-        "preset",
-        getSettings().textPresets,
-        populatePresets,
-        (id) => {
-          getSettings().selectedTextPresetId = id;
-        },
-      ),
+      createImportHandler("preset"),
     );
     section
       .querySelector("#ti_preset_export")
@@ -14391,15 +14329,7 @@ function addExtensionSettings() {
       });
 
     section.querySelector("#ti_theme_import").addEventListener("click", () =>
-      createImportHandler(
-        "theme",
-        getSettings().themes,
-        populateThemes,
-        (id) => {
-          getSettings().selectedThemeId = id;
-          applyTheme(id);
-        },
-      ),
+      createImportHandler("theme"),
     );
     section
       .querySelector("#ti_theme_export")
@@ -14702,17 +14632,7 @@ function addExtensionSettings() {
     section
       .querySelector("#ti_player_theme_import")
       .addEventListener("click", () =>
-        createImportHandler(
-          "theme",
-          getSettings().themes,
-          () => {
-            populatePlayerThemes();
-            populateThemes();
-          },
-          (id) => {
-            getSettings().selectedPlayerThemeId = id;
-          },
-        ),
+        createImportHandler("theme"),
       );
     section
       .querySelector("#ti_player_theme_export")
@@ -14774,93 +14694,73 @@ function addExtensionSettings() {
     }
   }
 
-  // 导入导出处理器
-  function createImportHandler(type, list, populateFn, onImported) {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "application/json,.json";
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const imported = JSON.parse(event.target.result);
-          let validation = false;
-          if (type === "theme") {
-            validation =
-              imported.name &&
-              ((!imported.useIframe && imported.css) ||
-                (imported.useIframe && imported.html));
-          } else {
-            validation = imported.name && imported.text;
-          }
-          if (!validation) throw new Error(t`Invalid ${type} format.`);
+  async function createImportHandler(fallbackKind) {
+    try {
+      const { showThemeImportPopup } = await import("./theme-import-ui.js");
+      if (!section.isConnected) return;
+      await showThemeImportPopup({
+        fallbackKind,
+        getSettings: () => {
+          if (!section.isConnected) throw new Error(t`The settings panel changed. Close this dialog and reopen the importer.`);
+          return getSettings();
+        },
+        onImported: finishThemeImport,
+      });
+    } catch (error) {
+      console.error("[TI] Theme import failed", error);
+      toastr.error(t`Import failed: ${error.message}`);
+    }
+  }
 
-          const newItem = {
-            id: imported.id || Date.now().toString(),
-            name: imported.name,
-          };
-
-          if (type === "theme") {
-            newItem.useIframe = imported.useIframe || false;
-            if (newItem.useIframe) {
-              newItem.html = imported.html || "";
-              newItem.iframeCSS = imported.iframeCSS || "";
-              newItem.iframeJS = imported.iframeJS || "";
-              if (
-                imported.sizes &&
-                typeof imported.sizes === "object" &&
-                !Array.isArray(imported.sizes)
-              ) {
-                newItem.sizes = imported.sizes;
-              }
-            } else {
-              newItem.css = imported.css || "";
-            }
-            if (imported.readme) {
-              newItem.readme = imported.readme;
-            }
-          } else {
-            newItem.text = imported.text;
-            if (imported.readme) {
-              newItem.readme = imported.readme;
-            }
-          }
-
-          const existingIndex = list.findIndex(
-            (item) => item.id === newItem.id,
-          );
-          if (existingIndex !== -1) {
-            list[existingIndex] = newItem;
-            _needsSync = true;
-          } else {
-            list.push(newItem);
-          }
-
-          if (type === "theme") {
-            updateGlobalDefs(newItem);
-          }
-
-          onImported(newItem.id);
-          populateFn();
-          saveSettingsDebounced();
-          toastr.success(
-            type === "theme"
-              ? t`Theme "${newItem.name}" imported.`
-              : t`Preset "${newItem.name}" imported.`,
-          );
-        } catch (error) {
-          toastr.error(
-            type === "theme"
-              ? t`Failed to import theme: ${error.message}`
-              : t`Failed to import preset: ${error.message}`,
-          );
+  function finishThemeImport(result, { activate = false } = {}) {
+    const settings = getSettings();
+    const isPlayer = (item) => item.name.startsWith("播放器") || item.name.startsWith("Player");
+    const last = {};
+    for (const entry of result.items) {
+      const kind = entry.kind === "theme" && isPlayer(entry.item) ? "player" : entry.kind;
+      last[kind] = entry.item;
+    }
+    if (activate) {
+      if (last.theme) settings.selectedThemeId = last.theme.id;
+      if (last.player) settings.selectedPlayerThemeId = last.player.id;
+      if (last.preset) settings.selectedTextPresetId = last.preset.id;
+      if (last.bubble) settings.selectedBubbleStyleId = last.bubble.id;
+    }
+    saveSettingsDebounced();
+    const affected = (kind, id) => result.items.some((entry) =>
+      entry.kind === kind && entry.item.id === id,
+    );
+    const themeChanged = affected("theme", settings.selectedThemeId);
+    const playerChanged = affected("theme", settings.selectedPlayerThemeId);
+    const presetChanged = affected("preset", settings.selectedTextPresetId);
+    const bubbleChanged = affected("bubble", settings.selectedBubbleStyleId);
+    if (last.theme || last.player) {
+      populateThemes(settings.selectedThemeId, themeChanged);
+      populatePlayerThemes(playerChanged);
+    }
+    if (last.preset) populatePresets(settings.selectedTextPresetId, presetChanged);
+    if (last.bubble) refreshImportedBubbleStyles(bubbleChanged);
+    if (themeChanged || presetChanged) {
+      for (const entry of result.items) {
+        if ((entry.kind === "theme" && entry.item.id === settings.selectedThemeId)
+          || (entry.kind === "preset" && entry.item.id === settings.selectedTextPresetId)) {
+          updateGlobalDefs(entry.item);
         }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+      }
+      if (themeChanged) updatePositionOptions();
+      applyTheme(settings.selectedThemeId);
+    }
+    if (playerChanged && settings.playerEnabled) reloadPlayer();
+    if (bubbleChanged) {
+      applyBubbleStyles();
+      refreshAllBubbles();
+    }
+  }
+
+  function escapeOption(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    })[character]);
   }
 
   function createExportHandler(type, list, selectedId) {
@@ -14870,6 +14770,7 @@ function addExtensionSettings() {
     exportItem._metadata = {
       exportedAt: new Date().toISOString(),
       exportedBy: "SillyTavern Typing Indicator Themes Extension",
+      type: type === "theme" && item.useIframe && /^(播放器|Player)/.test(item.name) ? "player-theme" : type,
     };
     const blob = new Blob([JSON.stringify(exportItem, null, 2)], {
       type: "application/json",
