@@ -28,6 +28,13 @@ import { destroyEditorEnhancements, installEditorEnhancements } from "./editor-e
 import { createStreamThemeParser } from "./stream-theme-parser.js";
 import { installThemeRuntime } from "./theme-runtime.js";
 import {
+  getFloatingOffsetState,
+  normalizeFloatingOffset,
+  removeFloatingOffsetsForTheme,
+  setFloatingOffset,
+  setFloatingOffsetEnabled,
+} from "./floating-offset.js";
+import {
   createMusicService,
   createPlaybackStallWatchdog,
   createRecoveryGuard,
@@ -172,7 +179,7 @@ window.TI_FPS = FPSMonitor;
 let acornPromise = null;
 let messageFlushScheduled = false;
 let _hiddenIndicator = null;
-const PLUGIN_VERSION = "4.6.4";
+const PLUGIN_VERSION = "4.6.5";
 const pendingMessages = new Map();
 const pendingSearches = new Map();
 const BGM_REGEX = /\[bgm\]([^\[\]]+)-([^\[\]]+?)\[\/bgm\]/g;
@@ -222,17 +229,17 @@ function queuePostMessage(targetWindow, message, origin = "*") {
 }
 
 const CHANGELOG = {
-  "4.6.4": {
-    date: "2026-10-21",
+  "4.6.5": {
+    date: "2026-11-04",
     title: {
-      zh: "主题批量导入与多端适配",
-      en: "Batch Theme Import and Responsive Import Dialog",
-      th: "นำเข้าธีมหลายรายการและปรับหน้าต่างให้เหมาะกับทุกหน้าจอ",
+      zh: "指示器专属偏移与界面优化",
+      en: "Dedicated Indicator Offsets and UI Improvements",
+      th: "ระยะเฉพาะสำหรับอินดิเคเตอร์และการปรับปรุงหน้าตา",
     },
     content: {
-      zh: "### 新增与优化\n- 新增统一的主题批量导入窗口，覆盖 CSS / iframe 指示器主题、播放器主题、气泡样式和文本预设，支持混合导入。\n- 新增“选择 ZIP 主题包”和“选择整个文件夹”：只需选一次包或目录，即可载入多个主题，再在插件内直接勾选，无需逐个选文件。文件夹包含子目录，ZIP 无需手动解压。\n- 保留 JSON 多选、分次追加、桌面拖放与 JSON 数组 / 合集导入；兼容原有单项导出文件。\n- 导入前可查看类别与来源、勾选条目；遇到同 ID 或同名内容时，可选择都保留、跳过或覆盖，坏文件单独提示，不影响其他有效条目。\n- 使用酒馆原生弹窗，适配桌面、手机和平板；优化窄屏换行、触屏按钮与列表滚动。\n- 批量保存只提交一次，不重载无关编辑区；关闭导入窗口后，不会因未完成的文件读取而继续导入。\n\n### 使用说明\n- 在“工具 → 批量导入主题”打开窗口；主题、播放器、气泡和文本预设原有的“导入”按钮也可批量导入。\n- 默认创建副本并保留当前选择；可勾选“导入后启用各类型的最后一项”。覆盖当前使用的条目会更新其效果和对应编辑区，请先保存未完成的编辑或导出备份。\n- 每批最多 500 个 JSON 文件 / 条目，单个 JSON 不超过 10 MiB，所选文件与解压后累计大小各不超过 50 MiB。ZIP 需为普通未加密单卷格式（非 ZIP64），只读取 JSON，不导入嵌套 ZIP 或外部素材。\n- 主题可能包含 JavaScript，请只导入可信作者的文件。手机文件选择器若只能单选，可直接选择一个 ZIP 主题包；文件夹入口不受支持时也可改用 ZIP。\n\n> 更新后请刷新 SillyTavern 页面。本次为前端更新，无需为此更新播放器后端。\n",
-      en: "### New Features and Improvements\n- Added a unified batch import dialog for CSS / iframe indicator themes, player themes, bubble styles and text presets, including mixed imports.\n- Added Choose ZIP package and Choose folder: select a package or directory once, then tick the themes directly in the extension. Subfolders are included and ZIP packages need no manual extraction.\n- Retains JSON multi-selection, adding files in several steps, desktop drag and drop, arrays and collections. Existing single-item exports remain compatible.\n- Review categories and sources and select individual items before importing. Choose to keep both, skip or replace matching IDs or names. Invalid files are reported separately without blocking valid items.\n- Uses the native SillyTavern popup with responsive desktop, phone and tablet layouts, improved narrow-screen wrapping, touch targets and list scrolling.\n- Saves each batch once without reloading unrelated editors. Closing the dialog prevents unfinished file reads from continuing the import.\n\n### Notes\n- Open Utilities → Batch Import Themes, or use the existing Import buttons for indicator themes, player themes, bubbles and text presets.\n- By default, duplicates become copies and current selections are kept. You can activate the last imported item of each type. Replacing an active item updates its appearance and editor, so save unfinished edits or export a backup first.\n- Each batch supports up to 500 JSON files / items and 10 MiB per JSON, with 50 MiB limits on both selected files and decompressed content. Use standard, unencrypted, single-volume ZIP archives, not ZIP64. Only JSON is read; nested ZIPs and external assets are not imported.\n- Themes may contain JavaScript. Only import files from authors you trust. If your mobile picker only allows one file or your browser does not support folder selection, choose one ZIP package instead.\n\n> Refresh the SillyTavern page after updating. This is a frontend update and does not require a music backend update.\n",
-      th: "### ฟีเจอร์ใหม่และการปรับปรุง\n- เพิ่มหน้าต่างนำเข้าธีมหลายรายการแบบรวม รองรับธีมอินดิเคเตอร์ CSS / iframe ธีมเครื่องเล่น รูปแบบบับเบิล และพรีเซ็ตข้อความ สามารถนำเข้าปะปนกันได้\n- เพิ่มปุ่มเลือกแพ็กเกจ ZIP และเลือกทั้งโฟลเดอร์ เลือกเพียงครั้งเดียวแล้วทำเครื่องหมายธีมในส่วนขยายได้โดยตรง รวมโฟลเดอร์ย่อยและไม่ต้องแตก ZIP เอง\n- ยังคงรองรับการเลือก JSON หลายไฟล์ การเพิ่มไฟล์หลายครั้ง การลากไฟล์บนเดสก์ท็อป อาร์เรย์ JSON และชุดธีม รวมถึงไฟล์ส่งออกรายการเดียวแบบเดิม\n- ตรวจสอบประเภทและแหล่งที่มา พร้อมเลือกรายการก่อนนำเข้า เมื่อ ID หรือชื่อซ้ำ สามารถเก็บทั้งคู่ ข้าม หรือแทนที่ได้ ไฟล์ที่ผิดพลาดจะแสดงแยกโดยไม่ขัดขวางรายการที่ถูกต้อง\n- ใช้หน้าต่างป๊อปอัปของ SillyTavern ปรับให้เหมาะกับเดสก์ท็อป โทรศัพท์ และแท็บเล็ต พร้อมปรับการตัดบรรทัด ปุ่มสัมผัส และการเลื่อนรายการบนหน้าจอแคบ\n- บันทึกแต่ละชุดเพียงครั้งเดียวโดยไม่โหลดช่องแก้ไขที่ไม่เกี่ยวข้องใหม่ เมื่อปิดหน้าต่าง การอ่านไฟล์ที่ยังไม่เสร็จจะไม่ทำให้นำเข้าต่อ\n\n### หมายเหตุ\n- เปิดจากเครื่องมือ → นำเข้าธีมหลายรายการ หรือใช้ปุ่มนำเข้าเดิมของธีมอินดิเคเตอร์ ธีมเครื่องเล่น บับเบิล และพรีเซ็ตข้อความ\n- ค่าเริ่มต้นจะสร้างสำเนาเมื่อพบรายการซ้ำและคงรายการที่เลือกอยู่ สามารถเลือกเปิดใช้รายการสุดท้ายของแต่ละประเภทหลังนำเข้าได้ การแทนที่รายการที่กำลังใช้จะอัปเดตรูปแบบและช่องแก้ไข โปรดบันทึกงานที่ยังไม่เสร็จหรือส่งออกข้อมูลสำรองก่อน\n- แต่ละชุดรองรับสูงสุด 500 ไฟล์ JSON / รายการ ขนาดไม่เกิน 10 MiB ต่อ JSON โดยไฟล์ที่เลือกและข้อมูลหลังแตกไฟล์รวมต้องไม่เกิน 50 MiB ใช้ ZIP มาตรฐานแบบไฟล์เดียวที่ไม่เข้ารหัสและไม่ใช่ ZIP64 อ่านเฉพาะ JSON โดยไม่นำเข้า ZIP ซ้อนหรือไฟล์สื่อภายนอก\n- ธีมอาจมี JavaScript โปรดนำเข้าเฉพาะไฟล์จากผู้สร้างที่เชื่อถือได้ หากมือถือเลือกได้ครั้งละไฟล์หรือเบราว์เซอร์ไม่รองรับการเลือกโฟลเดอร์ ให้เลือกแพ็กเกจ ZIP หนึ่งไฟล์แทน\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern ครั้งนี้เป็นการอัปเดตส่วนหน้า ไม่จำเป็นต้องอัปเดตส่วนหลังของเครื่องเล่นเพลง\n",
+      zh: "### 新增与优化\n- 新增浮动底部指示器专属偏移，支持按 ST 界面主题与指示器样式组合独立设置。\n- 完善主题切换与输入框高度变化时的位置同步；调整偏移不重新加载 iframe 主题。\n\n### 使用说明\n- 在“主设置 → 指示器位置”选择“浮动于聊天区底部”，启用专属偏移后即可调整当前搭配的位置。\n\n> 更新后请刷新 SillyTavern 页面。\n",
+      en: "### New Features and Improvements\n- Added dedicated offsets for bottom-floating indicators, configurable separately for each ST UI theme and indicator style pairing.\n- Improved position synchronization when switching themes or when the input area changes height. Adjusting offsets does not reload iframe themes.\n\n### Usage\n- In “Main Settings → Indicator Position”, select “Bottom of Chat (Floating)” and turn on “Enable Dedicated Offset” to adjust the current pairing's position.\n\n> Refresh the SillyTavern page after updating.\n",
+      th: "### ฟีเจอร์ใหม่และการปรับปรุง\n- เพิ่มระยะเฉพาะสำหรับอินดิเคเตอร์ที่ลอยด้านล่างแชท โดยตั้งค่าแยกตามคู่ธีม UI ของ ST และรูปแบบอินดิเคเตอร์ได้\n- ปรับปรุงการซิงค์ตำแหน่งเมื่อเปลี่ยนธีมหรือความสูงของช่องพิมพ์เปลี่ยน การปรับระยะจะไม่โหลดธีม iframe ใหม่\n\n### วิธีใช้\n- ใน “การตั้งค่าหลัก → ตำแหน่งตัวบ่งชี้” เลือก “ด้านล่างแชท (ลอย)” แล้วเปิด “ใช้ระยะเฉพาะคู่” เพื่อปรับตำแหน่งสำหรับคู่ธีมปัจจุบัน\n\n> หลังอัปเดต โปรดรีเฟรชหน้า SillyTavern\n",
     },
   },
 };
@@ -2695,6 +2702,8 @@ function getSettings() {
     logFilter: "all",
     position: "floating_bottom",
     floatingBottomOffset: 0,
+    floatingBottomOffsets: {},
+    disabledFloatingBottomOffsets: {},
     customPosition: { x: 50, y: 50, locked: false },
     selectedTextPresetId: "cat_default",
     textPresets: defaultPresets,
@@ -5080,6 +5089,7 @@ function applyTheme(themeId) {
     styleTag.innerHTML = theme.css || DEFAULT_THEME_CSS;
   }
   document.head.appendChild(styleTag);
+  queueMicrotask(syncFloatingIndicatorLayout);
 }
 
 function updateAndApplyTheme(source = "unknown") {
@@ -5092,6 +5102,8 @@ function updateAndApplyTheme(source = "unknown") {
     newConfig.presetId === currentlyAppliedConfig.presetId
   ) {
     debugLog(`[TI] 主题配置未变，跳过更新`);
+    // The ST theme can change the pairing's offset without changing its style.
+    syncFloatingIndicatorLayout();
     return;
   }
 
@@ -5270,31 +5282,146 @@ function syncIndicatorInteractivity() {
   }
 }
 
+// ==================== 浮动指示器搭配偏移 ====================
+
+function getFloatingOffsetContext(themeId, settings = getSettings()) {
+  const uiThemeName = power_user.theme || "";
+  const activeThemeId = themeId ?? getActiveThemeConfig().themeId;
+  const theme =
+    settings.themes.find((item) => item.id === activeThemeId) || settings.themes[0];
+  return {
+    ...getFloatingOffsetState(settings, uiThemeName, theme?.id),
+    uiThemeName,
+    themeId: theme?.id,
+    themeName: theme?.name || "",
+  };
+}
+
+function getFloatingIndicatorBottom(themeId) {
+  const sendForm = document.getElementById("send_form");
+  const memoryTable = document.getElementById("tableStatusContainer");
+  let bottom = 5 + (sendForm?.offsetHeight || 0);
+  if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
+    bottom += memoryTable.offsetHeight;
+  }
+  return bottom + getFloatingOffsetContext(themeId).offset;
+}
+
+function updateFloatingIndicatorPosition(
+  indicator = document.getElementById("typing_indicator"),
+) {
+  if (!indicator?.classList.contains("typing_indicator_floating")) return;
+  // A stateful or cached indicator may differ from the global selection.
+  indicator.style.bottom = `${getFloatingIndicatorBottom(indicator.dataset.themeId)}px`;
+}
+
+function updateFloatingOffsetUI() {
+  const controls = document.getElementById("ti_floating_bottom_controls");
+  if (!controls) return;
+  const settings = getSettings();
+  const context = getFloatingOffsetContext(undefined, settings);
+  const input = controls.querySelector("#ti_floating_bottom_offset");
+  const checkbox = controls.querySelector("#ti_floating_offset_enabled");
+  const label = controls.querySelector("#ti_floating_offset_label");
+  const pairing = controls.querySelector("#ti_floating_offset_pairing");
+  if (!input || !checkbox || !label || !pairing) return;
+
+  controls.style.display = settings.position === "floating_bottom" ? "block" : "none";
+  controls.dataset.pairKey = context.key || "";
+  controls.dataset.specificEnabled = String(context.bound);
+  checkbox.checked = context.bound;
+  checkbox.disabled = !context.key;
+  input.value = context.offset;
+  label.textContent = context.bound ? t`Dedicated Offset` : t`Default Offset`;
+  pairing.textContent = context.bound && context.key
+    ? `${context.uiThemeName} × ${context.themeName}`
+    : "";
+  pairing.title = pairing.textContent;
+  pairing.hidden = !context.bound;
+}
+
+function syncFloatingIndicatorLayout() {
+  updateFloatingIndicatorPosition();
+  updateFloatingOffsetUI();
+}
+
+function setupFloatingOffsetControls(section) {
+  const controls = section.querySelector("#ti_floating_bottom_controls");
+  if (!controls) return;
+  const input = controls.querySelector("#ti_floating_bottom_offset");
+  const checkbox = controls.querySelector("#ti_floating_offset_enabled");
+  if (!input || !checkbox) return;
+
+  const isCurrentView = (context) =>
+    (context.key || "") === controls.dataset.pairKey &&
+    String(context.bound) === controls.dataset.specificEnabled;
+  const saveInput = (commit) => {
+    const settings = getSettings();
+    const context = getFloatingOffsetContext(undefined, settings);
+    // Reject a stale view rather than editing the wrong pairing or scope.
+    if (!isCurrentView(context)) {
+      updateFloatingOffsetUI();
+      return;
+    }
+    if (!Number.isFinite(input.valueAsNumber)) {
+      if (commit) updateFloatingOffsetUI();
+      return;
+    }
+    const offset = normalizeFloatingOffset(input.valueAsNumber);
+    if (context.bound) {
+      setFloatingOffset(settings, context.uiThemeName, context.themeId, offset);
+    } else {
+      settings.floatingBottomOffset = offset;
+    }
+    saveSettingsDebounced();
+    // Position-only edits must not recreate a running iframe or its preview.
+    updateFloatingIndicatorPosition();
+    if (commit) updateFloatingOffsetUI();
+  };
+  input.addEventListener("input", () => saveInput(false));
+  input.addEventListener("change", () => saveInput(true));
+  checkbox.addEventListener("change", () => {
+    const settings = getSettings();
+    const context = getFloatingOffsetContext(undefined, settings);
+    if (!context.key || !isCurrentView(context)) {
+      updateFloatingOffsetUI();
+      return;
+    }
+    if (setFloatingOffsetEnabled(settings, context.uiThemeName, context.themeId, checkbox.checked)) {
+      saveSettingsDebounced();
+    }
+    syncFloatingIndicatorLayout();
+  });
+  updateFloatingOffsetUI();
+}
+
 // ==================== 浮动指示器自动跟随输入框 ====================
 
 let _floatingIndicatorResizeObserver = null;
 let _floatingIndicatorWatcherSetup = false;
 
+function syncUiThemeForFloatingOffset() {
+  const uiThemeName = power_user.theme || null;
+  if (_lastSeenBindingTheme === uiThemeName) return;
+  if (!uiThemeName) {
+    _lastSeenBindingTheme = null;
+    syncFloatingIndicatorLayout();
+    return;
+  }
+  handleMainThemeChange();
+  handleThemeBindingChange();
+}
+
 function setupFloatingIndicatorAutoAdjust() {
   if (_floatingIndicatorWatcherSetup) return;
   _floatingIndicatorWatcherSetup = true;
 
-  const updatePosition = () => {
-    const indicator = document.getElementById("typing_indicator");
-    if (!indicator) return;
-    if (!indicator.classList.contains("typing_indicator_floating")) return;
-
-    const settings = getSettings();
-    const sendForm = document.getElementById("send_form");
-    const memoryTable = document.getElementById("tableStatusContainer");
-    let bottomOffset = 5; /* 基础间距，可自定义 */
-    if (sendForm) bottomOffset += sendForm.offsetHeight;
-    if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
-      bottomOffset += memoryTable.offsetHeight;
-    }
-    bottomOffset += settings.floatingBottomOffset || 0;
-    indicator.style.bottom = `${bottomOffset}px`;
-  };
+  // Same-looking ST presets can change names without a class/style mutation.
+  document.addEventListener("change", (event) => {
+    if (event.target?.id === "themes") queueMicrotask(syncUiThemeForFloatingOffset);
+  });
+  // Also catch /theme and theme creation/renaming after ST saves its settings.
+  eventSource.on(event_types.SETTINGS_UPDATED, syncUiThemeForFloatingOffset);
 
   const attachSendFormObserver = () => {
     const sendForm = document.getElementById("send_form");
@@ -5314,7 +5441,7 @@ function setupFloatingIndicatorAutoAdjust() {
     _posUpdateScheduled = true;
     requestAnimationFrame(() => {
       _posUpdateScheduled = false;
-      updatePosition();
+      updateFloatingIndicatorPosition();
     });
   };
 
@@ -5396,6 +5523,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
           );
         } catch (e) {}
       }
+      syncFloatingIndicatorLayout();
       debugLog(`[TI] ✓ 复用缓存的指示器: ${themeId}`);
       _hiddenIndicator = null;
       isRendering = false;
@@ -5466,7 +5594,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
 
     let typingIndicator = document.createElement("div");
     typingIndicator.id = "typing_indicator";
-    typingIndicator.dataset.themeId = themeId;
+    typingIndicator.dataset.themeId = currentTheme.id;
     typingIndicator.classList.add("typing_indicator");
 
     if (!currentTheme.useIframe) {
@@ -5524,15 +5652,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
     switch (position) {
       case "floating_bottom":
         typingIndicator.classList.add("typing_indicator_floating");
-        const sendForm = document.getElementById("send_form");
-        const memoryTable = document.getElementById("tableStatusContainer");
-        let bottomOffset = 5;
-        if (sendForm) bottomOffset += sendForm.offsetHeight;
-        if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
-          bottomOffset += memoryTable.offsetHeight;
-        }
-        bottomOffset += settings.floatingBottomOffset || 0;
-        typingIndicator.style.bottom = `${bottomOffset}px`;
+        typingIndicator.style.bottom = `${getFloatingIndicatorBottom(currentTheme.id)}px`;
         typingIndicator.style.position = "fixed";
         parentContainer = document.body;
         break;
@@ -5620,6 +5740,7 @@ function showTypingIndicator(type, _args, dryRun, overrideThemeId) {
     }
     applyThemeToIndicator(currentTheme, typingIndicator);
     syncIndicatorInteractivity();
+    syncFloatingIndicatorLayout();
     isRendering = false;
   } catch (e) {
     console.error("[TI] showTypingIndicator 异常:", e);
@@ -6840,6 +6961,7 @@ async function handlePersistentModeUpdate(source) {
 }
 
 function refreshLiveIndicators(source = "unknown") {
+  syncFloatingIndicatorLayout();
   debugLog(`[TI] 刷新请求来源: ${source}`);
   const indicator = document.getElementById("typing_indicator");
 
@@ -6891,19 +7013,12 @@ function refreshIndicatorContent(indicator) {
   );
 
   indicator.dataset.themeId = themeId;
+  updateFloatingOffsetUI();
 
   const positionStyles = {
     floating_bottom: () => {
       indicator.classList.add("typing_indicator_floating");
-      const sendForm = document.getElementById("send_form");
-      const memoryTable = document.getElementById("tableStatusContainer");
-      let bottomOffset = 5;
-      if (sendForm) bottomOffset += sendForm.offsetHeight;
-      if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
-        bottomOffset += memoryTable.offsetHeight;
-      }
-      bottomOffset += settings.floatingBottomOffset || 0;
-      indicator.style.bottom = `${bottomOffset}px`;
+      indicator.style.bottom = `${getFloatingIndicatorBottom(theme.id)}px`;
       indicator.style.position = "fixed";
     },
     chat_center: () => {
@@ -7078,6 +7193,7 @@ function revertDynamicTheme(source = "unknown") {
   } else {
     hideTypingIndicator();
   }
+  syncFloatingIndicatorLayout();
 }
 
 function scheduleDynamicThemeRevert() {
@@ -8191,16 +8307,19 @@ function addExtensionSettings() {
                                 <button id="ti_test_position" class="menu_button fa-solid fa-crosshairs" title="${t`Test Display`}" style="display: none; padding: 4px 10px; min-width: unset;"></button>
                             </h4>
                             <div style="display: flex; align-items: center; gap: 10px;"><select id="ti_position" class="text_pole" style="flex-grow: 1;"></select></div>
-                            <div id="ti_floating_bottom_controls" style="display: ${
+                            <div id="ti_floating_bottom_controls" class="ti-floating-offset-controls" style="display: ${
                               settings.position === "floating_bottom"
                                 ? "block"
                                 : "none"
-                            }; margin-top: 10px;">
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label for="ti_floating_bottom_offset" style="white-space: nowrap;">${t`Extra Offset (px)`}:</label>
-                                    <input type="number" id="ti_floating_bottom_offset" class="text_pole" value="${settings.floatingBottomOffset || 0}" style="width: 80px;" min="-500" max="500">
+                            };">
+                                <label class="checkbox_label ti-floating-offset-toggle"><input type="checkbox" id="ti_floating_offset_enabled"><span>${t`Enable Dedicated Offset`}</span></label>
+                                <div class="ti-floating-offset-row">
+                                    <label id="ti_floating_offset_label" for="ti_floating_bottom_offset">${t`Default Offset`}</label>
+                                    <input type="number" id="ti_floating_bottom_offset" class="text_pole" value="${normalizeFloatingOffset(settings.floatingBottomOffset)}" min="-500" max="500" step="1" aria-describedby="ti_floating_offset_pairing ti_floating_offset_hint">
+                                    <span class="ti-floating-offset-unit">px</span>
                                 </div>
-                                <small style="opacity: 0.7;">${t`Positive = move up, Negative = move down`}</small>
+                                <small id="ti_floating_offset_pairing" class="ti-floating-offset-pairing" aria-label="${t`Current Pairing`}" hidden></small>
+                                <small id="ti_floating_offset_hint" class="ti-floating-offset-hint">${t`Positive = move up, Negative = move down`}</small>
                             </div>
                             <div id="ti_draggable_controls" style="display: ${
                               settings.position === "draggable"
@@ -8240,7 +8359,7 @@ function addExtensionSettings() {
         <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
         <div class="ti-more-dropdown">
             <button id="ti_preset_rename" class="menu_button" title="${t`Rename Preset`}">
-                <i class="fa-solid fa-pencil"></i>
+                <i class="fa-solid fa-pen"></i>
                 <span>${t`Rename`}</span>
             </button>
             <button id="ti_preset_del" class="menu_button" title="${t`Delete Preset`}">
@@ -8285,7 +8404,7 @@ function addExtensionSettings() {
         <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
         <div class="ti-more-dropdown">
             <button id="ti_theme_rename" class="menu_button" title="${t`Rename Theme`}">
-                <i class="fa-solid fa-pencil"></i>
+                <i class="fa-solid fa-pen"></i>
                 <span>${t`Rename`}</span>
             </button>
             <button id="ti_theme_del" class="menu_button" title="${t`Delete Theme`}">
@@ -8435,7 +8554,7 @@ function addExtensionSettings() {
         <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
         <div class="ti-more-dropdown">
     <button id="ti_player_theme_rename" class="menu_button" title="${t`Rename Theme`}">
-        <i class="fa-solid fa-pencil"></i>
+        <i class="fa-solid fa-pen"></i>
         <span>${t`Rename`}</span>
     </button>
     <button id="ti_player_theme_del" class="menu_button" title="${t`Delete Theme`}">
@@ -8579,7 +8698,7 @@ function addExtensionSettings() {
         <button class="menu_button fa-solid fa-ellipsis ti-more-toggle" title="${t`More`}"></button>
         <div class="ti-more-dropdown">
             <button id="ti_bubble_rename" class="menu_button" title="${t`Rename Style`}">
-                <i class="fa-solid fa-pencil"></i>
+                <i class="fa-solid fa-pen"></i>
                 <span>${t`Rename`}</span>
             </button>
             <button id="ti_bubble_del" class="menu_button" title="${t`Delete Style`}">
@@ -8691,7 +8810,7 @@ function addExtensionSettings() {
                                             <span>${t`Update from Source`}</span>
                                         </button>
                                         <button id="ti_playlist_rename" class="menu_button" title="${t`Rename`}">
-                                            <i class="fa-solid fa-pencil"></i>
+                                            <i class="fa-solid fa-pen"></i>
                                             <span>${t`Rename`}</span>
                                         </button>
                                         <button id="ti_playlist_delete" class="menu_button" title="${t`Delete`}">
@@ -9243,28 +9362,7 @@ function addExtensionSettings() {
       syncIndicatorInteractivity();
     });
 
-    const floatingOffsetInput = section.querySelector(
-      "#ti_floating_bottom_offset",
-    );
-    if (floatingOffsetInput) {
-      floatingOffsetInput.addEventListener("input", (e) => {
-        settings.floatingBottomOffset = parseInt(e.target.value) || 0;
-        saveSettingsDebounced();
-        const indicator = document.getElementById("typing_indicator");
-        if (indicator && settings.position === "floating_bottom") {
-          const sendForm = document.getElementById("send_form");
-          const memoryTable = document.getElementById("tableStatusContainer");
-          let bottomOffset = 5;
-          if (sendForm) bottomOffset += sendForm.offsetHeight;
-          if (memoryTable && getComputedStyle(memoryTable).display !== "none") {
-            bottomOffset += memoryTable.offsetHeight;
-          }
-          bottomOffset += settings.floatingBottomOffset || 0;
-          indicator.style.bottom = `${bottomOffset}px`;
-        }
-        refreshLiveIndicators("floating_offset_change");
-      });
-    }
+    setupFloatingOffsetControls(section);
     const testPositionBtn = section.querySelector("#ti_test_position");
     const updateTestPositionBtnVisibility = () => {
       if (!testPositionBtn) return;
@@ -13531,6 +13629,7 @@ function addExtensionSettings() {
       || indicatorThemes[0];
     tiThemeSelect.value = selectedTheme?.id || "";
     if (reloadEditor) queueThemeEditorLoad(selectedTheme);
+    updateFloatingOffsetUI();
   }
 
   function populatePlayerThemes(reloadEditor = true) {
@@ -14155,6 +14254,7 @@ function addExtensionSettings() {
         settings.themes = settings.themes.filter(
           (th) => th.id !== themeToDelete.id,
         );
+        removeFloatingOffsetsForTheme(settings, themeToDelete.id);
         settings.selectedThemeId = "default";
         populateThemes();
         applyTheme("default");
@@ -14604,6 +14704,7 @@ function addExtensionSettings() {
           settings.themes = settings.themes.filter(
             (th) => th.id !== themeToDelete.id,
           );
+          removeFloatingOffsetsForTheme(settings, themeToDelete.id);
           const remainingPlayerThemes = settings.themes.filter(
             (t) => t.name.startsWith("播放器") || t.name.startsWith("Player"),
           );
@@ -14804,11 +14905,13 @@ function initializeObservers() {
     bodyClassObserver.disconnect();
   }
   setupFloatingIndicatorAutoAdjust();
+  if (_lastSeenBindingTheme === null) _lastSeenBindingTheme = power_user.theme || null;
   bodyClassObserver = new MutationObserver((mutationsList) => {
     for (const mutation of mutationsList) {
       if (
         mutation.type === "attributes" &&
-        mutation.attributeName === "class"
+        (mutation.attributeName === "class" ||
+          (mutation.target === document.documentElement && mutation.attributeName === "style"))
       ) {
         setTimeout(() => handleMainThemeChange(), 100);
         setTimeout(() => handleThemeBindingChange(), 120);
@@ -14823,6 +14926,10 @@ function initializeObservers() {
     }
   });
   bodyClassObserver.observe(document.body, { attributes: true });
+  bodyClassObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["style"],
+  });
 
   startIndicatorWatchdog();
 

@@ -122,6 +122,57 @@
     padding-left: 4px;
 }
 
+/* One offset editor; the native checkbox selects default or dedicated scope. */
+.ti-floating-offset-controls {
+    margin-top: 10px;
+}
+
+.ti-floating-offset-toggle {
+    align-items: center;
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+
+.ti-floating-offset-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 80px auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.ti-floating-offset-row > label {
+    min-width: 0;
+}
+
+.ti-floating-offset-row .text_pole {
+    width: 80px;
+    min-width: 0;
+}
+
+.ti-floating-offset-pairing {
+    display: block;
+    min-width: 0;
+    margin: 0 0 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.7;
+}
+
+.ti-floating-offset-unit,
+.ti-floating-offset-hint {
+    opacity: 0.7;
+}
+
+.ti-floating-offset-hint {
+    display: block;
+    margin-top: 4px;
+}
+
+.ti-floating-offset-controls [hidden] {
+    display: none !important;
+}
+
 .ti-card {
     background-color: rgba(var(--background-color-secondary-rgb), 0.3);
     border: 1px solid rgba(255, 255, 255, 0.18);
